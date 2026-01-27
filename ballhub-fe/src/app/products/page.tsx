@@ -1,5 +1,7 @@
 'use client';
 
+import Breadcrumb from "@/components/ui/Breadcrumb";
+import { ProductCardSkeleton } from "@/components/sections/ProductCardSkeleton";
 import { useEffect, useState } from "react";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
@@ -29,7 +31,7 @@ export default function ProductsPage() {
     // ================= FETCH =================
     const fetchProducts = async (pageIndex: number) => {
         try {
-            setLoading(true);
+            setLoading(true); // ❗ KHÔNG setProducts([])
 
             const params = new URLSearchParams();
             params.append("page", String(pageIndex));
@@ -93,6 +95,25 @@ export default function ProductsPage() {
         setBrands([]);
         setPrice([0, 10000000]);
         setUsePriceFilter(false);
+        setPage(0);
+        setApplyKey(k => k + 1);
+    };
+
+    const removeFilter = (type: "category" | "size" | "brand" | "price", value?: string) => {
+        if (type === "category" && value)
+            setCategories(prev => prev.filter(i => i !== value));
+
+        if (type === "size" && value)
+            setSizes(prev => prev.filter(i => i !== value));
+
+        if (type === "brand" && value)
+            setBrands(prev => prev.filter(i => i !== value));
+
+        if (type === "price") {
+            setPrice([0, 10000000]);
+            setUsePriceFilter(false);
+        }
+
         setPage(0);
         setApplyKey(k => k + 1);
     };
@@ -246,10 +267,69 @@ export default function ProductsPage() {
                 </aside>
 
                 {/* ================= PRODUCT LIST ================= */}
-                <section className="lg:col-span-3">
+                <section className="lg:col-span-3 relative">
+
+                    {/* BREADCRUMB */}
+                    <Breadcrumb
+                        items={[
+                            { label: "Trang chủ", href: "/" },
+                            { label: "Danh sách sản phẩm" }
+                        ]}
+                    />
+
+                    {/* ACTIVE FILTER TAG */}
+                    {(categories.length > 0 || sizes.length > 0 || brands.length > 0 || usePriceFilter) && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+
+                            {categories.map(c => (
+                                <span key={c} className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-sm flex items-center gap-2">
+                                    {c}
+                                    <button onClick={() => removeFilter("category", c)}>✕</button>
+                                </span>
+                            ))}
+
+                            {sizes.map(s => (
+                                <span key={s} className="px-3 py-1 bg-green-50 text-green-600 rounded-full text-sm flex items-center gap-2">
+                                    Size {s}
+                                    <button onClick={() => removeFilter("size", s)}>✕</button>
+                                </span>
+                            ))}
+
+                            {brands.map(b => (
+                                <span key={b} className="px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-sm flex items-center gap-2">
+                                    {b}
+                                    <button onClick={() => removeFilter("brand", b)}>✕</button>
+                                </span>
+                            ))}
+
+                            {usePriceFilter && (
+                                <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-sm flex items-center gap-2">
+                                    ≤ {price[1].toLocaleString()}đ
+                                    <button onClick={() => removeFilter("price")}>✕</button>
+                                </span>
+                            )}
+
+                        </div>
+                    )}
+
+                    {loading && (
+                        <div className="absolute inset-0 bg-white/70 backdrop-blur-sm 
+                    flex items-center justify-center z-20 rounded-xl">
+                            <div className="text-blue-600 font-semibold animate-pulse text-lg">
+                                Đang tải sản phẩm...
+                            </div>
+                        </div>
+                    )}
 
                     <div className="flex items-center justify-between mb-6">
-                        <h1 className="text-2xl font-bold">Tất cả sản phẩm</h1>
+                        <h1 className="text-2xl font-bold">
+                            Tất cả sản phẩm
+                            {!loading && (
+                                <span className="text-gray-500 text-sm font-normal ml-2">
+                                    ({products.length} sản phẩm)
+                                </span>
+                            )}
+                        </h1>
 
                         <select
                             value={sort}
@@ -266,14 +346,33 @@ export default function ProductsPage() {
                     </div>
 
                     {loading ? (
-                        <div className="text-center py-20 font-semibold">
-                            Đang tải sản phẩm...
+
+                        // ===== SKELETON =====
+                        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                            {Array.from({ length: 12 }).map((_, i) => (
+                                <ProductCardSkeleton key={i} />
+                            ))}
                         </div>
+
                     ) : products.length === 0 ? (
-                        <div className="text-center py-20 font-semibold text-gray-500">
-                            Không có sản phẩm phù hợp
+
+                        // ===== EMPTY =====
+                        <div className="text-center py-24">
+                            <p className="text-lg font-semibold">😢 Không tìm thấy sản phẩm phù hợp</p>
+                            <p className="text-sm text-gray-500 mt-1">
+                                Thử xoá bớt bộ lọc hoặc đổi khoảng giá
+                            </p>
+
+                            <button
+                                onClick={clearFilter}
+                                className="mt-4 px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                            >
+                                Xóa toàn bộ bộ lọc
+                            </button>
                         </div>
+
                     ) : (
+                        // ===== HAS DATA =====
                         <>
                             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                                 {products.map(product => (
