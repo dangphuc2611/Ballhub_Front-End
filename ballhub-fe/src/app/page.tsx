@@ -35,7 +35,7 @@ export default function Home() {
 
       {/* Promo Banner */}
       <PromoBanner
-        badge="Ưu Đãi Có Hạn"
+        badge="Ưu đãi cỏ hạt"
         title="ƯU ĐÃI HÈ RỰC RỠ"
         description="Áp dụng đến hạng 30/9/2024"
         discount="30%"
