@@ -17,7 +17,47 @@ export interface ApiProduct {
   createdAt: string;
 }
 
-export async function getProducts() {
-  const res = await axios.get(`${API_URL}/products`);
+/* =======================
+   GET ALL PRODUCTS
+======================= */
+export async function getProducts(page = 0, size = 12) {
+  const res = await axios.get(`${API_URL}/products`, {
+    params: { page, size },
+  });
+
+  return res.data.data.content as ApiProduct[];
+}
+
+/* =======================
+   FILTER PRODUCTS
+======================= */
+
+export interface ProductFilterParams {
+  categories?: string[];
+  teams?: string[];
+  sizes?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  page?: number;
+  size?: number;
+}
+
+export async function filterProducts(params: ProductFilterParams) {
+  const res = await axios.get(`${API_URL}/products/filter`, {
+    params: {
+      categories: params.categories,
+      teams: params.teams,
+      sizes: params.sizes,
+      minPrice: params.minPrice,
+      maxPrice: params.maxPrice,
+      page: params.page ?? 0,
+      size: params.size ?? 12,
+    },
+    paramsSerializer: {
+      indexes: null, 
+      // để axios gửi dạng: categories=A&categories=B
+    },
+  });
+
   return res.data.data.content as ApiProduct[];
 }
