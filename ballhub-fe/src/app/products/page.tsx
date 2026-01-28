@@ -1,6 +1,6 @@
 'use client';
 
-// import Breadcrumb from "@/components/ui/Breadcrumb";
+import Breadcrumb from "@/components/ui/Breadcrumb";
 import { ProductCardSkeleton } from "@/components/sections/ProductCardSkeleton";
 import { useEffect, useState } from "react";
 import { Header } from "@/components/sections/Header";

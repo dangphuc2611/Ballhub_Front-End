@@ -75,7 +75,7 @@ export default function Home() {
       />
 
       <PromoBanner
-        badge="Ưu đãi cỏ hạt"
+        badge="Ưu Đãi Có Hạn"
         title="ƯU ĐÃI HÈ RỰC RỠ"
         description="Áp dụng đến hết 30/9/2024"
         discount="30%"
