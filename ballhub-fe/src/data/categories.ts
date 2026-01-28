@@ -43,3 +43,4 @@ export const menuItems: MenuItem[] = [
   { label: 'Khuyến mãi', href: '/promotions' },
   { label: 'Liên hệ', href: '/contact' }
 ];
+

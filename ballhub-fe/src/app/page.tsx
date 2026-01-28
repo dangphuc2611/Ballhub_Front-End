@@ -6,6 +6,7 @@ import { PromoBanner } from "@/components/sections/PromoBanner";
 import { Footer } from "@/components/sections/Footer";
 import { categories } from "@/data/categories";
 import { newProducts, bestsellingProducts } from "@/data/products";
+import AuthForm from "@/components/auth/AuthForm";
 
 export default function Home() {
   return (
@@ -55,3 +56,4 @@ export default function Home() {
     </main>
   );
 }
+
