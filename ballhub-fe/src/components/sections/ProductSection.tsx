@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { ProductCard } from './ProductCard';
 import type { Product } from '@/data/products';
+import ProductSlider from './ProductSlider';
 
 interface ProductSectionProps {
   title: string;
@@ -15,9 +15,13 @@ export function ProductSection({
   viewAllHref = '#',
   featured = false
 }: ProductSectionProps) {
+
+  const homeProducts = products.slice(0, 8); // ✅ chỉ lấy 8
+
   return (
     <section className="py-12 md:py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
@@ -27,25 +31,16 @@ export function ProductSection({
             href={viewAllHref}
             className="text-blue-600 hover:text-blue-700 font-semibold text-sm md:text-base inline-flex items-center gap-2"
           >
-            Xem tất cả
-            <span>→</span>
+            Xem tất cả <span>→</span>
           </Link>
         </div>
 
-        {/* Products Grid */}
-        <div className={`grid gap-4 md:gap-6 ${
-          featured
-            ? 'grid-cols-2 md:grid-cols-4'
-            : 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-4'
-        }`}>
-          {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              variant={featured ? 'featured' : 'default'}
-            />
-          ))}
-        </div>
+        {/* Slider */}
+        <ProductSlider
+          products={homeProducts}
+          featured={featured}
+        />
+
       </div>
     </section>
   );
