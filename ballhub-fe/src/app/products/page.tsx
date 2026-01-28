@@ -31,7 +31,7 @@ export default function ProductsPage() {
     // ================= FETCH =================
     const fetchProducts = async (pageIndex: number) => {
         try {
-            setLoading(true); // ❗ KHÔNG setProducts([])
+            setLoading(true);
 
             const params = new URLSearchParams();
             params.append("page", String(pageIndex));
@@ -75,6 +75,7 @@ export default function ProductsPage() {
 
     useEffect(() => {
         fetchProducts(page);
+        window.scrollTo({ top: 0, behavior: "smooth" });
     }, [page, applyKey, sort]);
 
     // ================= ACTION =================
@@ -128,11 +129,11 @@ export default function ProductsPage() {
                 {/* ================= SIDEBAR ================= */}
                 <aside className="bg-white rounded-2xl shadow p-6 h-fit sticky top-24 space-y-8">
 
-                    {/* CATEGORY TREE */}
+                    {/* CATEGORY */}
                     <div>
                         <h2 className="font-bold text-lg mb-3">Danh mục</h2>
 
-                        <div className="space-y-3">
+                        <div className="space-y-4">
 
                             <div>
                                 <p className="font-semibold text-sm mb-2">Áo đấu</p>
@@ -189,7 +190,6 @@ export default function ProductsPage() {
                     {/* SIZE */}
                     <div className="space-y-5">
 
-                        {/* SIZE ÁO */}
                         <div>
                             <h2 className="font-bold text-lg mb-3">Size áo</h2>
                             <div className="flex flex-wrap gap-2">
@@ -198,7 +198,7 @@ export default function ProductsPage() {
                                         key={size}
                                         onClick={() => toggleItem(size, sizes, setSizes)}
                                         className={`px-3 py-1 rounded-lg border text-sm transition
-                                                ${sizes.includes(size)
+                      ${sizes.includes(size)
                                                 ? "bg-blue-600 text-white border-blue-600"
                                                 : "hover:border-blue-500 hover:text-blue-600"
                                             }`}
@@ -209,7 +209,6 @@ export default function ProductsPage() {
                             </div>
                         </div>
 
-                        {/* SIZE GIÀY */}
                         <div>
                             <h2 className="font-bold text-lg mb-3">Kích cỡ giày</h2>
                             <div className="flex flex-wrap gap-2">
@@ -218,7 +217,7 @@ export default function ProductsPage() {
                                         key={size}
                                         onClick={() => toggleItem(size, sizes, setSizes)}
                                         className={`px-3 py-1 rounded-lg border text-sm transition
-                                                ${sizes.includes(size)
+                      ${sizes.includes(size)
                                                 ? "bg-blue-600 text-white border-blue-600"
                                                 : "hover:border-blue-500 hover:text-blue-600"
                                             }`}
@@ -230,7 +229,6 @@ export default function ProductsPage() {
                         </div>
 
                     </div>
-
 
                     {/* BRAND */}
                     <div>
@@ -269,59 +267,15 @@ export default function ProductsPage() {
                 {/* ================= PRODUCT LIST ================= */}
                 <section className="lg:col-span-3 relative">
 
-                    {/* BREADCRUMB */}
-                    {/* <Breadcrumb
+                    <Breadcrumb
                         items={[
                             { label: "Trang chủ", href: "/" },
                             { label: "Danh sách sản phẩm" }
                         ]}
-                    /> */}
+                    />
 
-                    {/* ACTIVE FILTER TAG */}
-                    {(categories.length > 0 || sizes.length > 0 || brands.length > 0 || usePriceFilter) && (
-                        <div className="flex flex-wrap gap-2 mb-4">
-
-                            {categories.map(c => (
-                                <span key={c} className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-sm flex items-center gap-2">
-                                    {c}
-                                    <button onClick={() => removeFilter("category", c)}>✕</button>
-                                </span>
-                            ))}
-
-                            {sizes.map(s => (
-                                <span key={s} className="px-3 py-1 bg-green-50 text-green-600 rounded-full text-sm flex items-center gap-2">
-                                    Size {s}
-                                    <button onClick={() => removeFilter("size", s)}>✕</button>
-                                </span>
-                            ))}
-
-                            {brands.map(b => (
-                                <span key={b} className="px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-sm flex items-center gap-2">
-                                    {b}
-                                    <button onClick={() => removeFilter("brand", b)}>✕</button>
-                                </span>
-                            ))}
-
-                            {usePriceFilter && (
-                                <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-sm flex items-center gap-2">
-                                    ≤ {price[1].toLocaleString()}đ
-                                    <button onClick={() => removeFilter("price")}>✕</button>
-                                </span>
-                            )}
-
-                        </div>
-                    )}
-
-                    {loading && (
-                        <div className="absolute inset-0 bg-white/70 backdrop-blur-sm 
-                    flex items-center justify-center z-20 rounded-xl">
-                            <div className="text-blue-600 font-semibold animate-pulse text-lg">
-                                Đang tải sản phẩm...
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flex items-center justify-between mb-6">
+                    {/* ===== TITLE + SORT BAR ===== */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                         <h1 className="text-2xl font-bold">
                             Tất cả sản phẩm
                             {!loading && (
@@ -331,38 +285,62 @@ export default function ProductsPage() {
                             )}
                         </h1>
 
-                        <select
-                            value={sort}
-                            onChange={(e) => {
-                                setSort(e.target.value as any);
-                                setPage(0);
-                            }}
-                            className="border rounded-lg px-3 py-2 text-sm"
-                        >
-                            <option value="new">Mới nhất</option>
-                            <option value="price_asc">Giá tăng dần</option>
-                            <option value="price_desc">Giá giảm dần</option>
-                        </select>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-500">Sắp xếp theo:</span>
+
+                            <select
+                                value={sort}
+                                onChange={(e) => {
+                                    setSort(e.target.value as any);
+                                    setPage(0);
+                                }}
+                                className="border rounded-lg px-3 py-2 text-sm bg-white 
+                 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="new">Mới nhất</option>
+                                <option value="price_asc">Giá tăng dần</option>
+                                <option value="price_desc">Giá giảm dần</option>
+                            </select>
+                        </div>
                     </div>
 
-                    {loading ? (
 
-                        // ===== SKELETON =====
+                    {/* ACTIVE FILTER */}
+                    {(categories.length > 0 || sizes.length > 0 || brands.length > 0 || usePriceFilter) && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            {categories.map(c => (
+                                <span key={c} className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-sm flex items-center gap-2">
+                                    {c} <button onClick={() => removeFilter("category", c)}>✕</button>
+                                </span>
+                            ))}
+                            {sizes.map(s => (
+                                <span key={s} className="px-3 py-1 bg-green-50 text-green-600 rounded-full text-sm flex items-center gap-2">
+                                    Size {s} <button onClick={() => removeFilter("size", s)}>✕</button>
+                                </span>
+                            ))}
+                            {brands.map(b => (
+                                <span key={b} className="px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-sm flex items-center gap-2">
+                                    {b} <button onClick={() => removeFilter("brand", b)}>✕</button>
+                                </span>
+                            ))}
+                            {usePriceFilter && (
+                                <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-sm flex items-center gap-2">
+                                    ≤ {price[1].toLocaleString()}đ <button onClick={() => removeFilter("price")}>✕</button>
+                                </span>
+                            )}
+                        </div>
+                    )}
+
+                    {/* GRID */}
+                    {loading ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                             {Array.from({ length: 12 }).map((_, i) => (
                                 <ProductCardSkeleton key={i} />
                             ))}
                         </div>
-
                     ) : products.length === 0 ? (
-
-                        // ===== EMPTY =====
                         <div className="text-center py-24">
                             <p className="text-lg font-semibold">😢 Không tìm thấy sản phẩm phù hợp</p>
-                            <p className="text-sm text-gray-500 mt-1">
-                                Thử xoá bớt bộ lọc hoặc đổi khoảng giá
-                            </p>
-
                             <button
                                 onClick={clearFilter}
                                 className="mt-4 px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -370,9 +348,7 @@ export default function ProductsPage() {
                                 Xóa toàn bộ bộ lọc
                             </button>
                         </div>
-
                     ) : (
-                        // ===== HAS DATA =====
                         <>
                             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                                 {products.map(product => (
@@ -381,53 +357,37 @@ export default function ProductsPage() {
                             </div>
 
                             {/* PAGINATION */}
-                            {/* PAGINATION */}
                             <div className="flex justify-center items-center mt-12 gap-2 flex-wrap">
-
-                                {/* PREVIOUS */}
                                 <button
                                     disabled={page === 0}
                                     onClick={() => setPage(p => p - 1)}
-                                    className={`px-3 py-2 rounded-lg border text-sm font-medium transition
-                                            ${page === 0
-                                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                            : "hover:bg-blue-600 hover:text-white hover:border-blue-600"
-                                        }`}
+                                    className="px-3 py-2 rounded-lg border text-sm hover:bg-blue-600 hover:text-white disabled:opacity-40"
                                 >
                                     ← Trước
                                 </button>
 
-                                {/* PAGE NUMBER */}
                                 {[...Array(totalPages)].map((_, i) => (
                                     <button
                                         key={i}
                                         onClick={() => setPage(i)}
-                                        className={`w-9 h-9 rounded-lg border text-sm font-semibold transition
-                                                ${page === i
-                                                ? "bg-blue-600 text-white border-blue-600"
-                                                : "hover:bg-blue-50 hover:border-blue-400"
-                                            }`}
+                                        className={`w-9 h-9 rounded-lg border text-sm font-semibold
+                      ${page === i ? "bg-blue-600 text-white border-blue-600" : "hover:bg-blue-50"}`}
                                     >
                                         {i + 1}
                                     </button>
                                 ))}
 
-                                {/* NEXT */}
                                 <button
                                     disabled={page === totalPages - 1 || totalPages === 0}
                                     onClick={() => setPage(p => p + 1)}
-                                    className={`px-3 py-2 rounded-lg border text-sm font-medium transition
-                                            ${(page === totalPages - 1 || totalPages === 0)
-                                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                            : "hover:bg-blue-600 hover:text-white hover:border-blue-600"
-                                        }`}
+                                    className="px-3 py-2 rounded-lg border text-sm hover:bg-blue-600 hover:text-white disabled:opacity-40"
                                 >
                                     Sau →
                                 </button>
-
                             </div>
                         </>
                     )}
+
                 </section>
             </div>
 
