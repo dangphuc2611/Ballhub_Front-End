@@ -1,6 +1,6 @@
 'use client';
 
-import Breadcrumb from "@/components/ui/Breadcrumb";
+// import Breadcrumb from "@/components/ui/Breadcrumb";
 import { ProductCardSkeleton } from "@/components/sections/ProductCardSkeleton";
 import { useEffect, useState } from "react";
 import { Header } from "@/components/sections/Header";
@@ -270,12 +270,12 @@ export default function ProductsPage() {
                 <section className="lg:col-span-3 relative">
 
                     {/* BREADCRUMB */}
-                    <Breadcrumb
+                    {/* <Breadcrumb
                         items={[
                             { label: "Trang chủ", href: "/" },
                             { label: "Danh sách sản phẩm" }
                         ]}
-                    />
+                    /> */}
 
                     {/* ACTIVE FILTER TAG */}
                     {(categories.length > 0 || sizes.length > 0 || brands.length > 0 || usePriceFilter) && (
