@@ -17,10 +17,10 @@ export function ProductCard({ product, variant = "default" }: ProductCardProps) 
 
   const formattedOriginalPrice = product.originalPrice
     ? new Intl.NumberFormat("vi-VN", {
-        style: "currency",
-        currency: "VND",
-        minimumFractionDigits: 0
-      }).format(product.originalPrice)
+      style: "currency",
+      currency: "VND",
+      minimumFractionDigits: 0
+    }).format(product.originalPrice)
     : null;
 
   const WishlistButton = (
@@ -91,7 +91,8 @@ export function ProductCard({ product, variant = "default" }: ProductCardProps) 
             </Link>
 
             <button
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 console.log("ADD TO CART:", product);
                 alert(`🛒 Đã thêm vào giỏ: ${product.name}`);
               }}

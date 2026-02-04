@@ -149,20 +149,6 @@ export default function ProductsPage() {
                                 ))}
                             </div>
 
-                            <div>
-                                <p className="font-semibold text-sm mb-2">Giày bóng đá</p>
-                                {["Giày sân cỏ nhân tạo"].map(item => (
-                                    <label key={item} className="flex items-center gap-2 text-sm mb-2 cursor-pointer ml-3">
-                                        <input
-                                            type="checkbox"
-                                            checked={categories.includes(item)}
-                                            onChange={() => toggleItem(item, categories, setCategories)}
-                                        />
-                                        {item}
-                                    </label>
-                                ))}
-                            </div>
-
                         </div>
                     </div>
 
@@ -194,25 +180,6 @@ export default function ProductsPage() {
                             <h2 className="font-bold text-lg mb-3">Size áo</h2>
                             <div className="flex flex-wrap gap-2">
                                 {["S", "M", "L", "XL", "XXL"].map(size => (
-                                    <button
-                                        key={size}
-                                        onClick={() => toggleItem(size, sizes, setSizes)}
-                                        className={`px-3 py-1 rounded-lg border text-sm transition
-                      ${sizes.includes(size)
-                                                ? "bg-blue-600 text-white border-blue-600"
-                                                : "hover:border-blue-500 hover:text-blue-600"
-                                            }`}
-                                    >
-                                        {size}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div>
-                            <h2 className="font-bold text-lg mb-3">Kích cỡ giày</h2>
-                            <div className="flex flex-wrap gap-2">
-                                {["39", "40", "41", "42", "43", "44"].map(size => (
                                     <button
                                         key={size}
                                         onClick={() => toggleItem(size, sizes, setSizes)}

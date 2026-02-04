@@ -10,8 +10,6 @@ const nextConfig: NextConfig = {
         pathname: "/img/**",
       },
     ],
-    dangerouslyAllowSVG: true,
-    contentDispositionType: "attachment",
   },
 };
 
