@@ -36,7 +36,7 @@ export default function AuthForm({
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // Chặn reload trang mặc định
+    e.preventDefault();
     setError("");
     setLoading(true);
 
@@ -50,15 +50,20 @@ export default function AuthForm({
 
       if (res.data && res.data.success) {
         const authData = res.data.data;
-        login(authData); 
-        onSuccess?.(authData.user);
+
+        if (mode === "login") {
+          login(authData); 
+          onSuccess?.(authData.user);
+        } else {
+          onSuccess?.(null); 
+        }
+      
       } else {
         setError(res.data?.message || "Thông tin không chính xác");
       }
     } catch (err: any) {
-      // Lấy message từ Backend hoặc dùng mặc định
       const serverMessage = err.response?.data?.message;
-      setError(serverMessage || "Email hoặc mật khẩu không chính xác");
+      setError(serverMessage || "Có lỗi xảy ra, vui lòng thử lại");
     } finally {
       setLoading(false);
     }
@@ -103,7 +108,7 @@ export default function AuthForm({
       />
 
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg animate-bounce">
+        <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg animate-in fade-in zoom-in duration-200">
           {error}
         </div>
       )}

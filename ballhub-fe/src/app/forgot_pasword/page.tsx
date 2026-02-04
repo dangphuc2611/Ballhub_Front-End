@@ -18,10 +18,9 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
     
     try {
-      // Giả lập gọi API Backend
       console.log("Gửi yêu cầu reset cho email:", email);
       
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Demo delay
+      await new Promise(resolve => setTimeout(resolve, 1500)); 
       setIsSent(true);
     } catch (error) {
       alert("Có lỗi xảy ra, vui lòng thử lại sau!");
@@ -50,7 +49,6 @@ export default function ForgotPasswordPage() {
                   <label className="text-sm font-semibold text-gray-700 ml-1">
                     Email tài khoản
                   </label>
-                  {/* Sử dụng input thuần với Tailwind CSS */}
                   <input 
                     required 
                     type="email" 
