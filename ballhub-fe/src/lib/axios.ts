@@ -7,7 +7,7 @@ const api = axios.create({
   },
 });
 
-/* ===== Request: gắn access token ===== */
+/* ===== Request Interceptor: Gắn Access Token ===== */
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("accessToken");
@@ -18,35 +18,45 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-/* ===== Response: auto refresh token ===== */
+/* ===== Response Interceptor: Xử lý Auto Refresh Token ===== */
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const originalRequest = error.config;
 
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry &&
-      typeof window !== "undefined"
-    ) {
-      originalRequest._retry = true;
+    // Kiểm tra nếu lỗi 401
+    if (error.response?.status === 401) {
+      
+      // QUAN TRỌNG: Nếu là request Login, trả lỗi về cho AuthForm xử lý, KHÔNG redirect
+      if (originalRequest.url.includes("/auth/login")) {
+        return Promise.reject(error);
+      }
 
-      try {
-        const refreshToken = localStorage.getItem("refreshToken");
+      // Nếu không phải login và chưa retry lần nào
+      if (!originalRequest._retry) {
+        originalRequest._retry = true;
 
-        const res = await axios.post(
-          "http://localhost:8080/api/auth/refresh",
-          { refreshToken }
-        );
+        try {
+          const refreshToken = localStorage.getItem("refreshToken");
+          if (!refreshToken) throw new Error("No refresh token");
 
-        const newAccessToken = res.data.data.accessToken;
-        localStorage.setItem("accessToken", newAccessToken);
+          const res = await axios.post("http://localhost:8080/api/auth/refresh", {
+            refreshToken: refreshToken,
+          });
 
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        return api(originalRequest);
-      } catch (e) {
-        localStorage.clear();
-        window.location.reload();
+          const { accessToken } = res.data; 
+          localStorage.setItem("accessToken", accessToken);
+
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          return api(originalRequest);
+        } catch (refreshError) {
+          // Chỉ xóa và văng ra ngoài khi thực sự không thể refresh (hết hạn cả 2 token)
+          localStorage.clear();
+          if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+            window.location.href = "/login";
+          }
+          return Promise.reject(refreshError);
+        }
       }
     }
 
