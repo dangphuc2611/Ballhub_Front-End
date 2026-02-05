@@ -8,6 +8,7 @@ import { ShoppingCart, Truck, ShieldCheck } from 'lucide-react';
 import { Header } from '@/components/sections/Header';
 import { Footer } from '@/components/sections/Footer';
 import { ProductDetail } from '@/types/product';
+import { ProductReviewsSection } from '@/components/sections/ProductReviewsSection';
 
 type TabKey = 'description' | 'specs' | 'policy';
 
@@ -202,9 +203,10 @@ export default function ProductDetailPage() {
                       key={idx}
                       onClick={() => setActiveImage(src)}
                       className={`relative w-[84px] h-[84px] rounded-xl overflow-hidden border bg-white transition
-                        ${isActive
-                          ? 'border-blue-600'
-                          : 'border-gray-200 hover:border-gray-300'
+                        ${
+                          isActive
+                            ? 'border-blue-600'
+                            : 'border-gray-200 hover:border-gray-300'
                         }
                       `}
                     >
@@ -267,7 +269,9 @@ export default function ProductDetailPage() {
                     const sizeId = dbSize?.sizeId ?? null;
                     const existsInDb = !!dbSize;
 
-                    const totalStock = sizeId ? stockBySizeId.get(sizeId) ?? 0 : 0;
+                    const totalStock = sizeId
+                      ? stockBySizeId.get(sizeId) ?? 0
+                      : 0;
 
                     // có trong DB và stock > 0 thì mới cho chọn
                     const isAvailable = existsInDb && totalStock > 0;
@@ -285,14 +289,16 @@ export default function ProductDetailPage() {
                           setQuantity(1);
                         }}
                         className={`h-10 min-w-[52px] px-4 rounded-xl border text-sm font-semibold transition
-                            ${isSelected && isAvailable
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-white text-gray-900 border-gray-200 hover:border-blue-400'
-                          }
-                            ${!isAvailable
-                            ? 'opacity-40 cursor-not-allowed hover:border-gray-200'
-                            : ''
-                          }
+                            ${
+                              isSelected && isAvailable
+                                ? 'bg-blue-600 text-white border-blue-600'
+                                : 'bg-white text-gray-900 border-gray-200 hover:border-blue-400'
+                            }
+                            ${
+                              !isAvailable
+                                ? 'opacity-40 cursor-not-allowed hover:border-gray-200'
+                                : ''
+                            }
                         `}
                       >
                         {sizeName}
@@ -326,13 +332,15 @@ export default function ProductDetailPage() {
                             setQuantity(1);
                           }}
                           className={`relative h-10 px-4 rounded-xl border text-sm font-semibold transition
-                            ${isSelected
-                              ? 'bg-blue-600 text-white border-blue-600'
-                              : 'bg-white text-gray-800 border-gray-200 hover:border-blue-400'
+                            ${
+                              isSelected
+                                ? 'bg-blue-600 text-white border-blue-600'
+                                : 'bg-white text-gray-800 border-gray-200 hover:border-blue-400'
                             }
-                            ${!isAvailable
-                              ? 'opacity-40 cursor-not-allowed hover:border-gray-200'
-                              : ''
+                            ${
+                              !isAvailable
+                                ? 'opacity-40 cursor-not-allowed hover:border-gray-200'
+                                : ''
                             }
                           `}
                         >
@@ -398,9 +406,10 @@ export default function ProductDetailPage() {
                 <button
                   disabled={!matchedVariant}
                   className={`h-12 rounded-xl font-semibold flex items-center justify-center gap-2 transition
-                    ${matchedVariant
-                      ? 'bg-white border border-blue-600 text-blue-700 hover:bg-blue-50'
-                      : 'bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed'
+                    ${
+                      matchedVariant
+                        ? 'bg-white border border-blue-600 text-blue-700 hover:bg-blue-50'
+                        : 'bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed'
                     }
                   `}
                 >
@@ -411,9 +420,10 @@ export default function ProductDetailPage() {
                 <button
                   disabled={!matchedVariant}
                   className={`h-12 rounded-xl font-semibold text-white transition
-                    ${matchedVariant
-                      ? 'bg-green-600 hover:bg-green-700'
-                      : 'bg-gray-400 cursor-not-allowed'
+                    ${
+                      matchedVariant
+                        ? 'bg-green-600 hover:bg-green-700'
+                        : 'bg-gray-400 cursor-not-allowed'
                     }
                   `}
                 >
@@ -604,6 +614,9 @@ export default function ProductDetailPage() {
           )}
         </div>
       </section>
+
+      {/* ================= REVIEWS ================= */}
+      <ProductReviewsSection productId={product.productId} />
 
       <Footer />
     </main>
