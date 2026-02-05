@@ -6,7 +6,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 
 import { ProductCard } from './ProductCard';
-import type { Product } from '@/data/products';
+import type { Product } from '@/types/product';
 
 interface Props {
   products: Product[];
