@@ -30,6 +30,10 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+
+  // ✅ NEW: tổng số sản phẩm sau filter (không phụ thuộc page)
+  const [totalElements, setTotalElements] = useState(0);
+
   const [loading, setLoading] = useState(true);
 
   // ================= FILTER =================
@@ -88,14 +92,22 @@ export default function ProductsPage() {
         id: item.productId,
         name: item.productName,
         price: Number(item.minPrice ?? 0),
+        originalPrice:
+          item.maxPrice && item.maxPrice !== item.minPrice
+            ? Number(item.maxPrice)
+            : undefined,
         image: item.mainImage
           ? `${BASE_URL}/${item.mainImage.replace(/^\/+/, "")}`
           : "/no-image.png",
         category: item.categoryName,
+        badge: item.brandName,
       }));
 
       setProducts(mapped);
       setTotalPages(json?.data?.totalPages ?? 0);
+
+      // ✅ FIX: lấy tổng số sản phẩm thật
+      setTotalElements(json?.data?.totalElements ?? 0);
     } catch (e) {
       console.error("❌ Load products error:", e);
     } finally {
@@ -113,6 +125,7 @@ export default function ProductsPage() {
   useEffect(() => {
     fetchProducts(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, applyKey, sort, keyword]);
 
   // ================= ACTION =================
@@ -308,7 +321,7 @@ export default function ProductsPage() {
                   <span className="text-blue-600">{keyword}</span>
                   {!loading && (
                     <span className="text-gray-500 text-sm font-normal ml-2">
-                      ({products.length} sản phẩm)
+                      ({totalElements} sản phẩm)
                     </span>
                   )}
                 </>
@@ -317,7 +330,7 @@ export default function ProductsPage() {
                   Tất cả sản phẩm
                   {!loading && (
                     <span className="text-gray-500 text-sm font-normal ml-2">
-                      ({products.length} sản phẩm)
+                      ({totalElements} sản phẩm)
                     </span>
                   )}
                 </>
