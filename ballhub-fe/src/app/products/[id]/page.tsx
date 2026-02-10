@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 
 import { Header } from '@/components/sections/Header';
 import { Footer } from '@/components/sections/Footer';
-import { ProductReviewsSection } from '@/components/sections/ProductReviewsSection'; // Component từ đoạn code 1
+import { ProductReviewsSection } from '@/components/sections/ProductReviewsSection';
 import { ProductDetail } from '@/types/product';
 import { addToCartApi } from '@/lib/cartApi';
 
@@ -86,17 +86,24 @@ export default function ProductDetailPage() {
     try {
       await addToCartApi(matchedVariant.variantId, quantity);
       
+      // Sửa đổi phần Sonner Toast để trực quan và mượt mà hơn
       toast.success(
-        <div className="flex flex-col gap-1">
-          <p className="font-medium text-gray-900">
-            Đã thêm <span className="text-blue-600 font-bold">x{quantity}</span> {product?.productName} vào giỏ hàng!
-          </p>
-          <button 
-            onClick={() => router.push('/shoppingcart')} 
-            className="text-blue-600 text-xs font-bold flex items-center hover:underline mt-1"
-          >
-            XEM GIỎ HÀNG <ChevronRight size={12} />
-          </button>
+        <div className="flex items-start gap-3 animate-in fade-in slide-in-from-right-5 duration-500">
+          <div className="bg-emerald-100 p-2 rounded-full animate-bounce mt-1 shrink-0">
+            <ShoppingCart size={18} className="text-emerald-600" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <p className="font-bold text-gray-900 leading-tight">Thành công!</p>
+            <p className="text-xs text-gray-600">
+              Đã thêm <span className="text-blue-600 font-black">x{quantity}</span> {product?.productName} vào giỏ hàng.
+            </p>
+            <button 
+              onClick={() => router.push('/shoppingcart')} 
+              className="w-fit text-[10px] font-black tracking-widest text-blue-600 uppercase mt-2 border-b-2 border-blue-600 pb-0.5 hover:text-blue-800 transition-all active:scale-95"
+            >
+              XEM GIỎ HÀNG <ChevronRight size={10} className="inline mb-0.5" />
+            </button>
+          </div>
         </div>
       );
     } catch (err: any) {

@@ -27,7 +27,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </AuthProvider>
 
         <Analytics />
-        <Toaster position="top-right" richColors closeButton expand={true} /> 
+        
+        <Toaster 
+          position="top-right" 
+          richColors 
+          closeButton 
+          expand={true}
+          visibleToasts={5}
+          toastOptions={{
+            style: {
+              borderRadius: '16px',
+              border: 'none',
+              boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+            },
+            // Thêm transition global và font-sans
+            className: 'font-sans transition-all duration-300 ease-in-out',
+          }}
+        /> 
       </body>
     </html>
   )

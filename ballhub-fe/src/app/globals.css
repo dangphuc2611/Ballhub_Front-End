@@ -146,3 +146,23 @@
   );
   animation: shimmer 1.3s infinite;
 }
+
+/* Custom animation cho Sonner */
+[data-sonner-toast] {
+  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+[data-sonner-toast][data-mounted="true"] {
+  animation: toast-enter 0.6s ease forwards;
+}
+
+@keyframes toast-enter {
+  from {
+    transform: scale(0.8) translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
