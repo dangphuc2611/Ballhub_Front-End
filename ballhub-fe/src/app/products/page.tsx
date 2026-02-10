@@ -2,32 +2,60 @@
 
 import Breadcrumb from "@/components/ui/breadcrumb";
 import { ProductCardSkeleton } from "@/components/sections/ProductCardSkeleton";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
 import { ProductCard } from "@/components/sections/ProductCard";
 import type { Product } from "@/types/product";
 
+const BASE_URL = "http://localhost:8080";
+
 export default function ProductsPage() {
   const searchParams = useSearchParams();
   const keyword = searchParams.get("search")?.trim() || "";
 
+  // ✅ lấy categories từ URL (khi click breadcrumb)
+  const urlCategories = useMemo(() => {
+    return searchParams
+      .getAll("categories")
+      .map((x) => x.trim())
+      .filter(Boolean);
+  }, [searchParams]);
+
+  // ================= SORT =================
   const [sort, setSort] = useState<"new" | "price_asc" | "price_desc">("new");
 
+  // ================= DATA =================
   const [products, setProducts] = useState<Product[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  // ================= FILTER =================
   const [categories, setCategories] = useState<string[]>([]);
   const [sizes, setSizes] = useState<string[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
   const [price, setPrice] = useState<[number, number]>([0, 10000000]);
   const [usePriceFilter, setUsePriceFilter] = useState(false);
 
+  // ✅ chỉ fetch khi applyKey đổi
   const [applyKey, setApplyKey] = useState(0);
 
+  // =========================================================
+  // ✅ SYNC CATEGORY TỪ URL -> tick filter sẵn
+  // =========================================================
+  useEffect(() => {
+    if (urlCategories.length > 0) {
+      setCategories(urlCategories);
+      setPage(0);
+
+      // ❌ KHÔNG gọi API ngay
+      // user sẽ bấm "Áp dụng lọc"
+    }
+  }, [urlCategories]);
+
+  // ================= FETCH =================
   const fetchProducts = async (pageIndex: number) => {
     try {
       setLoading(true);
@@ -51,23 +79,23 @@ export default function ProductsPage() {
       }
 
       const res = await fetch(
-        `http://localhost:8080/api/products/filter?${params.toString()}`
+        `${BASE_URL}/api/products/filter?${params.toString()}`
       );
 
       const json = await res.json();
 
-      const mapped: Product[] = json.data.content.map((item: any) => ({
-        id: String(item.productId),
+      const mapped: Product[] = (json?.data?.content ?? []).map((item: any) => ({
+        id: item.productId,
         name: item.productName,
-        price: item.minPrice,
+        price: Number(item.minPrice ?? 0),
         image: item.mainImage
-          ? `http://localhost:8080/${item.mainImage.replace(/^\/+/, "")}`
+          ? `${BASE_URL}/${item.mainImage.replace(/^\/+/, "")}`
           : "/no-image.png",
         category: item.categoryName,
       }));
 
       setProducts(mapped);
-      setTotalPages(json.data.totalPages);
+      setTotalPages(json?.data?.totalPages ?? 0);
     } catch (e) {
       console.error("❌ Load products error:", e);
     } finally {
@@ -75,11 +103,19 @@ export default function ProductsPage() {
     }
   };
 
+  // =========================================================
+  // ✅ chỉ gọi API khi:
+  // - page đổi
+  // - applyKey đổi (bấm nút áp dụng)
+  // - sort đổi
+  // - keyword đổi
+  // =========================================================
   useEffect(() => {
     fetchProducts(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [page, applyKey, sort, keyword]);
 
+  // ================= ACTION =================
   const toggleItem = (value: string, list: string[], setList: any) => {
     setList((prev: string[]) =>
       prev.includes(value) ? prev.filter((i) => i !== value) : [...prev, value]
@@ -123,6 +159,7 @@ export default function ProductsPage() {
     setApplyKey((k) => k + 1);
   };
 
+  // ================= UI =================
   return (
     <main className="bg-gray-50 min-h-screen">
       <Header />
@@ -146,9 +183,7 @@ export default function ProductsPage() {
                     <input
                       type="checkbox"
                       checked={categories.includes(item)}
-                      onChange={() =>
-                        toggleItem(item, categories, setCategories)
-                      }
+                      onChange={() => toggleItem(item, categories, setCategories)}
                     />
                     {item}
                   </label>
@@ -166,9 +201,7 @@ export default function ProductsPage() {
                     <input
                       type="checkbox"
                       checked={categories.includes(item)}
-                      onChange={() =>
-                        toggleItem(item, categories, setCategories)
-                      }
+                      onChange={() => toggleItem(item, categories, setCategories)}
                     />
                     {item}
                   </label>
@@ -299,6 +332,7 @@ export default function ProductsPage() {
                 onChange={(e) => {
                   setSort(e.target.value as any);
                   setPage(0);
+                  setApplyKey((k) => k + 1);
                 }}
                 className="border rounded-lg px-3 py-2 text-sm bg-white 
                  focus:outline-none focus:ring-2 focus:ring-blue-500"

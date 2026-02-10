@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import Breadcrumb from "@/components/ui/breadcrumb";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
 import { ProductReviewsSection } from "@/components/sections/ProductReviewsSection";
@@ -198,7 +199,30 @@ export default function ProductDetailPage() {
     <main className="bg-[#F6F7FB] min-h-screen">
       <Header />
 
-      <section className="max-w-6xl mx-auto px-4 pt-8 pb-10">
+      {/* ✅ BREADCRUMB (có category) */}
+      <div className="max-w-6xl mx-auto px-4 pt-6">
+        <Breadcrumb
+          items={[
+            { label: "Trang chủ", href: "/" },
+            { label: "Danh sách sản phẩm", href: "/products" },
+
+            ...(product.categoryName
+              ? [
+                  {
+                    label: product.categoryName,
+                    href: `/products?categories=${encodeURIComponent(
+                      product.categoryName
+                    )}`,
+                  },
+                ]
+              : []),
+
+            { label: product.productName },
+          ]}
+        />
+      </div>
+
+      <section className="max-w-6xl mx-auto px-4 pt-6 pb-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
           {/* TRÁI: IMAGE */}
           <div className="space-y-4">
@@ -250,7 +274,6 @@ export default function ProductDetailPage() {
                 {product.brandName}
               </p>
 
-              {/* CATEGORY NAME */}
               {product.categoryName && (
                 <p className="text-xs text-gray-400 font-semibold mt-1 uppercase tracking-widest">
                   {product.categoryName}
@@ -276,9 +299,7 @@ export default function ProductDetailPage() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
               {/* SIZE */}
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">
-                  Chọn Size
-                </h3>
+                <h3 className="font-semibold text-gray-900 mb-3">Chọn Size</h3>
 
                 <div className="flex flex-wrap gap-2">
                   {ALL_SIZES.map((sizeName) => {
@@ -374,9 +395,7 @@ export default function ProductDetailPage() {
               {matchedVariant && (
                 <div className="flex items-center justify-between gap-4 pt-2">
                   <div className="flex items-center gap-4">
-                    <span className="font-semibold text-gray-900">
-                      Số lượng
-                    </span>
+                    <span className="font-semibold text-gray-900">Số lượng</span>
 
                     <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
                       <button
@@ -503,9 +522,7 @@ export default function ProductDetailPage() {
                     }}
                   />
                 ) : (
-                  <p className="text-gray-500 italic">
-                    Đang cập nhật nội dung...
-                  </p>
+                  <p className="text-gray-500 italic">Đang cập nhật nội dung...</p>
                 )}
               </div>
 
