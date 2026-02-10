@@ -42,10 +42,15 @@ export function Header({ showSearch = true }: HeaderProps) {
 
   const handleSearch = () => {
     const q = keyword.trim();
-    if (!q) return;
 
     setOpenSuggest(false);
     setActiveIndex(-1);
+
+    // ✅ Nếu rỗng -> về trang products để hiện tất cả
+    if (!q) {
+      router.push("/products");
+      return;
+    }
 
     router.push(`/products?search=${encodeURIComponent(q)}`);
   };
@@ -262,9 +267,8 @@ export function Header({ showSearch = true }: HeaderProps) {
                             key={p.productId}
                             onMouseEnter={() => setActiveIndex(idx)}
                             onClick={() => goToProduct(p.productId)}
-                            className={`w-full flex items-center gap-3 p-3 text-left transition ${
-                              active ? "bg-green-50" : "hover:bg-gray-50"
-                            }`}
+                            className={`w-full flex items-center gap-3 p-3 text-left transition ${active ? "bg-green-50" : "hover:bg-gray-50"
+                              }`}
                           >
                             <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 border border-gray-100 flex items-center justify-center shrink-0">
                               {/* eslint-disable-next-line @next/next/no-img-element */}

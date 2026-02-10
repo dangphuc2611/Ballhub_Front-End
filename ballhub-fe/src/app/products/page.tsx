@@ -2,17 +2,26 @@
 
 import Breadcrumb from "@/components/ui/breadcrumb";
 import { ProductCardSkeleton } from "@/components/sections/ProductCardSkeleton";
-import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation"; // ✅ ADD
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
 import { ProductCard } from "@/components/sections/ProductCard";
 import type { Product } from "@/types/product";
 
+const BASE_URL = "http://localhost:8080";
+
 export default function ProductsPage() {
-  // ✅ GET SEARCH KEYWORD FROM URL
   const searchParams = useSearchParams();
   const keyword = searchParams.get("search")?.trim() || "";
+
+  // ✅ lấy categories từ URL (khi click breadcrumb)
+  const urlCategories = useMemo(() => {
+    return searchParams
+      .getAll("categories")
+      .map((x) => x.trim())
+      .filter(Boolean);
+  }, [searchParams]);
 
   // ================= SORT =================
   const [sort, setSort] = useState<"new" | "price_asc" | "price_desc">("new");
@@ -21,6 +30,10 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+
+  // ✅ NEW: tổng số sản phẩm sau filter (không phụ thuộc page)
+  const [totalElements, setTotalElements] = useState(0);
+
   const [loading, setLoading] = useState(true);
 
   // ================= FILTER =================
@@ -30,7 +43,21 @@ export default function ProductsPage() {
   const [price, setPrice] = useState<[number, number]>([0, 10000000]);
   const [usePriceFilter, setUsePriceFilter] = useState(false);
 
+  // ✅ chỉ fetch khi applyKey đổi
   const [applyKey, setApplyKey] = useState(0);
+
+  // =========================================================
+  // ✅ SYNC CATEGORY TỪ URL -> tick filter sẵn
+  // =========================================================
+  useEffect(() => {
+    if (urlCategories.length > 0) {
+      setCategories(urlCategories);
+      setPage(0);
+
+      // ❌ KHÔNG gọi API ngay
+      // user sẽ bấm "Áp dụng lọc"
+    }
+  }, [urlCategories]);
 
   // ================= FETCH =================
   const fetchProducts = async (pageIndex: number) => {
@@ -51,29 +78,36 @@ export default function ProductsPage() {
         params.append("maxPrice", String(price[1]));
       }
 
-      // ✅ SEARCH
       if (keyword) {
         params.append("search", keyword);
       }
 
       const res = await fetch(
-        `http://localhost:8080/api/products/filter?${params.toString()}`
+        `${BASE_URL}/api/products/filter?${params.toString()}`
       );
 
       const json = await res.json();
 
-      const mapped: Product[] = json.data.content.map((item: any) => ({
-        id: String(item.productId),
+      const mapped: Product[] = (json?.data?.content ?? []).map((item: any) => ({
+        id: item.productId,
         name: item.productName,
-        price: item.minPrice,
+        price: Number(item.minPrice ?? 0),
+        originalPrice:
+          item.maxPrice && item.maxPrice !== item.minPrice
+            ? Number(item.maxPrice)
+            : undefined,
         image: item.mainImage
-          ? `http://localhost:8080/${item.mainImage.replace(/^\/+/, "")}`
+          ? `${BASE_URL}/${item.mainImage.replace(/^\/+/, "")}`
           : "/no-image.png",
         category: item.categoryName,
+        badge: item.brandName,
       }));
 
       setProducts(mapped);
-      setTotalPages(json.data.totalPages);
+      setTotalPages(json?.data?.totalPages ?? 0);
+
+      // ✅ FIX: lấy tổng số sản phẩm thật
+      setTotalElements(json?.data?.totalElements ?? 0);
     } catch (e) {
       console.error("❌ Load products error:", e);
     } finally {
@@ -81,10 +115,18 @@ export default function ProductsPage() {
     }
   };
 
+  // =========================================================
+  // ✅ chỉ gọi API khi:
+  // - page đổi
+  // - applyKey đổi (bấm nút áp dụng)
+  // - sort đổi
+  // - keyword đổi
+  // =========================================================
   useEffect(() => {
     fetchProducts(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [page, applyKey, sort, keyword]); // ✅ ADD keyword
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, applyKey, sort, keyword]);
 
   // ================= ACTION =================
   const toggleItem = (value: string, list: string[], setList: any) => {
@@ -143,6 +185,7 @@ export default function ProductsPage() {
             <h2 className="font-bold text-lg mb-3">Danh mục</h2>
 
             <div className="space-y-4">
+              {/* ÁO */}
               <div>
                 <p className="font-semibold text-sm mb-2">Áo đấu</p>
                 {["Áo CLB", "Áo ĐTQG"].map((item) => (
@@ -153,9 +196,25 @@ export default function ProductsPage() {
                     <input
                       type="checkbox"
                       checked={categories.includes(item)}
-                      onChange={() =>
-                        toggleItem(item, categories, setCategories)
-                      }
+                      onChange={() => toggleItem(item, categories, setCategories)}
+                    />
+                    {item}
+                  </label>
+                ))}
+              </div>
+
+              {/* QUẦN */}
+              <div>
+                <p className="font-semibold text-sm mb-2">Quần đấu</p>
+                {["Quần CLB", "Quần ĐTQG"].map((item) => (
+                  <label
+                    key={item}
+                    className="flex items-center gap-2 text-sm mb-2 cursor-pointer ml-3"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={categories.includes(item)}
+                      onChange={() => toggleItem(item, categories, setCategories)}
                     />
                     {item}
                   </label>
@@ -188,7 +247,7 @@ export default function ProductsPage() {
           {/* SIZE */}
           <div className="space-y-5">
             <div>
-              <h2 className="font-bold text-lg mb-3">Size áo</h2>
+              <h2 className="font-bold text-lg mb-3">Size</h2>
               <div className="flex flex-wrap gap-2">
                 {["S", "M", "L", "XL", "XXL"].map((size) => (
                   <button
@@ -258,10 +317,11 @@ export default function ProductsPage() {
             <h1 className="text-2xl font-bold">
               {keyword ? (
                 <>
-                  Kết quả tìm kiếm: <span className="text-blue-600">{keyword}</span>
+                  Kết quả tìm kiếm:{" "}
+                  <span className="text-blue-600">{keyword}</span>
                   {!loading && (
                     <span className="text-gray-500 text-sm font-normal ml-2">
-                      ({products.length} sản phẩm)
+                      ({totalElements} sản phẩm)
                     </span>
                   )}
                 </>
@@ -270,7 +330,7 @@ export default function ProductsPage() {
                   Tất cả sản phẩm
                   {!loading && (
                     <span className="text-gray-500 text-sm font-normal ml-2">
-                      ({products.length} sản phẩm)
+                      ({totalElements} sản phẩm)
                     </span>
                   )}
                 </>
@@ -285,6 +345,7 @@ export default function ProductsPage() {
                 onChange={(e) => {
                   setSort(e.target.value as any);
                   setPage(0);
+                  setApplyKey((k) => k + 1);
                 }}
                 className="border rounded-lg px-3 py-2 text-sm bg-white 
                  focus:outline-none focus:ring-2 focus:ring-blue-500"
