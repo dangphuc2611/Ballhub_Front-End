@@ -3,27 +3,23 @@
 import Breadcrumb from "@/components/ui/breadcrumb";
 import { ProductCardSkeleton } from "@/components/sections/ProductCardSkeleton";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation"; // ✅ ADD
+import { useSearchParams } from "next/navigation";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
 import { ProductCard } from "@/components/sections/ProductCard";
 import type { Product } from "@/types/product";
 
 export default function ProductsPage() {
-  // ✅ GET SEARCH KEYWORD FROM URL
   const searchParams = useSearchParams();
   const keyword = searchParams.get("search")?.trim() || "";
 
-  // ================= SORT =================
   const [sort, setSort] = useState<"new" | "price_asc" | "price_desc">("new");
 
-  // ================= DATA =================
   const [products, setProducts] = useState<Product[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // ================= FILTER =================
   const [categories, setCategories] = useState<string[]>([]);
   const [sizes, setSizes] = useState<string[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
@@ -32,7 +28,6 @@ export default function ProductsPage() {
 
   const [applyKey, setApplyKey] = useState(0);
 
-  // ================= FETCH =================
   const fetchProducts = async (pageIndex: number) => {
     try {
       setLoading(true);
@@ -51,7 +46,6 @@ export default function ProductsPage() {
         params.append("maxPrice", String(price[1]));
       }
 
-      // ✅ SEARCH
       if (keyword) {
         params.append("search", keyword);
       }
@@ -84,9 +78,8 @@ export default function ProductsPage() {
   useEffect(() => {
     fetchProducts(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [page, applyKey, sort, keyword]); // ✅ ADD keyword
+  }, [page, applyKey, sort, keyword]);
 
-  // ================= ACTION =================
   const toggleItem = (value: string, list: string[], setList: any) => {
     setList((prev: string[]) =>
       prev.includes(value) ? prev.filter((i) => i !== value) : [...prev, value]
@@ -130,7 +123,6 @@ export default function ProductsPage() {
     setApplyKey((k) => k + 1);
   };
 
-  // ================= UI =================
   return (
     <main className="bg-gray-50 min-h-screen">
       <Header />
@@ -143,9 +135,30 @@ export default function ProductsPage() {
             <h2 className="font-bold text-lg mb-3">Danh mục</h2>
 
             <div className="space-y-4">
+              {/* ÁO */}
               <div>
                 <p className="font-semibold text-sm mb-2">Áo đấu</p>
                 {["Áo CLB", "Áo ĐTQG"].map((item) => (
+                  <label
+                    key={item}
+                    className="flex items-center gap-2 text-sm mb-2 cursor-pointer ml-3"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={categories.includes(item)}
+                      onChange={() =>
+                        toggleItem(item, categories, setCategories)
+                      }
+                    />
+                    {item}
+                  </label>
+                ))}
+              </div>
+
+              {/* QUẦN */}
+              <div>
+                <p className="font-semibold text-sm mb-2">Quần đấu</p>
+                {["Quần CLB", "Quần ĐTQG"].map((item) => (
                   <label
                     key={item}
                     className="flex items-center gap-2 text-sm mb-2 cursor-pointer ml-3"
@@ -188,7 +201,7 @@ export default function ProductsPage() {
           {/* SIZE */}
           <div className="space-y-5">
             <div>
-              <h2 className="font-bold text-lg mb-3">Size áo</h2>
+              <h2 className="font-bold text-lg mb-3">Size</h2>
               <div className="flex flex-wrap gap-2">
                 {["S", "M", "L", "XL", "XXL"].map((size) => (
                   <button
@@ -258,7 +271,8 @@ export default function ProductsPage() {
             <h1 className="text-2xl font-bold">
               {keyword ? (
                 <>
-                  Kết quả tìm kiếm: <span className="text-blue-600">{keyword}</span>
+                  Kết quả tìm kiếm:{" "}
+                  <span className="text-blue-600">{keyword}</span>
                   {!loading && (
                     <span className="text-gray-500 text-sm font-normal ml-2">
                       ({products.length} sản phẩm)

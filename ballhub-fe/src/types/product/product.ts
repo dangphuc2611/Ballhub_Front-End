@@ -1,5 +1,5 @@
 export interface Product {
-  id: number;
+  id: string; // ✅ đổi sang string
   name: string;
   price: number;
   originalPrice?: number;
