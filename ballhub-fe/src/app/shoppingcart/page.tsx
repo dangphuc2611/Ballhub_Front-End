@@ -12,7 +12,6 @@ import {
   ShoppingBag,
   ShieldCheck,
   RefreshCcw,
-  TicketPercent,
 } from "lucide-react";
 
 import { Header } from "@/components/sections/Header";
@@ -40,7 +39,6 @@ export default function CartPage() {
   const [totalAmount, setTotalAmount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
-  const [couponCode, setCouponCode] = useState("");
   const router = useRouter();
 
   const fetchCart = async () => {
@@ -93,14 +91,6 @@ export default function CartPage() {
       },
       error: "Lỗi khi xóa",
     });
-  };
-
-  const handleApplyCoupon = () => {
-    if (!couponCode.trim()) {
-      toast.error("Vui lòng nhập mã giảm giá");
-      return;
-    }
-    toast.info(`Đang áp dụng mã: ${couponCode}`);
   };
 
   if (loading)
@@ -238,31 +228,6 @@ export default function CartPage() {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Phí vận chuyển</span>
                       <span className="text-green-600 font-bold">Miễn phí</span>
-                    </div>
-                  </div>
-
-                  {/* PHẦN NHẬP MÃ GIẢM GIÁ (ĐÃ CHUYỂN XUỐNG ĐÂY) */}
-                  <div className="mb-8 pt-6 border-t border-gray-50">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">
-                      Mã giảm giá
-                    </label>
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <TicketPercent className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input
-                          type="text"
-                          placeholder="NHẬP MÃ..."
-                          value={couponCode}
-                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                          className="w-full bg-gray-50 border border-gray-100 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-green-500 focus:bg-white transition-all uppercase font-medium"
-                        />
-                      </div>
-                      <button 
-                        onClick={handleApplyCoupon}
-                        className="bg-gray-900 text-white px-4 rounded-xl text-xs font-bold hover:bg-black transition-colors shadow-sm"
-                      >
-                        ÁP DỤNG
-                      </button>
                     </div>
                   </div>
 

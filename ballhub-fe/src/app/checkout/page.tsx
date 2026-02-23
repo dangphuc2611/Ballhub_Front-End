@@ -23,18 +23,29 @@ export default function CheckoutPage() {
     const [cartData, setCartData] = useState({ items: [], totalAmount: 0 });
     const [formData, setFormData] = useState({ fullName: '', phone: '', email: '', addressId: 1, paymentMethodId: 1, note: '' });
 
+    // --- BỔ SUNG STATE MỚI CHO VOUCHER ---
+    const [appliedPromo, setAppliedPromo] = useState<any>(null);
+    // -------------------------------------
+
     useEffect(() => {
         api.get("/cart").then(res => {
             if (res.data.data.items.length === 0) router.push('/shoppingcart');
             else { setCartData(res.data.data); setLoading(false); }
         }).catch(() => toast.error("Lỗi tải giỏ hàng"));
-    }, []);
+    }, [router]);
 
     const handleOrder = async () => {
         if (!formData.fullName || !formData.phone) return toast.error("Thiếu thông tin nhận hàng");
         setIsSubmitting(true);
         try {
-            const payload = { addressId: formData.addressId, paymentMethodId: formData.paymentMethodId, note: formData.note };
+            // --- BỔ SUNG PROMOCODE VÀO PAYLOAD GỬI XUỐNG API ---
+            const payload = { 
+                addressId: formData.addressId, 
+                paymentMethodId: formData.paymentMethodId, 
+                note: formData.note,
+                promoCode: appliedPromo ? appliedPromo.promoCode : null // Gửi mã code nếu có
+            };
+            
             const res = await api.post("/orders", payload);
             toast.success("Đặt hàng thành công!");
             router.push(`/order-success/${res.data.data.orderId}`);
@@ -65,11 +76,14 @@ export default function CheckoutPage() {
                         />
                     </div>
                     <div className="lg:col-span-5">
+                        {/* --- TRUYỀN STATE VOUCHER SANG ORDERSUMMARY ĐỂ XỬ LÝ GIAO DIỆN --- */}
                         <OrderSummary 
                             cartData={cartData} 
                             isSubmitting={isSubmitting} 
                             onOrder={handleOrder} 
                             baseUrl={BASE_URL} 
+                            appliedPromo={appliedPromo}         // Dữ liệu mới
+                            setAppliedPromo={setAppliedPromo}   // Dữ liệu mới
                         />
                     </div>
                 </div>
