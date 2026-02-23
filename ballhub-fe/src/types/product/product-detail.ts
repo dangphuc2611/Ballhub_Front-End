@@ -6,6 +6,8 @@ export interface Variant {
   sizeName: string;
   colorId: number;
   colorName: string;
+  price?: number;          // Bổ sung: Giá gốc của biến thể
+  discountPrice?: number;  // Bổ sung: Giá sale của biến thể
   finalPrice: number;
   stockQuantity: number;
 }
@@ -28,6 +30,11 @@ export interface ProductDetail {
   description: string;
   brandName: string;
   categoryName: string;
+
+  // --- BỔ SUNG TRƯỜNG FLASH SALE TỪ API ---
+  minOriginalPrice?: number;
+  maxOriginalPrice?: number;
+  discountPercent?: number;
 
   minPrice: number;
   maxPrice: number;

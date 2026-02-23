@@ -31,7 +31,6 @@ export default function ProductsPage() {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
-  // ✅ NEW: tổng số sản phẩm sau filter (không phụ thuộc page)
   const [totalElements, setTotalElements] = useState(0);
 
   const [loading, setLoading] = useState(true);
@@ -43,7 +42,6 @@ export default function ProductsPage() {
   const [price, setPrice] = useState<[number, number]>([0, 10000000]);
   const [usePriceFilter, setUsePriceFilter] = useState(false);
 
-  // ✅ chỉ fetch khi applyKey đổi
   const [applyKey, setApplyKey] = useState(0);
 
   // =========================================================
@@ -92,10 +90,8 @@ export default function ProductsPage() {
         id: item.productId,
         name: item.productName,
         price: Number(item.minPrice ?? 0),
-        originalPrice:
-          item.maxPrice && item.maxPrice !== item.minPrice
-            ? Number(item.maxPrice)
-            : undefined,
+        minOriginalPrice: item.minOriginalPrice,
+        discountPercent: item.discountPercent,
         image: item.mainImage
           ? `${BASE_URL}/${item.mainImage.replace(/^\/+/, "")}`
           : "/no-image.png",
@@ -125,7 +121,6 @@ export default function ProductsPage() {
   useEffect(() => {
     fetchProducts(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, applyKey, sort, keyword]);
 
   // ================= ACTION =================

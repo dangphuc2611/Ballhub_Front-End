@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import type { Product } from "@/types/product";
 
+const BASE_URL = "http://localhost:8080";
+
 interface ProductCardProps {
   product: Product;
   variant?: "default" | "featured";
@@ -15,48 +17,66 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const router = useRouter();
 
+  // 1. Format Giá Bán Thực Tế (Đã Sale)
   const formattedPrice = new Intl.NumberFormat("vi-VN", {
     style: "currency",
     currency: "VND",
     minimumFractionDigits: 0,
-  }).format(product.price);
+  }).format(product.minPrice || product.price || 0);
 
-  const formattedOriginalPrice = product.originalPrice
+  // 2. Format Giá Gốc (Để gạch ngang) - Chỉ hiển thị nếu có Flash Sale (discountPercent > 0)
+  const isFlashSale = (product.discountPercent || 0) > 0;
+  
+  const formattedOriginalPrice = isFlashSale && product.minOriginalPrice
     ? new Intl.NumberFormat("vi-VN", {
         style: "currency",
         currency: "VND",
         minimumFractionDigits: 0,
-      }).format(product.originalPrice)
+      }).format(product.minOriginalPrice)
     : null;
+
+  // Xử lý link ảnh (Phòng trường hợp ảnh không có http/https)
+  const getFullImageUrl = (url: string) => {
+    if (!url) return "/placeholder.svg";
+    return url.startsWith("http") ? url : `${BASE_URL}${url}`;
+  };
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    toast.info(`❤️ Đã thêm "${product.name}" vào yêu thích`);
+    toast.info(`❤️ Đã thêm "${product.productName || product.name}" vào yêu thích`);
   };
 
   const handleGoToDetail = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    router.push(`/products/${product.id}`);
+    router.push(`/products/${product.productId || product.id}`);
   };
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-lg transition-all">
       {/* IMAGE */}
-      <Link href={`/products/${product.id}`} className="block">
+      <Link href={`/products/${product.productId || product.id}`} className="block">
         <div className="relative aspect-square bg-gradient-to-b from-gray-50 to-white">
           <Image
-            src={product.image || "/placeholder.svg"}
-            alt={product.name}
+            src={getFullImageUrl(product.mainImage || product.image || "")}
+            alt={product.productName || product.name || "Sản phẩm"}
             fill
             className="object-contain p-5 transition-transform duration-300 group-hover:scale-105"
+            unoptimized
           />
 
-          {/* CATEGORY */}
-          {product.category && (
+          {/* NHÃN FLASH SALE (-XX%) */}
+          {isFlashSale && (
+            <div className="absolute top-3 left-3 px-3 py-1 rounded-br-2xl text-[12px] font-black bg-red-600 text-white shadow-md z-10">
+              GIẢM {product.discountPercent}%
+            </div>
+          )}
+
+          {/* CATEGORY (Sẽ bị ẩn nếu có nhãn Flash Sale đè lên để tránh rối mắt, hoặc bạn có thể dời nó xuống dưới ảnh tuỳ ý) */}
+          {!isFlashSale && (product.categoryName || product.category) && (
             <div className="absolute top-3 left-3 px-3 py-1 rounded-full text-[11px] font-bold bg-white/90 text-gray-800 shadow-sm backdrop-blur">
-              {product.category}
+              {product.categoryName || product.category}
             </div>
           )}
 
@@ -73,26 +93,26 @@ export function ProductCard({ product }: ProductCardProps) {
 
       {/* CONTENT */}
       <div className="flex flex-col gap-3 p-4">
-        <Link href={`/products/${product.id}`}>
+        <Link href={`/products/${product.productId || product.id}`}>
           <h3 className="font-bold text-gray-900 leading-snug line-clamp-2 min-h-[44px]">
-            {product.name}
+            {product.productName || product.name}
           </h3>
         </Link>
 
         {/* PRICE */}
         <div className="flex items-end justify-between gap-2">
           <div>
-            <p className="text-xl font-extrabold text-blue-600">
+            <p className={`text-xl font-extrabold ${isFlashSale ? 'text-red-600' : 'text-blue-600'}`}>
               {formattedPrice}
             </p>
             {formattedOriginalPrice && (
-              <p className="text-xs line-through text-gray-400 mt-0.5">
+              <p className="text-xs line-through text-gray-400 mt-0.5 font-medium">
                 {formattedOriginalPrice}
               </p>
             )}
           </div>
 
-          {/* BADGE */}
+          {/* BADGE KHÁC (Nếu có) */}
           {product.badge && (
             <div className="px-2 py-1 rounded-full text-[10px] font-black bg-blue-50 text-blue-600">
               {product.badge}
@@ -103,7 +123,7 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* ACTIONS */}
         <div className="grid grid-cols-2 gap-2 pt-1">
           <Link
-            href={`/products/${product.id}`}
+            href={`/products/${product.productId || product.id}`}
             className="h-11 rounded-xl border border-gray-200 text-gray-700 font-semibold text-sm flex items-center justify-center gap-1 hover:border-blue-600 hover:text-blue-600 hover:bg-blue-50 transition"
           >
             <Eye className="w-4 h-4" />

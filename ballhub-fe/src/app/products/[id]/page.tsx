@@ -269,32 +269,48 @@ export default function ProductDetailPage() {
 
           {/* PHẢI: INFO */}
           <div className="space-y-5">
-            <div>
-              <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">
-                {product.brandName}
-              </p>
-
-              {product.categoryName && (
-                <p className="text-xs text-gray-400 font-semibold mt-1 uppercase tracking-widest">
-                  {product.categoryName}
+              <div>
+                <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">
+                  {product.brandName}
                 </p>
-              )}
 
-              <h1 className="text-3xl font-bold text-gray-900 leading-tight mt-2">
-                {product.productName}
-              </h1>
-            </div>
+                {product.categoryName && (
+                  <p className="text-xs text-gray-400 font-semibold mt-1 uppercase tracking-widest">
+                    {product.categoryName}
+                  </p>
+                )}
 
-            <div className="flex items-end gap-3">
-              <div className="text-3xl font-extrabold text-blue-600">
-                {product.minPrice.toLocaleString()}đ
+                <h1 className="text-3xl font-bold text-gray-900 leading-tight mt-2">
+                  {product.productName}
+                </h1>
               </div>
-              {product.minPrice !== product.maxPrice && (
-                <div className="text-base text-gray-400 line-through pb-1">
-                  {product.maxPrice.toLocaleString()}đ
+
+              {/* ================= THAY THẾ KHU VỰC GIÁ Ở ĐÂY ================= */}
+              <div className="flex items-end gap-3">
+                {/* 1. Giá bán thực tế (Màu đỏ nếu có Sale, Xanh nếu không Sale) */}
+                <div className={`text-3xl font-extrabold ${(product.discountPercent || 0) > 0 ? "text-red-600" : "text-blue-600"}`}>
+                  {product.minPrice?.toLocaleString()}đ
                 </div>
-              )}
-            </div>
+
+                {/* 2. Hiển thị Giá gốc gạch ngang và Nhãn đỏ nếu có Flash Sale */}
+                {(product.discountPercent || 0) > 0 ? (
+                  <>
+                    <div className="text-base text-gray-400 line-through pb-1 font-medium">
+                      {product.minOriginalPrice?.toLocaleString()}đ
+                    </div>
+                    <div className="mb-1.5 bg-red-100 text-red-600 text-sm font-black px-2 py-0.5 rounded border border-red-200">
+                      GIẢM {product.discountPercent}%
+                    </div>
+                  </>
+                ) : (
+                  /* Nếu không có Sale nhưng có khoảng giá (ví dụ các size giá khác nhau) */
+                  product.minPrice !== product.maxPrice && (
+                    <div className="text-base text-gray-400 pb-1">
+                      - {product.maxPrice?.toLocaleString()}đ
+                    </div>
+                  )
+                )}
+              </div>
 
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
               {/* SIZE */}
