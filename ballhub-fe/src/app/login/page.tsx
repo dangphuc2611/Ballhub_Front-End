@@ -6,23 +6,50 @@ import Link from "next/link";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
 import { useAuth } from "@/app/context/AuthContext";
-import { useEffect, Suspense } from "react";
+import { useEffect, Suspense, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
+import { useGoogleLogin } from "@react-oauth/google"; // 1. Import
+import api from "@/lib/axios";
+import { toast } from "sonner";
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading, login } = useAuth();
+  const [isProcessing, setIsProcessing] = useState(false); // Loading riêng cho Google
   
   const isRegistered = searchParams.get("status") === "registered";
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!authLoading && user) {
       router.replace("/");
     }
-  }, [user, loading, router]);
+  }, [user, authLoading, router]);
 
-  if (loading) return (
+  // 2. Logic xử lý Google Login chuyển ra đây
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsProcessing(true);
+      try {
+        const res = await api.post("/auth/google-login", {
+          token: tokenResponse.access_token,
+        });
+
+        if (res.data && res.data.success) {
+          login(res.data.data);
+          toast.success("Đăng nhập Google thành công!");
+          router.push("/");
+        }
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || "Đăng nhập Google thất bại");
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    onError: () => toast.error("Không thể kết nối với Google"),
+  });
+
+  if (authLoading) return (
     <div className="min-h-[calc(100vh-128px)] flex items-center justify-center">
       <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
     </div>
@@ -35,9 +62,9 @@ function LoginContent() {
       <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
         
         {isRegistered && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-100 rounded-xl flex items-center gap-3 text-green-700 animate-in fade-in slide-in-from-top-2">
+          <div className="mb-6 p-4 bg-green-50 border border-green-100 rounded-xl flex items-center gap-3 text-green-700">
             <CheckCircle2 className="w-5 h-5 shrink-0" />
-            <p className="text-sm font-medium">Đăng ký thành công! Mời bạn đăng nhập vào hệ thống.</p>
+            <p className="text-sm font-medium">Đăng ký thành công! Mời bạn đăng nhập.</p>
           </div>
         )}
 
@@ -67,10 +94,19 @@ function LoginContent() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <button className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition font-medium text-sm text-gray-700">
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
+          <button 
+            onClick={() => handleGoogleLogin()}
+            disabled={isProcessing}
+            className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition font-medium text-sm text-gray-700 disabled:opacity-50"
+          >
+            {isProcessing ? (
+               <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
+            )}
             Google
           </button>
+
           <button className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition font-medium text-sm text-gray-700">
             <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" className="w-5 h-5" alt="Facebook" />
             Facebook

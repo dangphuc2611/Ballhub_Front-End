@@ -28,8 +28,6 @@ export default function Home() {
     try {
       setLoading(true);
 
-      // ✅ backend có thể là keyword hoặc search
-      // bạn chọn 1 cái đúng với backend của bạn
       const url =
         keyword && keyword.length > 0
           ? `http://localhost:8080/api/products?keyword=${encodeURIComponent(
@@ -47,11 +45,13 @@ export default function Home() {
         id: String(item.productId),
         name: item.productName,
         price: item.minPrice,
+        minOriginalPrice: item.minOriginalPrice,
+        discountPercent: item.discountPercent, 
         image: item.mainImage
           ? `http://localhost:8080${item.mainImage}`
           : '/no-image.png',
         category: item.categoryName,
-        badge: 'MỚI'
+        badge: 'MỚI' 
       }));
 
       setProducts(mapped);
@@ -71,7 +71,6 @@ export default function Home() {
   // search theo keyword
   useEffect(() => {
     fetchProducts(debouncedSearch);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch]);
 
   // demo: chia ra 2 section (new + best)

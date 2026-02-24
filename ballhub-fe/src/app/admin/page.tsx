@@ -21,7 +21,6 @@ export default function AdminDashboard() {
   const { user, logout, loading } = useAuth();
   const router = useRouter();
 
-  // DỮ LIỆU MẪU
   const products: any[] = [
     { id: 1, name: "Áo Đấu Man Utd Home 23/24", sub: "Premier League", price: "350.000đ", stock: 45, status: "Còn hàng", color: "green" },
     { id: 2, name: "Áo Đấu Man City Away 23/24", sub: "Premier League", price: "320.000đ", stock: 12, status: "Còn hàng", color: "green" },
@@ -34,7 +33,6 @@ export default function AdminDashboard() {
     { id: "#ORD-00123", customer: "Lê Văn C", phone: "0912345678", date: "18/05/2024", total: "1.500.000đ", status: "Đang giao", color: "blue" },
   ];
 
-  // LOGIC BẢO MẬT GIỮ NGUYÊN
   useEffect(() => {
     if (!loading) {
       if (!user) router.replace('/login');
@@ -105,7 +103,6 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        {/* NỘI DUNG TÙY THEO TAB */}
         <div className="animate-in fade-in duration-500">
           {activeTab === 'Dashboard' && (
             <div className="space-y-8">

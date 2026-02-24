@@ -9,12 +9,14 @@ interface User {
   email: string;
   role: "ADMIN" | "CUSTOMER";
   avatar?: string;
+  phone?: string; 
 }
 
 interface AuthContextType {
   user: User | null;
   login: (userData: any) => void;
   logout: () => void;
+  updateUser: (updatedUser: User) => void;
   loading: boolean;
 }
 
@@ -40,6 +42,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(data.user);
   };
 
+  const updateUser = (updatedUser: User) => {
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  };
+
   const logout = () => {
     localStorage.clear();
     setUser(null);
@@ -47,7 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );
