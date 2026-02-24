@@ -24,6 +24,9 @@ export default function CheckoutPage() {
 
     const [appliedPromo, setAppliedPromo] = useState<any>(null);
 
+    // STATE: Quản lý hiển thị Popup Mã QR
+    const [qrModal, setQrModal] = useState<{show: boolean, url: string, orderId: number | null}>({show: false, url: '', orderId: null});
+
     useEffect(() => {
         api.get("/cart").then(res => {
             if (res.data.data.items.length === 0) router.push('/shoppingcart');
@@ -43,8 +46,22 @@ export default function CheckoutPage() {
             };
             
             const res = await api.post("/orders", payload);
-            toast.success("Đặt hàng thành công!");
-            router.push(`/order-success/${res.data.data.orderId}`);
+            const responseData = res.data.data;
+
+            // KIỂM TRA: Nếu Backend có trả về paymentUrl (ảnh mã QR)
+            if (responseData && responseData.paymentUrl) {
+                const orderId = responseData.order ? responseData.order.orderId : responseData.orderId;
+                
+                // Mở Modal mã QR lên
+                setQrModal({ show: true, url: responseData.paymentUrl, orderId: orderId });
+                toast.success("Tạo đơn hàng thành công! Vui lòng quét mã thanh toán.");
+                setIsSubmitting(false); // Cho phép tương tác lại với form
+            } else {
+                // Nếu là COD (Không có link QR)
+                toast.success("Đặt hàng thành công!");
+                const orderId = responseData.order ? responseData.order.orderId : responseData.orderId;
+                router.push(`/order-success/${orderId}`);
+            }
         } catch (err: any) {
             toast.error(err.response?.data?.message || "Đặt hàng thất bại");
             setIsSubmitting(false);
@@ -54,7 +71,7 @@ export default function CheckoutPage() {
     if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-green-600" size={40} /></div>;
 
     return (
-        <div className="bg-[#F8F9FA] min-h-screen flex flex-col">
+        <div className="bg-[#F8F9FA] min-h-screen flex flex-col relative">
             <Header />
             <main className="max-w-7xl mx-auto px-4 py-10 w-full flex-1">
                 <div className="flex items-center gap-2 text-sm text-gray-400 mb-8">
@@ -84,6 +101,47 @@ export default function CheckoutPage() {
                 </div>
             </main>
             <Footer />
+
+            {/* ================= MODAL QUÉT MÃ QR (DÀNH CHO DEMO ĐỒ ÁN) ================= */}
+            {qrModal.show && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[999] p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center space-y-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                        <h3 className="text-xl font-bold text-gray-900">Quét mã để thanh toán</h3>
+                        
+                        {/* HIỂN THỊ MÃ QR */}
+                        <div className="bg-white p-2 rounded-2xl border-2 border-dashed border-gray-200">
+                            <img src={qrModal.url} alt="Payment QR" className="w-full aspect-square object-contain rounded-xl" />
+                        </div>
+
+                        <div className="text-sm text-gray-500">
+                            <p>Sử dụng App Ngân hàng hoặc ZaloPay để quét mã.</p>
+                        </div>
+
+                        {/* NÚT FAKE THANH TOÁN DÀNH CHO GIÁM KHẢO */}
+                        <div className="space-y-3 pt-4 border-t border-gray-100">
+                            <button 
+                                onClick={() => router.push(`/order-success/${qrModal.orderId}`)}
+                                className="w-full bg-green-500 hover:bg-green-600 text-white rounded-xl h-12 font-bold shadow-lg shadow-green-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                Giả lập: Đã thanh toán xong
+                            </button>
+                            
+                            {/* Nút Đóng / Thanh toán sau */}
+                            <button 
+                                onClick={() => {
+                                    setQrModal({show: false, url: '', orderId: null});
+                                    // Búng khách về trang Quản lý đơn hàng thay vì ở lại trang Checkout
+                                    router.push('/profile/orders'); 
+                                    toast.info("Đơn hàng đã được lưu. Bạn có thể thanh toán sau nhé!");
+                                }}
+                                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl h-10 font-medium transition-colors"
+                            >
+                                Đóng / Thanh toán sau
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -2,7 +2,7 @@
 
 import Breadcrumb from "@/components/ui/breadcrumb";
 import { ProductCardSkeleton } from "@/components/sections/ProductCardSkeleton";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
@@ -15,38 +15,23 @@ export default function ProductsPage() {
   const searchParams = useSearchParams();
   const keyword = searchParams.get("search")?.trim() || "";
 
-  const urlCategories = useMemo(() => {
-    return searchParams
-      .getAll("categories")
-      .map((x) => x.trim())
-      .filter(Boolean);
-  }, [searchParams]);
+  const initialCategories = searchParams.getAll("categories").map((x) => x.trim()).filter(Boolean);
+
   const [sort, setSort] = useState<"new" | "price_asc" | "price_desc">("new");
 
   const [products, setProducts] = useState<Product[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-
   const [totalElements, setTotalElements] = useState(0);
-
   const [loading, setLoading] = useState(true);
 
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>(initialCategories);
   const [sizes, setSizes] = useState<string[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
   const [price, setPrice] = useState<[number, number]>([0, 10000000]);
   const [usePriceFilter, setUsePriceFilter] = useState(false);
 
   const [applyKey, setApplyKey] = useState(0);
-
-  useEffect(() => {
-    if (urlCategories.length > 0) {
-      setCategories(urlCategories);
-      setPage(0);
-
-    
-    }
-  }, [urlCategories]);
 
   const fetchProducts = async (pageIndex: number) => {
     try {
@@ -91,8 +76,6 @@ export default function ProductsPage() {
 
       setProducts(mapped);
       setTotalPages(json?.data?.totalPages ?? 0);
-
-      
       setTotalElements(json?.data?.totalElements ?? 0);
     } catch (e) {
       console.error("❌ Load products error:", e);
@@ -371,7 +354,6 @@ export default function ProductsPage() {
             </div>
           )}
 
-          
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
               {Array.from({ length: 12 }).map((_, i) => (
@@ -398,7 +380,6 @@ export default function ProductsPage() {
                 ))}
               </div>
 
-             
               <div className="flex justify-center items-center mt-12 gap-2 flex-wrap">
                 <button
                   disabled={page === 0}

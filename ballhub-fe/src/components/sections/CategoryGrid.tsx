@@ -20,7 +20,9 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
           {categories.map((category) => (
             <Link
               key={category.id}
-              href={`/products?categories=${encodeURIComponent(category.name)}`}
+              // 👇 Thay đổi ở đây: Lấy trực tiếp href từ data truyền vào
+              // Nếu Typescript báo lỗi chưa có category.href, bạn nhớ thêm `href: string;` vào interface Category trong file categories.ts nhé!
+              href={category.href || `/products?categories=${encodeURIComponent(category.name)}`}
               className="group"
             >
               <div className="bg-gray-50 hover:bg-gray-100 rounded-2xl p-10 text-center transition-colors duration-300 cursor-pointer border border-gray-100 shadow-sm hover:shadow-md">
