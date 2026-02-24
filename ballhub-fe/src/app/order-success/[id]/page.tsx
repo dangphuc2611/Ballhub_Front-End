@@ -10,7 +10,6 @@ export default function OrderSuccessPage() {
   const params = useParams();
   const router = useRouter();
   
-  // Lấy mã đơn hàng từ URL (vd: /order-success/1 -> orderId = 1)
   const rawId = params?.id;
   const orderId = Array.isArray(rawId) ? rawId[0] : rawId;
 
@@ -21,7 +20,6 @@ export default function OrderSuccessPage() {
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-20">
         <div className="bg-white p-10 md:p-16 rounded-3xl shadow-xl border border-gray-100 flex flex-col items-center max-w-lg w-full text-center">
           
-          {/* Icon Success */}
           <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-8">
             <CheckCircle className="text-green-600 w-12 h-12" />
           </div>
@@ -33,13 +31,12 @@ export default function OrderSuccessPage() {
             Cảm ơn bạn đã mua sắm tại BallHub. Đơn hàng của bạn đang được hệ thống xử lý và sẽ sớm được giao đến bạn.
           </p>
 
-          {/* Hộp thông tin mã đơn */}
+        
           <div className="bg-gray-50 w-full rounded-2xl p-6 mb-10 border border-gray-100 flex justify-between items-center">
             <span className="text-gray-500 font-medium">Mã đơn hàng:</span>
             <span className="text-2xl font-black text-green-600">#{orderId}</span>
           </div>
 
-          {/* Các nút bấm hành động */}
           <div className="flex flex-col sm:flex-row w-full gap-4">
             <Button
               onClick={() => router.push("/")}

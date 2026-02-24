@@ -19,7 +19,7 @@ export default function ProtectedRoute({
       if (!user) {
         router.push("/login");
       } else if (allowedRoles && !allowedRoles.includes(user.role)) {
-        router.push("/unauthorized"); // Bạn cần tạo trang này sau
+        router.push("/unauthorized");
       }
     }
   }, [user, loading, router, allowedRoles]);

@@ -32,9 +32,11 @@ export default function AccountPage() {
 
   const getAvatarUrl = (path: string | undefined) => {
     if (!path) return null;
+   
     if (path.startsWith("http") || path.startsWith("blob:")) {
         return path;
     }
+
     return `${BASE_URL}${path}`;
   };
 
@@ -210,6 +212,7 @@ export default function AccountPage() {
                         </div>
                         <div
                           className="text-green-600 font-semibold cursor-pointer hover:text-green-700 text-sm transition-colors"
+                          // Đổi sang link trang chi tiết đơn hàng riêng
                           onClick={() => router.push(`/profile/orders/${o.orderId}`)}
                         >
                           Xem chi tiết

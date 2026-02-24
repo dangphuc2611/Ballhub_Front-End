@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from 'sonner'
 import './globals.css'
 import { AuthProvider } from "@/app/context/AuthContext" 
+import { GoogleOAuthProvider } from '@react-oauth/google'
 
 const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
@@ -15,16 +16,21 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const googleClientId = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
-        <AuthProvider>
-          <div className="flex flex-col min-h-screen">
-            <main className="flex-grow">
-              {children}
-            </main>
-          </div>
-        </AuthProvider>
+        {/* 2. Bọc GoogleOAuthProvider ở lớp ngoài cùng của các Provider */}
+        <GoogleOAuthProvider clientId="1049777224329-04m2ti3r4eoqr62lvdpma13t5kgfgivc.apps.googleusercontent.com">
+          <AuthProvider>
+            <div className="flex flex-col min-h-screen">
+              <main className="flex-grow">
+                {children}
+              </main>
+            </div>
+          </AuthProvider>
+        </GoogleOAuthProvider>
 
         <Analytics />
         
@@ -40,7 +46,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               border: 'none',
               boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
             },
-            // Thêm transition global và font-sans
             className: 'font-sans transition-all duration-300 ease-in-out',
           }}
         /> 

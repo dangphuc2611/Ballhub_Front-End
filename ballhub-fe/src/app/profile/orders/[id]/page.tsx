@@ -11,7 +11,6 @@ import { useAuth } from "@/app/context/AuthContext";
 
 const BASE_URL = "http://localhost:8080";
 
-// --- INTERFACE KHỚP 100% VỚI BACKEND RESPONSE ---
 interface OrderItem {
   productName: string;
   imageUrl: string;
@@ -26,10 +25,10 @@ interface OrderItem {
 interface OrderDetail {
   orderId: number;
   orderDate: string;
-  subTotal: number;       // Tổng tiền hàng trước Voucher
-  discountAmount: number; // Tiền giảm từ Voucher
-  totalAmount: number;    // Tiền cuối cùng khách trả
-  promoCode?: string;     // Mã Voucher đã dùng
+  subTotal: number;       
+  discountAmount: number; 
+  totalAmount: number;    
+  promoCode?: string;     
   statusName: string;
   userFullName: string;
   userPhone: string;

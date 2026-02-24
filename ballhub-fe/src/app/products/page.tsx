@@ -15,18 +15,14 @@ export default function ProductsPage() {
   const searchParams = useSearchParams();
   const keyword = searchParams.get("search")?.trim() || "";
 
-  // ✅ lấy categories từ URL (khi click breadcrumb)
   const urlCategories = useMemo(() => {
     return searchParams
       .getAll("categories")
       .map((x) => x.trim())
       .filter(Boolean);
   }, [searchParams]);
-
-  // ================= SORT =================
   const [sort, setSort] = useState<"new" | "price_asc" | "price_desc">("new");
 
-  // ================= DATA =================
   const [products, setProducts] = useState<Product[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -35,7 +31,6 @@ export default function ProductsPage() {
 
   const [loading, setLoading] = useState(true);
 
-  // ================= FILTER =================
   const [categories, setCategories] = useState<string[]>([]);
   const [sizes, setSizes] = useState<string[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
@@ -44,20 +39,15 @@ export default function ProductsPage() {
 
   const [applyKey, setApplyKey] = useState(0);
 
-  // =========================================================
-  // ✅ SYNC CATEGORY TỪ URL -> tick filter sẵn
-  // =========================================================
   useEffect(() => {
     if (urlCategories.length > 0) {
       setCategories(urlCategories);
       setPage(0);
 
-      // ❌ KHÔNG gọi API ngay
-      // user sẽ bấm "Áp dụng lọc"
+    
     }
   }, [urlCategories]);
 
-  // ================= FETCH =================
   const fetchProducts = async (pageIndex: number) => {
     try {
       setLoading(true);
@@ -102,7 +92,7 @@ export default function ProductsPage() {
       setProducts(mapped);
       setTotalPages(json?.data?.totalPages ?? 0);
 
-      // ✅ FIX: lấy tổng số sản phẩm thật
+      
       setTotalElements(json?.data?.totalElements ?? 0);
     } catch (e) {
       console.error("❌ Load products error:", e);
@@ -111,19 +101,11 @@ export default function ProductsPage() {
     }
   };
 
-  // =========================================================
-  // ✅ chỉ gọi API khi:
-  // - page đổi
-  // - applyKey đổi (bấm nút áp dụng)
-  // - sort đổi
-  // - keyword đổi
-  // =========================================================
   useEffect(() => {
     fetchProducts(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [page, applyKey, sort, keyword]);
 
-  // ================= ACTION =================
   const toggleItem = (value: string, list: string[], setList: any) => {
     setList((prev: string[]) =>
       prev.includes(value) ? prev.filter((i) => i !== value) : [...prev, value]
@@ -167,13 +149,11 @@ export default function ProductsPage() {
     setApplyKey((k) => k + 1);
   };
 
-  // ================= UI =================
   return (
     <main className="bg-gray-50 min-h-screen">
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* ================= SIDEBAR ================= */}
         <aside className="bg-white rounded-2xl shadow p-6 h-fit sticky top-24 space-y-8">
           {/* CATEGORY */}
           <div>
@@ -298,7 +278,6 @@ export default function ProductsPage() {
           </div>
         </aside>
 
-        {/* ================= PRODUCT LIST ================= */}
         <section className="lg:col-span-3 relative">
           <Breadcrumb
             items={[
@@ -307,7 +286,6 @@ export default function ProductsPage() {
             ]}
           />
 
-          {/* ===== TITLE + SORT BAR ===== */}
           <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
             <h1 className="text-2xl font-bold">
               {keyword ? (
@@ -352,7 +330,6 @@ export default function ProductsPage() {
             </div>
           </div>
 
-          {/* ACTIVE FILTER */}
           {(categories.length > 0 ||
             sizes.length > 0 ||
             brands.length > 0 ||
@@ -394,7 +371,7 @@ export default function ProductsPage() {
             </div>
           )}
 
-          {/* GRID */}
+          
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
               {Array.from({ length: 12 }).map((_, i) => (
@@ -421,7 +398,7 @@ export default function ProductsPage() {
                 ))}
               </div>
 
-              {/* PAGINATION */}
+             
               <div className="flex justify-center items-center mt-12 gap-2 flex-wrap">
                 <button
                   disabled={page === 0}
