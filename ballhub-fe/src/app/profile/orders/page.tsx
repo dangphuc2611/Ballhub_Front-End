@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/app/context/AuthContext";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
-import ProfileForm from "@/components/account/ProfileForm";
-import { User as UserIcon, Package, RotateCcw, Heart, LogOut, Loader2 } from "lucide-react";
-import { useRouter, usePathname } from "next/navigation";
-import Link from "next/link"; // <-- Thêm thư viện Link
+import { User, Package, Heart, LogOut, Loader2, Eye } from "lucide-react";
+import Link from "next/link";
+import { useAuth } from "@/app/context/AuthContext";
+import { usePathname, useRouter } from "next/navigation";
 
 const BASE_URL = "http://localhost:8080";
 
@@ -18,41 +17,24 @@ interface OrderInfo {
   statusName: string;
 }
 
-export default function AccountPage() {
-  const { user, refreshUser, logout } = useAuth();
+export default function OrdersPage() {
+  const { user, logout } = useAuth();
+  const pathname = usePathname();
   const router = useRouter();
-  useEffect(() => {
-    // Ép hệ thống cập nhật dữ liệu mới nhất khi vào trang này
-    refreshUser(); 
-  }, []);
-  const pathname = usePathname(); // <-- Để biết người dùng đang ở trang nào
-
   const [orders, setOrders] = useState<OrderInfo[]>([]);
-  const [loadingOrders, setLoadingOrders] = useState(true);
-
-  const getAvatarUrl = (path: string | undefined) => {
-    if (!path) return null;
-    if (path.startsWith("http") || path.startsWith("blob:")) {
-        return path;
-    }
-    return `${BASE_URL}${path}`;
-  };
-
-  const handleLogout = () => {
-    logout();
-    router.push("/login");
-  };
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchMyOrders = async () => {
       const token = localStorage.getItem("accessToken");
       if (!token) {
-        setLoadingOrders(false);
+        setLoading(false);
         return;
       }
 
       try {
-        const res = await fetch(`${BASE_URL}/api/orders?page=0&size=10`, {
+        // Lấy 20 đơn hàng mới nhất
+        const res = await fetch(`${BASE_URL}/api/orders?page=0&size=20`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -66,12 +48,23 @@ export default function AccountPage() {
       } catch (error) {
         console.error("Lỗi tải danh sách đơn hàng:", error);
       } finally {
-        setLoadingOrders(false);
+        setLoading(false);
       }
     };
 
     fetchMyOrders();
   }, []);
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
+
+  const getAvatarUrl = (path: string | undefined) => {
+    if (!path) return null;
+    if (path.startsWith("http") || path.startsWith("blob:")) return path;
+    return `http://localhost:8080${path}`;
+  };
 
   const getStatusDisplay = (status: string) => {
     switch (status?.toUpperCase()) {
@@ -90,19 +83,20 @@ export default function AccountPage() {
     }
   };
 
-  // --- MENU CẤU HÌNH GỌN GÀNG ---
   const menuItems = [
-    { name: "Thông tin cá nhân", icon: <UserIcon size={16} />, href: "/profile" },
+    { name: "Thông tin cá nhân", icon: <User size={16} />, href: "/profile" },
     { name: "Đơn hàng của tôi", icon: <Package size={16} />, href: "/profile/orders" },
     { name: "Sản phẩm yêu thích", icon: <Heart size={16} />, href: "/profile/favorites" },
   ];
 
+  if (!user && !loading) return <div className="text-center py-20 font-bold text-xl">Vui lòng đăng nhập để xem trang này!</div>;
+
   return (
-    <div className="bg-[#f6f9f8] min-h-screen flex flex-col">
+    <div className="bg-[#f6f9f8] min-h-screen flex flex-col font-sans">
       <Header />
       <main className="max-w-7xl mx-auto px-4 py-10 w-full flex-1">
         <p className="text-sm text-gray-500 mb-6">
-          Trang chủ <span className="mx-1">›</span> Tài khoản của tôi
+          Trang chủ <span className="mx-1">›</span> Tài khoản của tôi <span className="mx-1">›</span> Đơn hàng của tôi
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -111,63 +105,48 @@ export default function AccountPage() {
             <div className="flex items-center gap-3 pb-4 border-b">
               <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center overflow-hidden border border-green-200">
                 {user?.avatar ? (
-                  <img
-                    src={getAvatarUrl(user.avatar) || ""}
-                    className="w-full h-full object-cover"
-                    alt="avatar"
-                  />
+                  <img src={getAvatarUrl(user.avatar) || ""} className="w-full h-full object-cover" alt="avatar" />
                 ) : (
-                  <UserIcon className="text-green-600" size={24} />
+                  <User className="text-green-600" size={24} />
                 )}
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-sm truncate text-gray-900">
-                  {user?.fullName || "Khách hàng"}
-                </p>
-                {user?.phone && (
-                  <p className="text-[11px] text-gray-500 truncate">{user.phone}</p>
-                )}
+                <p className="font-semibold text-sm truncate text-gray-900">{user?.fullName}</p>
+                <p className="text-[11px] text-gray-500 truncate">{user?.phone}</p>
               </div>
             </div>
 
-            {/* --- DANH SÁCH MENU --- */}
-            <div className="space-y-1 text-sm">
+            <nav className="space-y-1 text-sm">
               {menuItems.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors cursor-pointer ${
-                    pathname === item.href
-                      ? "bg-green-50 text-green-600" // Đang ở trang nào thì bôi xanh trang đó
-                      : "hover:bg-gray-50 text-gray-600"
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
+                    pathname === item.href ? "bg-green-50 text-green-600" : "hover:bg-gray-50 text-gray-600"
                   }`}
                 >
                   {item.icon} {item.name}
                 </Link>
               ))}
-            </div>
+            </nav>
 
             <div className="pt-3 border-t">
-              <div
+              <button 
                 onClick={handleLogout}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-red-50 text-red-500 cursor-pointer text-sm font-bold transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg font-bold text-red-500 hover:bg-red-50 transition-colors text-sm"
               >
                 <LogOut size={16} /> Đăng xuất
-              </div>
+              </button>
             </div>
           </aside>
 
-          {/* ================= CONTENT SECTION ================= */}
-          <section className="md:col-span-3 space-y-8">
-            <ProfileForm />
-
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-gray-800">Đơn hàng gần đây</h3>
-                <Link href="/profile/orders" className="text-sm text-green-600 font-semibold cursor-pointer hover:underline">
-                  Xem tất cả
-                </Link>
-              </div>
+          {/* ================= CONTENT: ĐƠN HÀNG ================= */}
+          <section className="md:col-span-3">
+            <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 min-h-[500px]">
+              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <Package className="text-green-600" size={24}/>
+                Quản lý đơn hàng
+              </h2>
 
               <div className="overflow-x-auto">
                 <div className="grid grid-cols-5 text-xs font-bold text-gray-400 border-b pb-3 mb-3 uppercase tracking-wider min-w-[600px]">
@@ -178,14 +157,18 @@ export default function AccountPage() {
                   <div>Hành động</div>
                 </div>
 
-                {loadingOrders ? (
-                  <div className="flex flex-col items-center justify-center py-10">
-                    <Loader2 className="animate-spin text-green-600 mb-2" size={30} />
-                    <p className="text-sm text-gray-500">Đang tải đơn hàng...</p>
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <Loader2 className="animate-spin text-green-600 mb-2" size={32} />
+                    <p className="text-sm text-gray-500">Đang tải danh sách...</p>
                   </div>
                 ) : orders.length === 0 ? (
-                  <div className="text-center text-gray-500 py-10 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                    Bạn chưa có đơn hàng nào.
+                  <div className="text-center py-20 border-2 border-dashed border-gray-100 rounded-3xl bg-gray-50">
+                    <Package className="mx-auto text-gray-300 mb-4" size={48} />
+                    <p className="text-gray-500 mb-6 font-medium text-lg">Bạn chưa có đơn hàng nào.</p>
+                    <Link href="/products" className="px-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition">
+                      Mua sắm ngay
+                    </Link>
                   </div>
                 ) : (
                   orders.map((o) => {
@@ -197,10 +180,10 @@ export default function AccountPage() {
                     });
 
                     return (
-                      <div key={o.orderId} className="grid grid-cols-5 text-sm items-center py-4 border-b last:border-none hover:bg-gray-50 transition-colors min-w-[600px]">
+                      <div key={o.orderId} className="grid grid-cols-5 text-sm items-center py-4 border-b border-gray-50 last:border-none hover:bg-gray-50 transition-colors min-w-[600px] rounded-lg px-2">
                         <div className="font-medium text-gray-900">#BH-{o.orderId}</div>
                         <div className="text-gray-600">{formattedDate}</div>
-                        <div className="font-bold text-gray-900">
+                        <div className="font-bold text-green-600">
                           {o.totalAmount?.toLocaleString()}đ
                         </div>
                         <div>
@@ -208,11 +191,14 @@ export default function AccountPage() {
                             {statusConfig.label}
                           </span>
                         </div>
-                        <div
-                          className="text-green-600 font-semibold cursor-pointer hover:text-green-700 text-sm transition-colors"
-                          onClick={() => router.push(`/profile/orders/${o.orderId}`)}
-                        >
-                          Xem chi tiết
+                        <div>
+                          <Link 
+                            href={`/profile/orders/${o.orderId}`}
+                            className="inline-flex items-center gap-1 text-blue-600 font-semibold cursor-pointer hover:text-blue-800 text-sm transition-colors bg-blue-50 px-3 py-1.5 rounded-lg"
+                          >
+                            <Eye size={14}/>
+                            Xem chi tiết
+                          </Link>
                         </div>
                       </div>
                     );

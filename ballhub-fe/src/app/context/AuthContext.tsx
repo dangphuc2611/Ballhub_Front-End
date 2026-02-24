@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import api from "@/lib/axios"; // Đảm bảo bạn có import api
 
 interface User {
   userId: number;
@@ -17,6 +18,7 @@ interface AuthContextType {
   login: (userData: any) => void;
   logout: () => void;
   updateUser: (updatedUser: User) => void;
+  refreshUser: () => Promise<void>; // <-- Thêm hàm này
   loading: boolean;
 }
 
@@ -35,9 +37,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(false);
   }, []);
 
+  // Hàm làm mới dữ liệu từ Database
+  const refreshUser = async () => {
+    try {
+      const res = await api.get("/users/me");
+      if (res.data.success) {
+        const freshData = res.data.data;
+        // Chuẩn hóa link avatar trước khi lưu
+        if (freshData.avatar && !freshData.avatar.startsWith('http')) {
+          freshData.avatar = `http://localhost:8080${freshData.avatar}`;
+        }
+        updateUser(freshData);
+      }
+    } catch (err) {
+      console.error("Không thể refresh user", err);
+    }
+  };
+
   const login = (data: any) => {
     localStorage.setItem("accessToken", data.accessToken);
     localStorage.setItem("refreshToken", data.refreshToken);
+    // Lưu ý: Nhớ nhắc Backend trả về avatar trong API Login
     localStorage.setItem("user", JSON.stringify(data.user));
     setUser(data.user);
   };
@@ -54,7 +74,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, refreshUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

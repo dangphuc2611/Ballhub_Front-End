@@ -82,8 +82,8 @@ export default function Home() {
       <Header />
 
       <HeroBanner
-        title="BallHub – Áo bóng đá chính hãng"
-        description="Hữu giai mới – Ưu đãi lên đến 30% cho các mẫu áo đấu mới nhất."
+        title="BallHub – Quần Áo bóng đá chính hãng"
+        description="Ưu đãi lên đến 10% cho các mẫu quần áo."
         primaryButtonText="Mua ngay"
         secondaryButtonText="Xem khuyến mãi"
         primaryButtonHref="/products"
@@ -113,9 +113,9 @@ export default function Home() {
 
           <PromoBanner
             badge="Ưu Đãi Có Hạn"
-            title="ƯU ĐÃI HÈ RỰC RỠ"
-            description="Áp dụng đến hết 30/9/2024"
-            discount="30%"
+            title="ƯU ĐÃI HẤP DẪN"
+            description="Áp dụng đến hết 30/3/2025"
+            discount="10%"
             buttonText="Xem thêm"
             buttonHref="/promotions"
           />
