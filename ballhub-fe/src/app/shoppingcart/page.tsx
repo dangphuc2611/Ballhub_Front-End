@@ -133,7 +133,7 @@ export default function CartPage() {
               Hãy khám phá những sản phẩm mới nhất của chúng tôi!
             </p>
             <Button
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/products")} // Sửa dòng này
               className="bg-green-600 hover:bg-green-700 text-white px-8 h-12 rounded-full font-bold shadow-md"
             >
               Tiếp tục mua sắm
