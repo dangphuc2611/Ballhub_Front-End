@@ -162,7 +162,8 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
-            {order.statusName?.toUpperCase() !== 'CANCELLED' && order.statusName?.toUpperCase() !== 'DELIVERED' && (
+            {/* LOGIC HIỂN THỊ NÚT HỦY ĐƠN HÀNG CHUẨN XÁC */}
+            {(order.statusName?.toUpperCase() === 'PENDING' || order.statusName?.toUpperCase() === 'CONFIRMED') && (
               <button
                 onClick={handleCancelOrder}
                 disabled={cancelling}
@@ -171,6 +172,22 @@ export default function OrderDetailPage() {
                 {cancelling ? <Loader2 className="animate-spin" size={18} /> : <AlertCircle size={18} />}
                 HỦY ĐƠN HÀNG NÀY
               </button>
+            )}
+
+            {/* Thông báo nếu đơn đang giao / đã giao */}
+            {(order.statusName?.toUpperCase() === 'SHIPPING' || order.statusName?.toUpperCase() === 'DELIVERED') && (
+              <div className="w-full py-4 rounded-2xl bg-gray-50 border-2 border-gray-100 text-gray-500 font-medium text-sm flex items-center justify-center gap-2 italic">
+                <AlertCircle size={18} />
+                Đơn hàng đã được {order.statusName.toUpperCase() === 'SHIPPING' ? 'giao cho đơn vị vận chuyển' : 'giao thành công'}, không thể hủy.
+              </div>
+            )}
+
+            {/* Thông báo nếu đơn đã bị hủy */}
+            {order.statusName?.toUpperCase() === 'CANCELLED' && (
+              <div className="w-full py-4 rounded-2xl bg-red-50 border-2 border-red-100 text-red-600 font-bold text-sm flex items-center justify-center gap-2">
+                <AlertCircle size={18} />
+                ĐƠN HÀNG ĐÃ BỊ HỦY
+              </div>
             )}
           </div>
 

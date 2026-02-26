@@ -101,6 +101,9 @@ export default function ProductDetailPage() {
     try {
       await addToCartApi(matchedVariant.variantId, quantity);
 
+      // ✅ GỬI TÍN HIỆU CẬP NHẬT HEADER GIỎ HÀNG
+      window.dispatchEvent(new Event("cartUpdated"));
+
       toast.success(
         <div className="flex flex-col gap-1">
           <p className="font-medium text-gray-900">
@@ -130,6 +133,10 @@ export default function ProductDetailPage() {
     setIsSubmitting(true);
     try {
       await addToCartApi(matchedVariant.variantId, quantity);
+      
+      // ✅ GỬI TÍN HIỆU CẬP NHẬT HEADER TRƯỚC KHI CHUYỂN TRANG
+      window.dispatchEvent(new Event("cartUpdated"));
+      
       router.push("/shoppingcart");
     } catch (error) {
       toast.error("Có lỗi xảy ra, vui lòng thử lại");
@@ -286,25 +293,29 @@ export default function ProductDetailPage() {
               </div>
 
               {/* ================= THAY THẾ KHU VỰC GIÁ Ở ĐÂY ================= */}
-              <div className="flex items-end gap-3">
-                {/* 1. Giá bán thực tế (Màu đỏ nếu có Sale, Xanh nếu không Sale) */}
+              <div className="flex items-end gap-3 mb-2">
+                {/* 1. Giá bán thực tế (Nhảy số theo Variant đã chọn) */}
                 <div className={`text-3xl font-extrabold ${(product.discountPercent || 0) > 0 ? "text-red-600" : "text-blue-600"}`}>
-                  {product.minPrice?.toLocaleString()}đ
+                  {matchedVariant 
+                    ? (matchedVariant?.discountPrice || ((matchedVariant?.price || 0) * (100 - (product.discountPercent || 0)) / 100)).toLocaleString() 
+                    : product.minPrice?.toLocaleString()}đ
                 </div>
 
-                {/* 2. Hiển thị Giá gốc gạch ngang và Nhãn đỏ nếu có Flash Sale */}
+                {/* 2. Hiển thị Giá gốc gạch ngang và Nhãn đỏ */}
                 {(product.discountPercent || 0) > 0 ? (
                   <>
                     <div className="text-base text-gray-400 line-through pb-1 font-medium">
-                      {product.minOriginalPrice?.toLocaleString()}đ
+                      {matchedVariant 
+                        ? (matchedVariant?.price || 0).toLocaleString() 
+                        : product.minOriginalPrice?.toLocaleString()}đ
                     </div>
                     <div className="mb-1.5 bg-red-100 text-red-600 text-sm font-black px-2 py-0.5 rounded border border-red-200">
                       GIẢM {product.discountPercent}%
                     </div>
                   </>
                 ) : (
-                  /* Nếu không có Sale nhưng có khoảng giá (ví dụ các size giá khác nhau) */
-                  product.minPrice !== product.maxPrice && (
+                  /* Khoảng giá khi chưa chọn phân loại */
+                  !matchedVariant && product.minPrice !== product.maxPrice && (
                     <div className="text-base text-gray-400 pb-1">
                       - {product.maxPrice?.toLocaleString()}đ
                     </div>

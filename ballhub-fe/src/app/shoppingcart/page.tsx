@@ -28,6 +28,7 @@ type CartItem = {
   price: number;
   finalPrice: number;
   quantity: number;
+  stockQuantity: number; // Lượng hàng tồn trong kho
   sizeName: string;
   colorName: string;
   imageUrl: string;
@@ -66,15 +67,28 @@ export default function CartPage() {
   const updateQty = async (
     cartItemId: number,
     currentQty: number,
-    delta: number
+    delta: number,
+    maxStock: number // Nhận thêm maxStock để chặn
   ) => {
     const newQty = currentQty + delta;
+    
+    // 1. Chặn số âm
     if (newQty < 1) return;
+    
+    // 2. Chặn vượt quá tồn kho thực tế
+    if (newQty > maxStock) {
+      toast.error(`Kho chỉ còn ${maxStock} sản phẩm`);
+      return;
+    }
 
     setUpdatingId(cartItemId);
     try {
       await api.put(`/cart/items/${cartItemId}`, { quantity: newQty });
       await fetchCart();
+      
+      // ✅ PHÉP MÀU Ở ĐÂY: Báo cho Header cập nhật số lượng ngay lập tức
+      window.dispatchEvent(new Event("cartUpdated"));
+      
     } catch {
       toast.error("Không thể cập nhật số lượng");
     } finally {
@@ -87,6 +101,10 @@ export default function CartPage() {
       loading: "Đang xóa...",
       success: () => {
         fetchCart();
+        
+        // ✅ PHÉP MÀU Ở ĐÂY: Báo cho Header cập nhật (trừ) số lượng ngay lập tức
+        window.dispatchEvent(new Event("cartUpdated"));
+        
         return "Đã xóa sản phẩm";
       },
       error: "Lỗi khi xóa",
@@ -142,67 +160,85 @@ export default function CartPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {cartItems.map((item) => (
-                        <tr key={item.cartItemId} className="hover:bg-green-50/50 transition">
-                          <td className="p-5">
-                            <div className="flex items-center gap-4">
-                              <div className="w-20 h-20 relative bg-gray-50 rounded-xl overflow-hidden border">
-                                <Image
-                                  src={getFullImageUrl(item.imageUrl)}
-                                  alt={item.productName}
-                                  fill
-                                  className="object-contain"
-                                  unoptimized
-                                />
-                              </div>
-                              <div>
-                                <h4 className="font-semibold text-sm">{item.productName}</h4>
-                                <div className="flex gap-2 mt-1.5 text-[10px] uppercase font-bold tracking-wider">
-                                  <span className="bg-green-50 text-green-600 px-2 py-0.5 rounded">Size {item.sizeName}</span>
-                                  <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{item.colorName}</span>
+                      {cartItems.map((item) => {
+                        // Tính toán số lượng tồn kho (bọc an toàn tránh undefined)
+                        const maxStock = item.stockQuantity || 100; // Giả sử nếu không có data thì set mặc định 100
+                        const isMaxQty = item.quantity >= maxStock;
+
+                        return (
+                          <tr key={item.cartItemId} className="hover:bg-green-50/50 transition">
+                            <td className="p-5">
+                              <div className="flex items-center gap-4">
+                                <div className="w-20 h-20 relative bg-gray-50 rounded-xl overflow-hidden border">
+                                  <Image
+                                    src={getFullImageUrl(item.imageUrl)}
+                                    alt={item.productName}
+                                    fill
+                                    className="object-contain"
+                                    unoptimized
+                                  />
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-sm">{item.productName}</h4>
+                                  <div className="flex gap-2 mt-1.5 text-[10px] uppercase font-bold tracking-wider">
+                                    <span className="bg-green-50 text-green-600 px-2 py-0.5 rounded">Size {item.sizeName}</span>
+                                    <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{item.colorName}</span>
+                                  </div>
+                                  {/* Hiện cảnh báo đỏ nếu đã chọn max hàng trong kho */}
+                                  {isMaxQty && (
+                                    <p className="text-[10px] text-red-500 font-bold mt-1 italic">
+                                      *Đã đạt số lượng tối đa trong kho
+                                    </p>
+                                  )}
                                 </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="p-5 text-center font-medium text-sm">
-                            {item.finalPrice.toLocaleString()}đ
-                          </td>
-                          <td className="p-5">
-                            <div className="flex justify-center">
-                              <div className="flex items-center border rounded-lg bg-white">
-                                <button
-                                  onClick={() => updateQty(item.cartItemId, item.quantity, -1)}
-                                  disabled={updatingId === item.cartItemId}
-                                  className="w-7 h-7 flex items-center justify-center hover:bg-gray-50"
-                                >
-                                  <Minus size={12} />
-                                </button>
-                                <span className="w-8 text-center text-xs font-bold">
-                                  {updatingId === item.cartItemId ? ".." : item.quantity}
-                                </span>
-                                <button
-                                  onClick={() => updateQty(item.cartItemId, item.quantity, 1)}
-                                  disabled={updatingId === item.cartItemId}
-                                  className="w-7 h-7 flex items-center justify-center hover:bg-gray-50"
-                                >
-                                  <Plus size={12} />
-                                </button>
+                            </td>
+                            <td className="p-5 text-center font-medium text-sm">
+                              {item.finalPrice.toLocaleString()}đ
+                            </td>
+                            <td className="p-5">
+                              <div className="flex justify-center">
+                                <div className="flex items-center border rounded-lg bg-white">
+                                  {/* Nút TRỪ */}
+                                  <button
+                                    onClick={() => updateQty(item.cartItemId, item.quantity, -1, maxStock)}
+                                    disabled={updatingId === item.cartItemId || item.quantity <= 1}
+                                    className={`w-7 h-7 flex items-center justify-center transition-colors
+                                      ${item.quantity <= 1 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                                  >
+                                    <Minus size={12} />
+                                  </button>
+                                  
+                                  <span className="w-8 text-center text-xs font-bold">
+                                    {updatingId === item.cartItemId ? ".." : item.quantity}
+                                  </span>
+
+                                  {/* Nút CỘNG */}
+                                  <button
+                                    onClick={() => updateQty(item.cartItemId, item.quantity, 1, maxStock)}
+                                    disabled={updatingId === item.cartItemId || isMaxQty}
+                                    className={`w-7 h-7 flex items-center justify-center transition-colors
+                                      ${isMaxQty ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50'}`}
+                                  >
+                                    <Plus size={12} />
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="p-5 text-right font-bold text-green-600 text-sm">
-                            {item.subtotal.toLocaleString()}đ
-                          </td>
-                          <td className="p-5 text-right">
-                            <button
-                              onClick={() => removeItem(item.cartItemId)}
-                              className="text-gray-300 hover:text-red-500 transition-colors"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td className="p-5 text-right font-bold text-green-600 text-sm">
+                              {item.subtotal.toLocaleString()}đ
+                            </td>
+                            <td className="p-5 text-right">
+                              <button
+                                onClick={() => removeItem(item.cartItemId)}
+                                className="text-gray-300 hover:text-red-500 transition-colors"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

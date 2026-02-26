@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Search,
   ShoppingCart,
@@ -24,9 +24,11 @@ const MAX_CACHE_KEYS = 30;
 
 export function Header({ showSearch = true }: HeaderProps) {
   const { user, logout } = useAuth();
-  const cartCount = 0;
-
   const router = useRouter();
+  const pathname = usePathname();
+
+  // ✅ STATE LƯU SỐ LƯỢNG GIỎ HÀNG
+  const [cartCount, setCartCount] = useState(0);
 
   const [keyword, setKeyword] = useState("");
   const [suggestions, setSuggestions] = useState<SuggestProduct[]>([]);
@@ -39,6 +41,44 @@ export function Header({ showSearch = true }: HeaderProps) {
 
   // ✅ CACHE: key = keyword, value = list suggestions
   const suggestCacheRef = useRef<Map<string, SuggestProduct[]>>(new Map());
+
+  // ==========================================
+  // ✅ LOGIC TỰ ĐỘNG CẬP NHẬT SỐ GIỎ HÀNG
+  // ==========================================
+  useEffect(() => {
+    const fetchCartCount = async () => {
+      if (!user) {
+        setCartCount(0);
+        return;
+      }
+      try {
+        const token = localStorage.getItem("accessToken");
+        if (!token) return;
+
+        const res = await fetch(`${BASE_URL}/api/cart`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const json = await res.json();
+        const items = json?.data?.items || [];
+        
+        // Cộng dồn toàn bộ số lượng sản phẩm đang có trong giỏ
+        const total = items.reduce((sum: number, item: any) => sum + item.quantity, 0);
+        setCartCount(total);
+      } catch (e) {
+        console.error("Lỗi lấy số lượng giỏ hàng:", e);
+      }
+    };
+
+    fetchCartCount();
+
+    // Lắng nghe sự kiện tùy chỉnh (Custom Event) để update realtime
+    const handleCartUpdated = () => fetchCartCount();
+    window.addEventListener("cartUpdated", handleCartUpdated);
+
+    return () => window.removeEventListener("cartUpdated", handleCartUpdated);
+  }, [user, pathname]); // Chạy lại khi đăng nhập/đăng xuất hoặc đổi trang
 
   const handleSearch = () => {
     const q = keyword.trim();
@@ -322,7 +362,7 @@ export function Header({ showSearch = true }: HeaderProps) {
               <ShoppingCart className="w-5 h-5" />
               {cartCount > 0 && (
                 <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
-                  {cartCount}
+                  {cartCount > 99 ? '99+' : cartCount}
                 </span>
               )}
             </Link>
