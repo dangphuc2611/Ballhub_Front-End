@@ -67,10 +67,8 @@ export default function CheckoutPage() {
         // Nếu phương thức thanh toán là Chuyển khoản (ID = 2)
         if (formData.paymentMethodId === 2) {
             // Tự tạo URL mã VietQR ở Frontend.
-            // Thay "MB-0987654321" bằng Ngân hàng và STK thực tế của bạn.
-            // Thay "TEN CUA BAN" bằng tên tài khoản của bạn.
             const total = cartData.totalAmount;
-            const qrUrl = `https://img.vietqr.io/image/MB-0987654321-compact2.png?amount=${total}&addInfo=Thanh toan don hang&accountName=TEN CUA BAN`;
+            const qrUrl = `https://img.vietqr.io/image/MB-0886301661-compact2.png?amount=${total}&addInfo=Thanh toan don hang&accountName=NGO GIA HIEN`;
             
             setQrModal({ show: true, url: qrUrl });
             return; // Dừng lại ở đây, KHÔNG gọi API tạo đơn
