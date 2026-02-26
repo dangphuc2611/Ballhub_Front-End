@@ -25,7 +25,7 @@ export default function CheckoutPage() {
     const [appliedPromo, setAppliedPromo] = useState<any>(null);
 
     // STATE: Quản lý hiển thị Popup Mã QR
-    const [qrModal, setQrModal] = useState<{show: boolean, url: string, orderId: number | null}>({show: false, url: '', orderId: null});
+    const [qrModal, setQrModal] = useState<{show: boolean, url: string}>({show: false, url: ''});
 
     useEffect(() => {
         api.get("/cart").then(res => {
@@ -34,8 +34,8 @@ export default function CheckoutPage() {
         }).catch(() => toast.error("Lỗi tải giỏ hàng"));
     }, [router]);
 
-    const handleOrder = async () => {
-        if (!formData.fullName || !formData.phone) return toast.error("Thiếu thông tin nhận hàng");
+    // Hàm gọi API tạo đơn hàng thực sự (Được gọi khi chọn COD hoặc sau khi xác nhận đã quét QR)
+    const submitOrderToBackend = async () => {
         setIsSubmitting(true);
         try {
             const payload = { 
@@ -47,25 +47,37 @@ export default function CheckoutPage() {
             
             const res = await api.post("/orders", payload);
             const responseData = res.data.data;
+            const orderId = responseData.order ? responseData.order.orderId : responseData.orderId;
 
-            // KIỂM TRA: Nếu Backend có trả về paymentUrl (ảnh mã QR)
-            if (responseData && responseData.paymentUrl) {
-                const orderId = responseData.order ? responseData.order.orderId : responseData.orderId;
-                
-                // Mở Modal mã QR lên
-                setQrModal({ show: true, url: responseData.paymentUrl, orderId: orderId });
-                toast.success("Tạo đơn hàng thành công! Vui lòng quét mã thanh toán.");
-                setIsSubmitting(false); // Cho phép tương tác lại với form
-            } else {
-                // Nếu là COD (Không có link QR)
-                toast.success("Đặt hàng thành công!");
-                const orderId = responseData.order ? responseData.order.orderId : responseData.orderId;
-                router.push(`/order-success/${orderId}`);
-            }
+            toast.success("Đặt hàng thành công!");
+            router.push(`/order-success/${orderId}`);
+            
         } catch (err: any) {
             toast.error(err.response?.data?.message || "Đặt hàng thất bại");
             setIsSubmitting(false);
+        } finally {
+            setQrModal({ show: false, url: '' }); // Đảm bảo đóng modal
         }
+    };
+
+    // Hàm xử lý khi người dùng bấm nút "Đặt hàng"
+    const handleOrder = async () => {
+        if (!formData.fullName || !formData.phone) return toast.error("Thiếu thông tin nhận hàng");
+
+        // Nếu phương thức thanh toán là Chuyển khoản (ID = 2)
+        if (formData.paymentMethodId === 2) {
+            // Tự tạo URL mã VietQR ở Frontend.
+            // Thay "MB-0987654321" bằng Ngân hàng và STK thực tế của bạn.
+            // Thay "TEN CUA BAN" bằng tên tài khoản của bạn.
+            const total = cartData.totalAmount;
+            const qrUrl = `https://img.vietqr.io/image/MB-0987654321-compact2.png?amount=${total}&addInfo=Thanh toan don hang&accountName=TEN CUA BAN`;
+            
+            setQrModal({ show: true, url: qrUrl });
+            return; // Dừng lại ở đây, KHÔNG gọi API tạo đơn
+        }
+
+        // Nếu là phương thức khác (VD: COD), gọi API tạo đơn luôn
+        submitOrderToBackend();
     };
 
     if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-green-600" size={40} /></div>;
@@ -102,7 +114,7 @@ export default function CheckoutPage() {
             </main>
             <Footer />
 
-            {/* ================= MODAL QUÉT MÃ QR (DÀNH CHO DEMO ĐỒ ÁN) ================= */}
+            {/* ================= MODAL QUÉT MÃ QR ================= */}
             {qrModal.show && (
                 <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[999] p-4 backdrop-blur-sm">
                     <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center space-y-6 shadow-2xl animate-in zoom-in-95 duration-200">
@@ -117,26 +129,24 @@ export default function CheckoutPage() {
                             <p>Sử dụng App Ngân hàng hoặc ZaloPay để quét mã.</p>
                         </div>
 
-                        {/* NÚT FAKE THANH TOÁN DÀNH CHO GIÁM KHẢO */}
+                        {/* NÚT HÀNH ĐỘNG */}
                         <div className="space-y-3 pt-4 border-t border-gray-100">
+                            {/* Nút xác nhận thanh toán -> Gọi API tạo đơn */}
                             <button 
-                                onClick={() => router.push(`/order-success/${qrModal.orderId}`)}
+                                onClick={submitOrderToBackend}
+                                disabled={isSubmitting}
                                 className="w-full bg-green-500 hover:bg-green-600 text-white rounded-xl h-12 font-bold shadow-lg shadow-green-200 transition-all active:scale-95 flex items-center justify-center gap-2"
                             >
-                                Giả lập: Đã thanh toán xong
+                                {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : "Tôi đã thanh toán"}
                             </button>
                             
-                            {/* Nút Đóng / Thanh toán sau */}
+                            {/* Nút Đóng -> Chỉ ẩn Modal, KHÔNG TẠO ĐƠN */}
                             <button 
-                                onClick={() => {
-                                    setQrModal({show: false, url: '', orderId: null});
-                                    // Búng khách về trang Quản lý đơn hàng thay vì ở lại trang Checkout
-                                    router.push('/profile/orders'); 
-                                    toast.info("Đơn hàng đã được lưu. Bạn có thể thanh toán sau nhé!");
-                                }}
+                                onClick={() => setQrModal({show: false, url: ''})}
+                                disabled={isSubmitting}
                                 className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl h-10 font-medium transition-colors"
                             >
-                                Đóng / Thanh toán sau
+                                Đóng, tôi chưa thanh toán
                             </button>
                         </div>
                     </div>
