@@ -1,22 +1,22 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { Header } from '@/components/sections/Header';
-import { HeroBanner } from '@/components/sections/HeroBanner';
-import { CategoryGrid } from '@/components/sections/CategoryGrid';
-import { ProductSection } from '@/components/sections/ProductSection';
-import { PromoBanner } from '@/components/sections/PromoBanner';
-import { Footer } from '@/components/sections/Footer';
-import { categories } from '@/data/categories';
-import type { Product } from '@/types/product';
+import { useEffect, useMemo, useState } from "react";
+import { Header } from "@/components/sections/Header";
+import { HeroBanner } from "@/components/sections/HeroBanner";
+import { CategoryGrid } from "@/components/sections/CategoryGrid";
+import { ProductSection } from "@/components/sections/ProductSection";
+import { PromoBanner } from "@/components/sections/PromoBanner";
+import { Footer } from "@/components/sections/Footer";
+import { categories } from "@/data/categories";
+import type { Product } from "@/types/product";
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   // search
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   // debounce 400ms
   useEffect(() => {
@@ -31,13 +31,13 @@ export default function Home() {
       const url =
         keyword && keyword.length > 0
           ? `http://localhost:8080/api/products?keyword=${encodeURIComponent(
-              keyword
+              keyword,
             )}&page=0&size=8`
           : `http://localhost:8080/api/products?page=0&size=8`;
 
       const res = await fetch(url);
 
-      if (!res.ok) throw new Error('Fetch products failed');
+      if (!res.ok) throw new Error("Fetch products failed");
 
       const json = await res.json();
 
@@ -46,17 +46,17 @@ export default function Home() {
         name: item.productName,
         price: item.minPrice,
         minOriginalPrice: item.minOriginalPrice,
-        discountPercent: item.discountPercent, 
+        discountPercent: item.discountPercent,
         image: item.mainImage
           ? `http://localhost:8080${item.mainImage}`
-          : '/no-image.png',
+          : "/no-image.png",
         category: item.categoryName,
-        badge: 'MỚI' 
+        badge: "MỚI",
       }));
 
       setProducts(mapped);
     } catch (err) {
-      console.error('❌ Lỗi load product:', err);
+      console.error("❌ Lỗi load product:", err);
       setProducts([]);
     } finally {
       setLoading(false);
