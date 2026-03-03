@@ -10,11 +10,15 @@ import { usePathname, useRouter } from "next/navigation";
 
 const BASE_URL = "http://localhost:8080";
 
+// ✅ Cập nhật Interface: Hứng thêm thông tin địa chỉ và phí ship (nếu có) từ Backend
 interface OrderInfo {
   orderId: number;
   orderDate: string;
   totalAmount: number;
   statusName: string;
+  deliveryAddress?: string; 
+  subTotal?: number;
+  shippingFee?: number;
 }
 
 export default function OrdersPage() {
@@ -33,7 +37,6 @@ export default function OrdersPage() {
       }
 
       try {
-        // Lấy 20 đơn hàng mới nhất
         const res = await fetch(`${BASE_URL}/api/orders?page=0&size=20`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -81,6 +84,23 @@ export default function OrdersPage() {
       default:
         return { label: status || "Không rõ", classes: "bg-gray-100 text-gray-600" };
     }
+  };
+
+  // ✅ Bê nguyên hàm "Phép thuật" tính phí ship sang đây
+  const calculateShippingFee = (addressText: string, totalAmount: number) => {
+    if (!addressText || addressText.trim() === "") return 0;
+    if (totalAmount >= 1000000) return 0; 
+
+    let baseFee = 30000; 
+    const addr = addressText.toLowerCase();
+
+    if (addr.includes("hà nội") || addr.includes("ha noi")) baseFee = 15000;
+    else if (addr.includes("hồ chí minh") || addr.includes("ho chi minh") || addr.includes("hcm")) baseFee = 35000;
+    else if (addr.includes("đà nẵng") || addr.includes("da nang")) baseFee = 25000;
+    else if (addr.includes("hải phòng") || addr.includes("hai phong") || addr.includes("quảng ninh")) baseFee = 20000;
+    else if (addr.includes("cần thơ") || addr.includes("can tho") || addr.includes("bình dương")) baseFee = 30000;
+
+    return baseFee;
   };
 
   const menuItems = [
@@ -179,12 +199,20 @@ export default function OrdersPage() {
                       year: "numeric"
                     });
 
+                    // ✅ TÍNH LẠI TỔNG TIỀN HIỂN THỊ BAO GỒM PHÍ SHIP
+                    // Dùng o.subTotal nếu có, không thì lấy tạm o.totalAmount làm gốc để tính freeship > 1 củ
+                    const baseAmountForShip = o.subTotal || o.totalAmount || 0;
+                    const address = o.deliveryAddress || "";
+                    
+                    const calculatedShip = o.shippingFee !== undefined ? o.shippingFee : calculateShippingFee(address, baseAmountForShip);
+                    const displayTotalAmount = (o.totalAmount || 0) + calculatedShip;
+
                     return (
                       <div key={o.orderId} className="grid grid-cols-5 text-sm items-center py-4 border-b border-gray-50 last:border-none hover:bg-gray-50 transition-colors min-w-[600px] rounded-lg px-2">
                         <div className="font-medium text-gray-900">#BH-{o.orderId}</div>
                         <div className="text-gray-600">{formattedDate}</div>
                         <div className="font-bold text-green-600">
-                          {o.totalAmount?.toLocaleString()}đ
+                          {displayTotalAmount.toLocaleString()}đ
                         </div>
                         <div>
                           <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${statusConfig.classes}`}>

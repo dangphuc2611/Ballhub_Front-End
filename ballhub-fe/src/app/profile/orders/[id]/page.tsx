@@ -33,6 +33,7 @@ interface OrderDetail {
   userFullName: string;
   userPhone: string;
   deliveryAddress: string;
+  shippingFee?: number; // Thêm trường này đề phòng sau này Backend có update
   items: OrderItem[];
 }
 
@@ -89,6 +90,23 @@ export default function OrderDetailPage() {
     }
   };
 
+  // ✅ HÀM "PHÉP THUẬT": Tính lại phí ship dựa trên địa chỉ Backend trả về
+  const calculateShippingFee = (addressText: string, totalAmount: number) => {
+    if (!addressText || addressText.trim() === "") return 0;
+    if (totalAmount >= 1000000) return 0; 
+
+    let baseFee = 30000; 
+    const addr = addressText.toLowerCase();
+
+    if (addr.includes("hà nội") || addr.includes("ha noi")) baseFee = 15000;
+    else if (addr.includes("hồ chí minh") || addr.includes("ho chi minh") || addr.includes("hcm")) baseFee = 35000;
+    else if (addr.includes("đà nẵng") || addr.includes("da nang")) baseFee = 25000;
+    else if (addr.includes("hải phòng") || addr.includes("hai phong") || addr.includes("quảng ninh")) baseFee = 20000;
+    else if (addr.includes("cần thơ") || addr.includes("can tho") || addr.includes("bình dương")) baseFee = 30000;
+
+    return baseFee;
+  };
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
       <Loader2 className="animate-spin text-green-600" size={40} />
@@ -97,12 +115,19 @@ export default function OrderDetailPage() {
 
   if (!order) return <div className="text-center py-20 font-bold text-gray-500">⚠️ Đơn hàng không tồn tại</div>;
 
+  // ✅ TÍNH TOÁN LẠI ĐỂ HIỂN THỊ
+  // Nếu Backend có trả về shippingFee thì dùng, nếu không thì tự tính qua Frontend
+  const displayShippingFee = order.shippingFee !== undefined ? order.shippingFee : calculateShippingFee(order.deliveryAddress, order.subTotal);
+  
+  // Tính lại tổng tiền: Tạm tính - Giảm giá + Phí Ship
+  const displayTotalAmount = (order.subTotal - (order.discountAmount || 0) > 0 ? order.subTotal - (order.discountAmount || 0) : 0) + displayShippingFee;
+
   return (
     <div className="bg-[#f8f9fa] min-h-screen flex flex-col font-sans">
       <Header />
       <main className="max-w-7xl mx-auto px-4 py-10 w-full flex-1">
         <button
-          onClick={() => router.push('/profile')}
+          onClick={() => router.push('/profile/orders')}
           className="flex items-center gap-2 text-gray-500 hover:text-green-600 mb-6 transition-all font-bold text-sm"
         >
           <ArrowLeft size={16} /> QUAY LẠI TÀI KHOẢN
@@ -226,15 +251,18 @@ export default function OrderDetailPage() {
                   </div>
                 )}
 
+                {/* ✅ HIỂN THỊ PHÍ SHIP */}
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400 font-medium">Phí vận chuyển</span>
-                  <span className="font-bold text-green-600">Miễn phí</span>
+                  <span className={displayShippingFee === 0 ? "font-bold text-green-600" : "font-bold text-gray-900"}>
+                    {displayShippingFee === 0 ? "Miễn phí" : `+${displayShippingFee.toLocaleString()}đ`}
+                  </span>
                 </div>
 
                 <div className="pt-4 border-t-2 border-dashed flex justify-between items-center">
                   <span className="font-black text-gray-900">TỔNG CỘNG</span>
                   <span className="font-black text-green-600 text-2xl tracking-tighter">
-                    {order.totalAmount?.toLocaleString()}đ
+                    {displayTotalAmount.toLocaleString()}đ
                   </span>
                 </div>
               </div>
