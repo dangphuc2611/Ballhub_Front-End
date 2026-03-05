@@ -13,12 +13,14 @@ import {
   Loader2,
   Search,
   Bell,
+  Users,
 } from "lucide-react";
 
 import { NavItem } from "@/components/admin/NavItem";
 import { ProductTable } from "@/components/admin/ProductTable";
 import { QuickAddProduct } from "@/components/admin/QuickAddProduct";
 import { OrderTable } from "@/components/admin/OrderTable";
+import { UserTable } from "@/components/admin/UserTable";
 import { DashboardStats } from "@/components/admin/DashboardStats";
 import { RevenueChart } from "@/components/admin/RevenueChart";
 
@@ -32,6 +34,7 @@ export default function AdminDashboard() {
   // Orders list for tables – start as empty array so we can safely call map before
   // the fetch resolves. The API may return an object wrapper so we coerce later.
   const [orders, setOrders] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
 
   // fetch orders and products separately; product fetch is paginated
   useEffect(() => {
@@ -94,6 +97,30 @@ export default function AdminDashboard() {
     };
 
     fetchOrders();
+  }, []);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const token = localStorage.getItem("refreshToken");
+
+        const res = await fetch("http://localhost:8080/api/admin/stats/users", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const result = await res.json();
+        console.log("users result", result);
+
+        // endpoint might wrap the array in a data field, or return it directly
+        setUsers(result?.data ?? result ?? []);
+      } catch (error) {
+        console.error("Fetch users error:", error);
+      }
+    };
+
+    fetchUsers();
   }, []);
 
   // const orders: any[] = [
@@ -176,6 +203,12 @@ export default function AdminDashboard() {
               label="Đơn hàng"
               active={activeTab === "Đơn hàng"}
               onClick={() => setActiveTab("Đơn hàng")}
+            />
+            <NavItem
+              icon={<Users size={18} />}
+              label="Người dùng"
+              active={activeTab === "Người dùng"}
+              onClick={() => setActiveTab("Người dùng")}
             />
           </nav>
         </div>
@@ -282,6 +315,14 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-12 gap-6 items-start">
               <div className="col-span-12">
                 <OrderTable orders={orders} />
+              </div>
+            </div>
+          )}
+
+          {activeTab === "Người dùng" && (
+            <div className="grid grid-cols-12 gap-6 items-start">
+              <div className="col-span-12">
+                <UserTable users={users} />
               </div>
             </div>
           )}
