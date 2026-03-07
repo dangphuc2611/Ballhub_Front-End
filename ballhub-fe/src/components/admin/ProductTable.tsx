@@ -8,6 +8,7 @@ type Props = {
   totalElements?: number;
   pageSize?: number;
   onPageChange?: (page: number) => void;
+  onEdit?: (productId: number) => void;
 };
 
 export const ProductTable = ({
@@ -17,6 +18,7 @@ export const ProductTable = ({
   totalElements,
   pageSize = 12,
   onPageChange,
+  onEdit,
 }: Props) => {
   const totalCount = totalElements ?? products.length;
 
@@ -84,7 +86,10 @@ export const ProductTable = ({
                 />
               </td>
               <td className="text-right">
-                <button className="p-2 text-slate-300 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all">
+                <button
+                  onClick={() => onEdit?.(p.productId)}
+                  className="p-2 text-slate-300 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
+                >
                   ✎
                 </button>
               </td>

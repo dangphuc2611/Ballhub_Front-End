@@ -1,7 +1,34 @@
 import { Eye } from "lucide-react";
 import { StatusTag } from "./StatusTag";
 
-export const OrderTable = ({ orders = [] }: { orders?: any[] }) => (
+type Props = {
+  orders?: any[];
+  page?: number;
+  totalPages?: number;
+  totalElements?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  onView?: (orderId: number) => void;
+};
+
+export const OrderTable = ({
+  orders = [],
+  page = 0,
+  totalPages = 1,
+  totalElements,
+  pageSize = 10,
+  onPageChange,
+  onView,
+}: Props) => {
+  const totalCount = totalElements ?? orders.length;
+
+  const goTo = (p: number) => {
+    if (!onPageChange) return;
+    if (p < 0 || p >= (totalPages || 1)) return;
+    onPageChange(p);
+  };
+
+  return (
   <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
     <div className="flex justify-between items-center mb-6">
       <h3 className="font-bold text-lg text-slate-800">Theo dõi đơn hàng</h3>
@@ -38,7 +65,10 @@ export const OrderTable = ({ orders = [] }: { orders?: any[] }) => (
                 <StatusTag label={o.statusName} color={o.color} />
               </td>
               <td className="text-right">
-                <button className="p-2 text-slate-300 hover:text-blue-500 transition-all">
+                <button
+                  onClick={() => onView?.(o.orderId)}
+                  className="p-2 text-slate-300 hover:text-blue-500 transition-all"
+                >
                   <Eye size={16} />
                 </button>
               </td>
@@ -53,5 +83,42 @@ export const OrderTable = ({ orders = [] }: { orders?: any[] }) => (
         )}
       </tbody>
     </table>
+
+    {/* Pagination controls */}
+    {onPageChange && (
+      <div className="mt-6 flex items-center justify-between">
+        <div className="text-xs text-slate-500">
+          Hiển thị trang {page + 1} / {totalPages || 1}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => goTo(page - 1)}
+            disabled={page <= 0}
+            className="px-3 py-1 rounded-md bg-white border text-sm disabled:opacity-50"
+          >
+            Prev
+          </button>
+
+          {[...Array(totalPages || 1)].map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              className={`px-3 py-1 rounded-md text-sm ${i === page ? "bg-emerald-500 text-white" : "bg-white border hover:bg-slate-50"}`}
+            >
+              {i + 1}
+            </button>
+          ))}
+
+          <button
+            onClick={() => goTo(page + 1)}
+            disabled={page >= (totalPages || 1) - 1}
+            className="px-3 py-1 rounded-md bg-white border text-sm disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    )}
   </div>
-);
+  );
+};

@@ -1,9 +1,15 @@
 import axios from "axios";
 
+const refreshToken =
+  typeof window !== "undefined"
+    ? localStorage.getItem("refreshToken")
+    : null;
+
 const api = axios.create({
   baseURL: "http://localhost:8080/api",
   headers: {
     "Content-Type": "application/json",
+    Authorization: `Bearer ${refreshToken}`
   },
 });
 

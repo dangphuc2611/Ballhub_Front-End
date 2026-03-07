@@ -99,9 +99,13 @@ export const DashboardStats = () => {
 
       <StatCard
         title="Sản phẩm bán chạy"
-        value={stats.topProducts}
-        trend="Top 1 tuần này"
-        sub=""
+        value={stats.topProducts?.[0]?.productName || "N/A"}
+        trend="Bán chạy nhất"
+        sub={
+          stats.topProducts?.[0]
+            ? `(Đã bán: ${stats.topProducts[0].quantitySold})`
+            : ""
+        }
         icon={Star}
         color="bg-orange-500"
       />

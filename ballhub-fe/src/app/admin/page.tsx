@@ -23,6 +23,8 @@ import { OrderTable } from "@/components/admin/OrderTable";
 import { UserTable } from "@/components/admin/UserTable";
 import { DashboardStats } from "@/components/admin/DashboardStats";
 import { RevenueChart } from "@/components/admin/RevenueChart";
+import { ProductEditModal } from "@/components/admin/ProductEditModal";
+import { OrderDetailModal } from "@/components/admin/OrderDetailModal";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("Dashboard");
@@ -34,7 +36,14 @@ export default function AdminDashboard() {
   // Orders list for tables – start as empty array so we can safely call map before
   // the fetch resolves. The API may return an object wrapper so we coerce later.
   const [orders, setOrders] = useState<any[]>([]);
+  const [orderPage, setOrderPage] = useState<number>(0);
+  const [orderPageInfo, setOrderPageInfo] = useState<any>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [orderRefreshTrigger, setOrderRefreshTrigger] = useState(0);
+  
   const [users, setUsers] = useState<any[]>([]);
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // fetch orders and products separately; product fetch is paginated
   useEffect(() => {
@@ -70,7 +79,7 @@ export default function AdminDashboard() {
     };
 
     fetchProducts();
-  }, [productPage]);
+  }, [productPage, refreshTrigger]);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -78,7 +87,7 @@ export default function AdminDashboard() {
         const token = localStorage.getItem("refreshToken");
 
         const res = await fetch(
-          "http://localhost:8080/api/admin/stats/newest-order",
+          `http://localhost:8080/api/orders/admin/all?page=${orderPage}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -87,17 +96,23 @@ export default function AdminDashboard() {
         );
 
         const result = await res.json();
-        console.log(result);
+        console.log("orders result", result);
 
-        // endpoint might wrap the array in a data field, or return it directly
-        setOrders(result?.data ?? result ?? []);
+        const payload = result?.data ?? result;
+        setOrders(payload?.content ?? []);
+        setOrderPageInfo({
+          pageNumber: payload?.pageNumber ?? payload?.page ?? 0,
+          pageSize: payload?.pageSize ?? payload?.size ?? 10,
+          totalElements: payload?.totalElements ?? payload?.total ?? 0,
+          totalPages: payload?.totalPages ?? payload?.pages ?? 1,
+        });
       } catch (error) {
-        console.error("Fetch dashboard error:", error);
+        console.error("Fetch orders error:", error);
       }
     };
 
     fetchOrders();
-  }, []);
+  }, [orderPage, orderRefreshTrigger]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -288,7 +303,15 @@ export default function AdminDashboard() {
                     Xem tất cả →
                   </button>
                 </div>
-                <OrderTable orders={orders} />
+                <OrderTable
+                  orders={orders}
+                  page={orderPage}
+                  totalPages={orderPageInfo?.totalPages ?? 1}
+                  totalElements={orderPageInfo?.totalElements}
+                  pageSize={orderPageInfo?.pageSize}
+                  onPageChange={(p: number) => setOrderPage(p)}
+                  onView={(id: number) => setSelectedOrderId(id)}
+                />
               </div>
             </div>
           )}
@@ -303,6 +326,7 @@ export default function AdminDashboard() {
                   totalElements={productPageInfo?.totalElements}
                   pageSize={productPageInfo?.pageSize}
                   onPageChange={(p: number) => setProductPage(p)}
+                  onEdit={(id: number) => setEditingProductId(id)}
                 />
               </div>
               <div className="col-span-4">
@@ -314,7 +338,15 @@ export default function AdminDashboard() {
           {activeTab === "Đơn hàng" && (
             <div className="grid grid-cols-12 gap-6 items-start">
               <div className="col-span-12">
-                <OrderTable orders={orders} />
+                <OrderTable
+                  orders={orders}
+                  page={orderPage}
+                  totalPages={orderPageInfo?.totalPages ?? 1}
+                  totalElements={orderPageInfo?.totalElements}
+                  pageSize={orderPageInfo?.pageSize}
+                  onPageChange={(p: number) => setOrderPage(p)}
+                  onView={(id: number) => setSelectedOrderId(id)}
+                />
               </div>
             </div>
           )}
@@ -328,6 +360,22 @@ export default function AdminDashboard() {
           )}
         </div>
       </main>
+
+      {editingProductId !== null && (
+        <ProductEditModal
+          productId={editingProductId}
+          onClose={() => setEditingProductId(null)}
+          onRefresh={() => setRefreshTrigger((p) => p + 1)}
+        />
+      )}
+
+      {selectedOrderId !== null && (
+        <OrderDetailModal
+          orderId={selectedOrderId}
+          onClose={() => setSelectedOrderId(null)}
+          onRefresh={() => setOrderRefreshTrigger((p) => p + 1)}
+        />
+      )}
     </div>
   );
 }
