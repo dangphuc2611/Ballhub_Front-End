@@ -28,6 +28,13 @@ export const ProductTable = ({
     onPageChange(p);
   };
 
+  const formatPrice = (price: any) => {
+    if (price === null || price === undefined) return "0đ";
+    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    if (isNaN(numPrice)) return "0đ";
+    return numPrice.toLocaleString("vi-VN") + "đ";
+  };
+
   return (
     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
       <div className="flex justify-between items-center mb-6">
@@ -35,14 +42,6 @@ export const ProductTable = ({
           <h3 className="font-bold text-lg">Sản phẩm hiện có</h3>
           <p className="text-xs text-slate-400">Tất cả {totalCount} mặt hàng</p>
         </div>
-        {/* <div className="flex bg-slate-50 p-1 rounded-lg">
-          <button className="px-4 py-1.5 text-xs font-bold bg-white shadow-sm rounded-md">
-            Tất cả
-          </button>
-          <button className="px-4 py-1.5 text-xs text-slate-400 hover:text-slate-600">
-            Đang bán
-          </button>
-        </div> */}
       </div>
       <table className="w-full text-sm">
         <thead className="text-slate-400 text-[11px] uppercase tracking-wider">
@@ -66,19 +65,20 @@ export const ProductTable = ({
                     src={`http://localhost:8080` + p.mainImage}
                     width={50}
                     height={50}
-                    alt={p.description}
+                    alt={p.productName}
                   />
                   <div>
                     <p className="font-bold text-slate-700">{p.productName}</p>
-                    <p className="text-[10px] text-slate-400 uppercase tracking-tighter">
+                    <p className="text-[10px] text-slate-400 uppercase tracking-tighter truncate max-w-[200px]">
                       {p.description}
                     </p>
                   </div>
                 </div>
               </td>
               <td className="font-bold text-slate-600">{p.brandName}</td>
-              <td className="font-bold text-slate-600">{p.maxPrice}</td>
-              {/* <td className="text-slate-500 font-medium">{p.stock}</td> */}
+              
+              <td className="font-bold text-emerald-600">{formatPrice(p.maxPrice)}</td>
+              
               <td>
                 <StatusTag
                   label={p.status ? "Active" : "Inactive"}
@@ -89,6 +89,7 @@ export const ProductTable = ({
                 <button
                   onClick={() => onEdit?.(p.productId)}
                   className="p-2 text-slate-300 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
+                  title="Sửa sản phẩm"
                 >
                   ✎
                 </button>
@@ -101,22 +102,22 @@ export const ProductTable = ({
       {/* Pagination controls */}
       <div className="mt-4 flex items-center justify-between">
         <div className="text-xs text-slate-500">
-          Hiển thị trang {page + 1} / {totalPages}
+          Hiển thị trang {page + 1} / {totalPages || 1}
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => goTo(page - 1)}
             disabled={page <= 0}
-            className="px-3 py-1 rounded-md bg-white border text-sm"
+            className="px-3 py-1 rounded-md bg-white border text-sm hover:bg-slate-50 disabled:opacity-50 transition-colors"
           >
             Prev
           </button>
 
-          {[...Array(totalPages)].map((_, i) => (
+          {[...Array(totalPages || 1)].map((_, i) => (
             <button
               key={i}
               onClick={() => goTo(i)}
-              className={`px-3 py-1 rounded-md text-sm ${i === page ? "bg-emerald-500 text-white" : "bg-white border"}`}
+              className={`px-3 py-1 rounded-md text-sm transition-colors ${i === page ? "bg-emerald-500 text-white shadow-sm" : "bg-white border hover:bg-slate-50"}`}
             >
               {i + 1}
             </button>
@@ -124,8 +125,8 @@ export const ProductTable = ({
 
           <button
             onClick={() => goTo(page + 1)}
-            disabled={page >= totalPages - 1}
-            className="px-3 py-1 rounded-md bg-white border text-sm"
+            disabled={page >= (totalPages || 1) - 1}
+            className="px-3 py-1 rounded-md bg-white border text-sm hover:bg-slate-50 disabled:opacity-50 transition-colors"
           >
             Next
           </button>

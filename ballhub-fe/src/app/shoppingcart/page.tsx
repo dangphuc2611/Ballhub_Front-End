@@ -12,6 +12,7 @@ import {
   ShoppingBag,
   ShieldCheck,
   RefreshCcw,
+  Info
 } from "lucide-react";
 
 import { Header } from "@/components/sections/Header";
@@ -28,7 +29,7 @@ type CartItem = {
   price: number;
   finalPrice: number;
   quantity: number;
-  stockQuantity: number; // Lượng hàng tồn trong kho
+  stockQuantity: number;
   sizeName: string;
   colorName: string;
   imageUrl: string;
@@ -41,6 +42,10 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const router = useRouter();
+
+  // ✅ STATE CHO CUSTOM MODAL XÓA SẢN PHẨM
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [itemToRemove, setItemToRemove] = useState<{id: number, name: string} | null>(null);
 
   const fetchCart = async () => {
     try {
@@ -68,14 +73,10 @@ export default function CartPage() {
     cartItemId: number,
     currentQty: number,
     delta: number,
-    maxStock: number // Nhận thêm maxStock để chặn
+    maxStock: number
   ) => {
     const newQty = currentQty + delta;
-    
-    // 1. Chặn số âm
     if (newQty < 1) return;
-    
-    // 2. Chặn vượt quá tồn kho thực tế
     if (newQty > maxStock) {
       toast.error(`Kho chỉ còn ${maxStock} sản phẩm`);
       return;
@@ -85,10 +86,7 @@ export default function CartPage() {
     try {
       await api.put(`/cart/items/${cartItemId}`, { quantity: newQty });
       await fetchCart();
-      
-      // ✅ PHÉP MÀU Ở ĐÂY: Báo cho Header cập nhật số lượng ngay lập tức
       window.dispatchEvent(new Event("cartUpdated"));
-      
     } catch {
       toast.error("Không thể cập nhật số lượng");
     } finally {
@@ -96,17 +94,25 @@ export default function CartPage() {
     }
   };
 
-  const removeItem = (id: number) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?")) return;
+  // ✅ HÀM NÀY GIỜ CHỈ MỞ POPUP, KHÔNG XÓA NGAY
+  const handleRemoveClick = (id: number, name: string) => {
+    setItemToRemove({ id, name });
+    setShowRemoveModal(true);
+  };
+
+  // ✅ HÀM THỰC HIỆN XÓA THẬT SỰ (Khi bấm "Đồng ý" trên Popup)
+  const confirmRemoveItem = () => {
+    if (!itemToRemove) return;
+    
+    const id = itemToRemove.id;
+    setShowRemoveModal(false); // Đóng popup ngay
 
     toast.promise(api.delete(`/cart/items/${id}`), {
       loading: "Đang xóa...",
       success: () => {
         fetchCart();
-        
         window.dispatchEvent(new Event("cartUpdated"));
-        
-        return "Đã xóa sản phẩm";
+        return "Đã xóa sản phẩm khỏi giỏ hàng";
       },
       error: "Lỗi khi xóa",
     });
@@ -134,7 +140,7 @@ export default function CartPage() {
               Hãy khám phá những sản phẩm mới nhất của chúng tôi!
             </p>
             <Button
-              onClick={() => router.push("/products")} // Sửa dòng này
+              onClick={() => router.push("/products")}
               className="bg-green-600 hover:bg-green-700 text-white px-8 h-12 rounded-full font-bold shadow-md"
             >
               Tiếp tục mua sắm
@@ -162,8 +168,7 @@ export default function CartPage() {
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {cartItems.map((item) => {
-                        // Tính toán số lượng tồn kho (bọc an toàn tránh undefined)
-                        const maxStock = item.stockQuantity || 100; // Giả sử nếu không có data thì set mặc định 100
+                        const maxStock = item.stockQuantity || 100;
                         const isMaxQty = item.quantity >= maxStock;
 
                         return (
@@ -185,7 +190,6 @@ export default function CartPage() {
                                     <span className="bg-green-50 text-green-600 px-2 py-0.5 rounded">Size {item.sizeName}</span>
                                     <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{item.colorName}</span>
                                   </div>
-                                  {/* Hiện cảnh báo đỏ nếu đã chọn max hàng trong kho */}
                                   {isMaxQty && (
                                     <p className="text-[10px] text-red-500 font-bold mt-1 italic">
                                       *Đã đạt số lượng tối đa trong kho
@@ -200,7 +204,6 @@ export default function CartPage() {
                             <td className="p-5">
                               <div className="flex justify-center">
                                 <div className="flex items-center border rounded-lg bg-white">
-                                  {/* Nút TRỪ */}
                                   <button
                                     onClick={() => updateQty(item.cartItemId, item.quantity, -1, maxStock)}
                                     disabled={updatingId === item.cartItemId || item.quantity <= 1}
@@ -209,12 +212,9 @@ export default function CartPage() {
                                   >
                                     <Minus size={12} />
                                   </button>
-                                  
                                   <span className="w-8 text-center text-xs font-bold">
                                     {updatingId === item.cartItemId ? ".." : item.quantity}
                                   </span>
-
-                                  {/* Nút CỘNG */}
                                   <button
                                     onClick={() => updateQty(item.cartItemId, item.quantity, 1, maxStock)}
                                     disabled={updatingId === item.cartItemId || isMaxQty}
@@ -231,7 +231,7 @@ export default function CartPage() {
                             </td>
                             <td className="p-5 text-right">
                               <button
-                                onClick={() => removeItem(item.cartItemId)}
+                                onClick={() => handleRemoveClick(item.cartItemId, item.productName)}
                                 className="text-gray-300 hover:text-red-500 transition-colors"
                               >
                                 <Trash2 size={18} />
@@ -255,8 +255,6 @@ export default function CartPage() {
               <div className="lg:col-span-4">
                 <div className="bg-white rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.04)] border border-gray-100 sticky top-24">
                   <h3 className="text-xl font-bold mb-6">Đơn hàng của bạn</h3>
-
-                  {/* PHẦN TẠM TÍNH VÀ VẬN CHUYỂN TRƯỚC */}
                   <div className="space-y-4 mb-6">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Tạm tính</span>
@@ -267,8 +265,6 @@ export default function CartPage() {
                       <span className="text-green-600 font-bold">Miễn phí</span>
                     </div>
                   </div>
-
-                  {/* TỔNG CỘNG*/}
                   <div className="border-t border-gray-100 pt-6 mb-8 flex justify-between items-center">
                     <span className="font-bold text-gray-900">Tổng cộng</span>
                     <div className="text-right">
@@ -277,14 +273,12 @@ export default function CartPage() {
                       </span>
                     </div>
                   </div>
-
                   <Button
                     onClick={() => router.push("/checkout")}
                     className="w-full bg-green-600 hover:bg-green-700 text-white h-14 rounded-2xl font-bold shadow-lg shadow-green-100 uppercase tracking-widest text-xs transition-transform active:scale-95"
                   >
                     Thanh toán ngay
                   </Button>
-
                   <div className="grid grid-cols-2 gap-3 mt-8 text-[10px] uppercase font-bold tracking-tighter text-gray-400">
                     <div className="flex flex-col items-center p-4 bg-gray-50/50 rounded-2xl border border-gray-50">
                       <ShieldCheck className="text-green-500 mb-2" size={20} />
@@ -303,6 +297,36 @@ export default function CartPage() {
       </main>
 
       <Footer />
+
+      {/* ✅ CUSTOM MODAL XÁC NHẬN XÓA SẢN PHẨM */}
+      {showRemoveModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[999] p-4 backdrop-blur-sm transition-opacity">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200 text-center">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Xóa sản phẩm?</h3>
+            <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+              Bạn có chắc chắn muốn xóa <span className="font-bold text-gray-900">"{itemToRemove?.name}"</span> khỏi giỏ hàng?
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowRemoveModal(false)}
+                className="flex-1 py-3.5 rounded-2xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={confirmRemoveItem}
+                className="flex-1 py-3.5 rounded-2xl font-bold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-lg shadow-red-100"
+              >
+                Xác nhận xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
