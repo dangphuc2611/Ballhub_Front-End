@@ -39,7 +39,7 @@ export default function ProductDetailPage() {
 
   const [selectedSizeId, setSelectedSizeId] = useState<number | null>(null);
   const [selectedColorId, setSelectedColorId] = useState<number | null>(null);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState<number | string>(1);
 
   const [activeTab, setActiveTab] = useState<TabKey>("description");
   const [activeImage, setActiveImage] = useState<string | null>(null);
@@ -97,9 +97,12 @@ export default function ProductDetailPage() {
     if (!matchedVariant) return toast.error("Vui lòng chọn đầy đủ thuộc tính!");
     if (!checkAuth()) return;
 
+    // Ép kiểu quantity thành số trước khi gọi API
+    const finalQuantity = Number(quantity) || 1;
+
     setIsSubmitting(true);
     try {
-      await addToCartApi(matchedVariant.variantId, quantity);
+      await addToCartApi(matchedVariant.variantId, finalQuantity);
 
       // ✅ GỬI TÍN HIỆU CẬP NHẬT HEADER GIỎ HÀNG
       window.dispatchEvent(new Event("cartUpdated"));
@@ -108,7 +111,7 @@ export default function ProductDetailPage() {
         <div className="flex flex-col gap-1">
           <p className="font-medium text-gray-900">
             Đã thêm{" "}
-            <span className="text-blue-600 font-bold">x{quantity}</span>{" "}
+            <span className="text-blue-600 font-bold">x{finalQuantity}</span>{" "}
             {product?.productName} vào giỏ hàng!
           </p>
           <button
@@ -126,13 +129,17 @@ export default function ProductDetailPage() {
     }
   };
 
+
   const handleBuyNow = async () => {
     if (!matchedVariant) return toast.error("Vui lòng chọn đầy đủ thuộc tính!");
     if (!checkAuth()) return;
 
+    // Ép kiểu quantity thành số trước khi gọi API
+    const finalQuantity = Number(quantity) || 1;
+
     setIsSubmitting(true);
     try {
-      await addToCartApi(matchedVariant.variantId, quantity);
+      await addToCartApi(matchedVariant.variantId, finalQuantity);
       
       // ✅ GỬI TÍN HIỆU CẬP NHẬT HEADER TRƯỚC KHI CHUYỂN TRANG
       window.dispatchEvent(new Event("cartUpdated"));
@@ -141,6 +148,36 @@ export default function ProductDetailPage() {
     } catch (error) {
       toast.error("Có lỗi xảy ra, vui lòng thử lại");
       setIsSubmitting(false);
+    }
+  };
+
+  /* ================= XỬ LÝ NHẬP SỐ LƯỢNG ================= */
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    
+    // 1. Cho phép xóa trắng ô input để gõ số mới
+    if (val === "") {
+      setQuantity("");
+      return;
+    }
+
+    // 2. Chỉ cho phép nhập số (Loại bỏ các ký tự chữ, e, -, +, ...)
+    const num = parseInt(val.replace(/\D/g, ""), 10);
+    if (isNaN(num)) return;
+
+    // 3. Kiểm tra số lượng tồn kho
+    if (matchedVariant && num > matchedVariant.stockQuantity) {
+      setQuantity(matchedVariant.stockQuantity);
+      toast.warning(`Kho chỉ còn ${matchedVariant.stockQuantity} sản phẩm`);
+    } else {
+      setQuantity(num);
+    }
+  };
+
+  const handleQuantityBlur = () => {
+    // 4. Nếu người dùng click ra ngoài mà bỏ trống ô, hoặc nhập số 0, thì tự động đưa về 1
+    if (quantity === "" || Number(quantity) < 1) {
+      setQuantity(1);
     }
   };
 
@@ -424,23 +461,31 @@ export default function ProductDetailPage() {
                   <div className="flex items-center gap-4">
                     <span className="font-semibold text-gray-900">Số lượng</span>
 
-                    <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
+                    <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:border-blue-500 transition-colors">
                       <button
-                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                        className="w-10 h-10 hover:bg-gray-50 font-bold"
+                        onClick={() => setQuantity((q) => Math.max(1, (Number(q) || 1) - 1))}
+                        className="w-10 h-10 hover:bg-gray-50 font-bold flex items-center justify-center text-gray-600 transition"
                       >
                         −
                       </button>
-                      <div className="w-10 text-center font-bold text-gray-900">
-                        {quantity}
-                      </div>
+                      
+                      {/* ✅ Chuyển div thành thẻ input để gõ được */}
+                      <input
+                        type="text"
+                        value={quantity}
+                        onChange={handleQuantityChange}
+                        onBlur={handleQuantityBlur}
+                        className="w-12 h-10 text-center font-bold text-gray-900 outline-none border-x border-gray-200"
+                        maxLength={3} // Giới hạn gõ tối đa 3 chữ số (999)
+                      />
+
                       <button
                         onClick={() =>
                           setQuantity((q) =>
-                            Math.min(matchedVariant.stockQuantity, q + 1)
+                            Math.min(matchedVariant.stockQuantity, (Number(q) || 0) + 1)
                           )
                         }
-                        className="w-10 h-10 hover:bg-gray-50 font-bold"
+                        className="w-10 h-10 hover:bg-gray-50 font-bold flex items-center justify-center text-gray-600 transition"
                       >
                         +
                       </button>

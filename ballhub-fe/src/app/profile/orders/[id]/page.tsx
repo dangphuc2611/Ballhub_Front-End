@@ -25,10 +25,10 @@ interface OrderItem {
 interface OrderDetail {
   orderId: number;
   orderDate: string;
-  subTotal: number;       
-  discountAmount: number; 
-  totalAmount: number;    
-  promoCode?: string;     
+  subTotal: number;
+  discountAmount: number;
+  totalAmount: number;
+  promoCode?: string;
   statusName: string;
   userFullName: string;
   userPhone: string;
@@ -93,9 +93,9 @@ export default function OrderDetailPage() {
   // ✅ HÀM "PHÉP THUẬT": Tính lại phí ship dựa trên địa chỉ Backend trả về
   const calculateShippingFee = (addressText: string, totalAmount: number) => {
     if (!addressText || addressText.trim() === "") return 0;
-    if (totalAmount >= 1000000) return 0; 
+    if (totalAmount >= 1000000) return 0;
 
-    let baseFee = 30000; 
+    let baseFee = 30000;
     const addr = addressText.toLowerCase();
 
     if (addr.includes("hà nội") || addr.includes("ha noi")) baseFee = 15000;
@@ -118,7 +118,7 @@ export default function OrderDetailPage() {
   // ✅ TÍNH TOÁN LẠI ĐỂ HIỂN THỊ
   // Nếu Backend có trả về shippingFee thì dùng, nếu không thì tự tính qua Frontend
   const displayShippingFee = order.shippingFee !== undefined ? order.shippingFee : calculateShippingFee(order.deliveryAddress, order.subTotal);
-  
+
   // Tính lại tổng tiền: Tạm tính - Giảm giá + Phí Ship
   const displayTotalAmount = (order.subTotal - (order.discountAmount || 0) > 0 ? order.subTotal - (order.discountAmount || 0) : 0) + displayShippingFee;
 
@@ -167,8 +167,21 @@ export default function OrderDetailPage() {
 
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold text-gray-900 text-lg mb-1 truncate">{item.productName}</h4>
-                      <p className="text-xs text-gray-400 font-medium">
-                        Phân loại: {item.sizeName} | Số lượng: <span className="text-gray-900 font-bold">x{item.quantity}</span>
+                      <p className="text-xs text-gray-400 font-medium flex items-center flex-wrap gap-1 mt-1">
+                        <span>Phân loại:</span>
+                        <span className="text-gray-700 font-bold bg-gray-100 px-1.5 py-0.5 rounded">
+                          {item.sizeName}
+                        </span>
+                        {item.colorName && (
+                          <>
+                            <span className="text-gray-300">|</span>
+                            <span className="text-gray-700 font-bold bg-gray-100 px-1.5 py-0.5 rounded">
+                              {item.colorName}
+                            </span>
+                          </>
+                        )}
+                        <span className="text-gray-300 mx-1">•</span>
+                        <span>Số lượng: <span className="text-gray-900 font-bold">x{item.quantity}</span></span>
                       </p>
 
                       <div className="flex items-baseline gap-2 mt-4">
