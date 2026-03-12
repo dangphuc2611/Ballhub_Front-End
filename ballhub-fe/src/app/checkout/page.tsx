@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronRight, Loader2, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Header } from '@/components/sections/Header';
@@ -31,6 +31,9 @@ export default function CheckoutPage() {
     const [appliedPromo, setAppliedPromo] = useState<any>(null);
     const [qrModal, setQrModal] = useState<{ show: boolean, url: string, orderId: number | null }>({ show: false, url: '', orderId: null });
     const [shippingFee, setShippingFee] = useState(0);
+    
+    // ✅ State hiển thị Custom Modal Xác nhận
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     useEffect(() => {
         api.get("/cart").then(res => {
@@ -39,37 +42,23 @@ export default function CheckoutPage() {
         }).catch(() => toast.error("Lỗi tải giỏ hàng"));
     }, [router]);
 
-    // ✅ Hàm tính phí ship theo vùng miền (Đã bỏ phụ phí cân nặng)
+    // Hàm tính phí ship theo vùng miền
     const calculateShippingFee = (addressText: string, totalAmount: number) => {
         if (!addressText || addressText.trim() === "") return 0;
-
-        // 1. Đơn trên 1 triệu -> Auto Freeship
         if (totalAmount >= 1000000) return 0; 
 
-        let baseFee = 30000; // Giá nền mặc định cho tỉnh lẻ
+        let baseFee = 30000; 
         const addr = addressText.toLowerCase();
 
-        // 2. Nhận diện khu vực chi tiết
-        if (addr.includes("hà nội") || addr.includes("ha noi")) {
-            baseFee = 15000; // Nội thành HN siêu rẻ
-        } 
-        else if (addr.includes("hồ chí minh") || addr.includes("ho chi minh") || addr.includes("hcm")) {
-            baseFee = 35000; // TP HCM
-        }
-        else if (addr.includes("đà nẵng") || addr.includes("da nang")) {
-            baseFee = 25000; // Miền Trung
-        }
-        else if (addr.includes("hải phòng") || addr.includes("hai phong") || addr.includes("quảng ninh")) {
-            baseFee = 20000; // Các tỉnh miền Bắc lân cận HN
-        }
-        else if (addr.includes("cần thơ") || addr.includes("can tho") || addr.includes("bình dương")) {
-            baseFee = 30000; // Các tỉnh miền Nam lân cận HCM
-        }
+        if (addr.includes("hà nội") || addr.includes("ha noi")) baseFee = 15000;
+        else if (addr.includes("hồ chí minh") || addr.includes("ho chi minh") || addr.includes("hcm")) baseFee = 35000;
+        else if (addr.includes("đà nẵng") || addr.includes("da nang")) baseFee = 25000;
+        else if (addr.includes("hải phòng") || addr.includes("hai phong") || addr.includes("quảng ninh")) baseFee = 20000;
+        else if (addr.includes("cần thơ") || addr.includes("can tho") || addr.includes("bình dương")) baseFee = 30000;
 
         return baseFee;
     };
 
-    // ✅ Lắng nghe MỌI SỰ THAY ĐỔI: Khi khách bấm chọn địa chỉ khác -> Tự động tính lại ngay!
     useEffect(() => {
         if (cartData.totalAmount > 0) {
             const fee = calculateShippingFee(formData.addressText, cartData.totalAmount);
@@ -77,6 +66,15 @@ export default function CheckoutPage() {
         }
     }, [formData.addressText, cartData.totalAmount]);
 
+    const discount = appliedPromo?.discountAmount || 
+                     appliedPromo?.discountValue || 
+                     appliedPromo?.maxDiscountAmount ||
+                     0;
+    
+    const totalWithShip = cartData.totalAmount - discount + shippingFee;
+    const finalTotal = totalWithShip > 0 ? totalWithShip : 0;
+
+    // API đẩy dữ liệu về server
     const submitOrderToBackend = async () => {
         setIsSubmitting(true);
         try {
@@ -103,24 +101,22 @@ export default function CheckoutPage() {
         }
     };
 
-    const handleOrder = async () => {
+    const handleOrder = () => {
         if (!formData.fullName || !formData.phone) return toast.error("Thiếu thông tin nhận hàng");
-        
-        // Chặn không cho đặt nếu thấy để chữ Miễn phí lừa đảo (tức là chưa chọn địa chỉ)
         if (!formData.addressId || !formData.addressText) return toast.error("Vui lòng chọn địa chỉ giao hàng");
 
+        setShowConfirmModal(true);
+    };
+
+    const confirmOrder = () => {
+        setShowConfirmModal(false);
+
         if (formData.paymentMethodId === 2) {
-            const totalWithShip = cartData.totalAmount - (appliedPromo ? appliedPromo.discountAmount || 0 : 0) + shippingFee;
-            const finalTotal = totalWithShip > 0 ? totalWithShip : 0;
-
-            // Truyền QR Code
             const qrUrl = `https://img.vietqr.io/image/MB-0886301661-compact2.png?amount=${finalTotal}&addInfo=Thanh toan don hang&accountName=NGO GIA HIEN`;
-
-            // Note: Lưu lại orderId tạm nếu Backend có trả về (ở đây chưa gọi API tạo đơn nên lấy đại diện)
             setQrModal({ show: true, url: qrUrl, orderId: null }); 
             return;
         }
-
+        
         submitOrderToBackend();
     };
 
@@ -158,6 +154,39 @@ export default function CheckoutPage() {
                 </div>
             </main>
             <Footer />
+
+            {/* ✅ CUSTOM MODAL XÁC NHẬN ĐẶT HÀNG */}
+            {showConfirmModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[999] p-4 backdrop-blur-sm transition-opacity">
+                    <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                                <Info size={24} />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900">Xác nhận đặt hàng</h3>
+                        </div>
+                        
+                        <p className="text-gray-600 text-sm leading-relaxed mb-8 pl-1">
+                            Xác nhận đặt đơn hàng với tổng số tiền là <span className="font-bold text-green-600 text-lg">{finalTotal.toLocaleString()}đ</span>? <br/><br/> Vui lòng kiểm tra lại địa chỉ giao hàng trước khi tiếp tục.
+                        </p>
+                        
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowConfirmModal(false)}
+                                className="flex-1 py-3.5 rounded-2xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+                            >
+                                Hủy bỏ
+                            </button>
+                            <button
+                                onClick={confirmOrder}
+                                className="flex-1 py-3.5 rounded-2xl font-bold text-white bg-green-600 hover:bg-green-700 transition-colors shadow-lg shadow-green-200"
+                            >
+                                Đồng ý đặt
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* MODAL QUÉT MÃ QR */}
             {qrModal.show && (

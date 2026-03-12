@@ -5,19 +5,19 @@ import { useAuth } from "@/app/context/AuthContext";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
 import ProfileForm from "@/components/account/ProfileForm";
-import { User as UserIcon, Package, Heart, LogOut, Loader2 } from "lucide-react";
+import { User as UserIcon, Package, Heart, LogOut, Loader2, Eye } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 
 const BASE_URL = "http://localhost:8080";
 
-// ✅ Cập nhật Interface để khớp với API mới
 interface OrderInfo {
   orderId: number;
   orderDate: string;
   totalAmount: number;
   statusName: string;
-  shippingFee?: number; // Backend đã trả về trường này
+  shippingFee?: number;
 }
 
 export default function AccountPage() {
@@ -27,6 +27,9 @@ export default function AccountPage() {
 
   const [orders, setOrders] = useState<OrderInfo[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+
+  // ✅ State điều khiển Custom Modal Đăng xuất
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     refreshUser();
@@ -38,8 +41,16 @@ export default function AccountPage() {
     return `${BASE_URL}${path}`;
   };
 
-  const handleLogout = () => {
+  // ✅ Hàm mở Modal khi bấm nút Đăng xuất
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  // ✅ Hàm thực hiện đăng xuất thật sự
+  const confirmLogout = () => {
     logout();
+    setShowLogoutModal(false);
+    toast.success("Đăng xuất thành công");
     router.push("/login");
   };
 
@@ -52,7 +63,7 @@ export default function AccountPage() {
       }
 
       try {
-        const res = await fetch(`${BASE_URL}/api/orders?page=0&size=5`, { // Lấy 5 đơn gần nhất thôi
+        const res = await fetch(`${BASE_URL}/api/orders?page=0&size=5`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -91,7 +102,7 @@ export default function AccountPage() {
   ];
 
   return (
-    <div className="bg-[#f6f9f8] min-h-screen flex flex-col font-sans">
+    <div className="bg-[#f6f9f8] min-h-screen flex flex-col font-sans relative">
       <Header />
       <main className="max-w-7xl mx-auto px-4 py-10 w-full flex-1">
         <p className="text-sm text-gray-500 mb-6">
@@ -124,7 +135,8 @@ export default function AccountPage() {
             </div>
 
             <div className="pt-3 border-t">
-              <div onClick={handleLogout} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-red-50 text-red-500 cursor-pointer text-sm font-bold transition-colors">
+              {/* ✅ Gọi handleLogoutClick thay vì hàm logout trực tiếp */}
+              <div onClick={handleLogoutClick} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-red-50 text-red-500 cursor-pointer text-sm font-bold transition-colors">
                 <LogOut size={16} /> Đăng xuất
               </div>
             </div>
@@ -168,7 +180,6 @@ export default function AccountPage() {
                         <div className="text-gray-600">
                            {new Date(o.orderDate).toLocaleDateString("vi-VN")}
                         </div>
-                        {/* ✅ totalAmount này giờ đã bao gồm ShippingFee từ Backend */}
                         <div className="font-bold text-green-600">
                           {o.totalAmount?.toLocaleString()}đ
                         </div>
@@ -178,10 +189,10 @@ export default function AccountPage() {
                           </span>
                         </div>
                         <div
-                          className="text-blue-600 font-semibold cursor-pointer hover:text-blue-800 text-sm transition-colors"
+                          className="text-blue-600 font-semibold cursor-pointer hover:text-blue-800 text-sm transition-colors flex items-center gap-1"
                           onClick={() => router.push(`/profile/orders/${o.orderId}`)}
                         >
-                          Xem chi tiết
+                          <Eye size={14} /> Xem chi tiết
                         </div>
                       </div>
                     );
@@ -193,6 +204,36 @@ export default function AccountPage() {
         </div>
       </main>
       <Footer />
+
+      {/* ✅ CUSTOM MODAL XÁC NHẬN ĐĂNG XUẤT */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm transition-opacity">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200 text-center">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <LogOut size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Đăng xuất?</h3>
+            <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+              Bạn có chắc chắn muốn rời khỏi hệ thống <span className="font-bold text-gray-900">BallHub</span> không?
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="flex-1 py-3.5 rounded-2xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                Ở lại
+              </button>
+              <button
+                onClick={confirmLogout}
+                className="flex-1 py-3.5 rounded-2xl font-bold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-lg shadow-red-100"
+              >
+                Đăng xuất
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -97,12 +97,13 @@ export default function CartPage() {
   };
 
   const removeItem = (id: number) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?")) return;
+
     toast.promise(api.delete(`/cart/items/${id}`), {
       loading: "Đang xóa...",
       success: () => {
         fetchCart();
         
-        // ✅ PHÉP MÀU Ở ĐÂY: Báo cho Header cập nhật (trừ) số lượng ngay lập tức
         window.dispatchEvent(new Event("cartUpdated"));
         
         return "Đã xóa sản phẩm";

@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
-import { User, Package, Heart, LogOut, Loader2, Eye } from "lucide-react";
+import { User, Package, Heart, LogOut, Loader2, Eye, Info } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/app/context/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const BASE_URL = "http://localhost:8080";
 
-// ✅ Cập nhật Interface: Hứng thêm thông tin địa chỉ và phí ship (nếu có) từ Backend
 interface OrderInfo {
   orderId: number;
   orderDate: string;
@@ -27,6 +27,9 @@ export default function OrdersPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<OrderInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // ✅ State cho Custom Modal Đăng xuất
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   useEffect(() => {
     const fetchMyOrders = async () => {
@@ -58,8 +61,16 @@ export default function OrdersPage() {
     fetchMyOrders();
   }, []);
 
-  const handleLogout = () => {
+  // ✅ Hàm mở Modal xác nhận thay vì logout ngay
+  const handleLogoutClick = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  // ✅ Hàm thực hiện đăng xuất thật sự
+  const confirmLogout = () => {
     logout();
+    setShowLogoutConfirm(false);
+    toast.success("Đã đăng xuất thành công");
     router.push("/login");
   };
 
@@ -84,23 +95,6 @@ export default function OrdersPage() {
       default:
         return { label: status || "Không rõ", classes: "bg-gray-100 text-gray-600" };
     }
-  };
-
-  // ✅ Bê nguyên hàm "Phép thuật" tính phí ship sang đây
-  const calculateShippingFee = (addressText: string, totalAmount: number) => {
-    if (!addressText || addressText.trim() === "") return 0;
-    if (totalAmount >= 1000000) return 0; 
-
-    let baseFee = 30000; 
-    const addr = addressText.toLowerCase();
-
-    if (addr.includes("hà nội") || addr.includes("ha noi")) baseFee = 15000;
-    else if (addr.includes("hồ chí minh") || addr.includes("ho chi minh") || addr.includes("hcm")) baseFee = 35000;
-    else if (addr.includes("đà nẵng") || addr.includes("da nang")) baseFee = 25000;
-    else if (addr.includes("hải phòng") || addr.includes("hai phong") || addr.includes("quảng ninh")) baseFee = 20000;
-    else if (addr.includes("cần thơ") || addr.includes("can tho") || addr.includes("bình dương")) baseFee = 30000;
-
-    return baseFee;
   };
 
   const menuItems = [
@@ -152,7 +146,7 @@ export default function OrdersPage() {
 
             <div className="pt-3 border-t">
               <button 
-                onClick={handleLogout}
+                onClick={handleLogoutClick}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg font-bold text-red-500 hover:bg-red-50 transition-colors text-sm"
               >
                 <LogOut size={16} /> Đăng xuất
@@ -199,13 +193,9 @@ export default function OrdersPage() {
                       year: "numeric"
                     });
 
-                    // ✅ TÍNH LẠI TỔNG TIỀN HIỂN THỊ BAO GỒM PHÍ SHIP
-                    // Dùng o.subTotal nếu có, không thì lấy tạm o.totalAmount làm gốc để tính freeship > 1 củ
-                    const baseAmountForShip = o.subTotal || o.totalAmount || 0;
-                    const address = o.deliveryAddress || "";
-                    
-                    const calculatedShip = o.shippingFee !== undefined ? o.shippingFee : calculateShippingFee(address, baseAmountForShip);
-                    const displayTotalAmount = (o.totalAmount || 0) + calculatedShip;
+                    // ✅ SỬA LỖI GIÁ TIỀN: Lấy trực tiếp totalAmount từ Backend
+                    // Backend đã tính chuẩn: SubTotal - Discount + ShippingFee
+                    const displayTotalAmount = o.totalAmount || 0;
 
                     return (
                       <div key={o.orderId} className="grid grid-cols-5 text-sm items-center py-4 border-b border-gray-50 last:border-none hover:bg-gray-50 transition-colors min-w-[600px] rounded-lg px-2">
@@ -238,6 +228,36 @@ export default function OrdersPage() {
         </div>
       </main>
       <Footer />
+
+      {/* ✅ CUSTOM MODAL XÁC NHẬN ĐĂNG XUẤT */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm transition-opacity">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200 text-center">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <LogOut size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Đăng xuất?</h3>
+            <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+              Bạn có chắc chắn muốn rời khỏi hệ thống <span className="font-bold text-gray-900">BallHub</span> không?
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-3.5 rounded-2xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={confirmLogout}
+                className="flex-1 py-3.5 rounded-2xl font-bold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-lg shadow-red-100"
+              >
+                Đăng xuất
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

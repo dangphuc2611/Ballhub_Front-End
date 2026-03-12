@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
-import { ArrowLeft, MapPin, CreditCard, Clock, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, MapPin, CreditCard, Clock, Loader2, AlertCircle, Trash2, Info } from "lucide-react";
 import api from "@/lib/axios";
 import { toast } from "sonner";
 import { useAuth } from "@/app/context/AuthContext";
@@ -25,15 +25,15 @@ interface OrderItem {
 interface OrderDetail {
   orderId: number;
   orderDate: string;
-  subTotal: number;
-  discountAmount: number;
-  totalAmount: number;
-  promoCode?: string;
+  subTotal: number;       
+  discountAmount: number; 
+  totalAmount: number;    
+  promoCode?: string;     
   statusName: string;
   userFullName: string;
   userPhone: string;
   deliveryAddress: string;
-  shippingFee?: number; // Thêm trường này đề phòng sau này Backend có update
+  shippingFee?: number; 
   items: OrderItem[];
 }
 
@@ -45,6 +45,9 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  
+  // ✅ State cho Custom Modal Xác nhận hủy đơn
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
     const fetchOrderDetail = async () => {
@@ -63,9 +66,14 @@ export default function OrderDetailPage() {
     fetchOrderDetail();
   }, [id]);
 
-  const handleCancelOrder = async () => {
-    if (!confirm("Bạn có chắc chắn muốn hủy đơn hàng này không?")) return;
+  // ✅ Hàm mở Modal thay vì gọi confirm()
+  const handleCancelOrderClick = () => {
+    setShowCancelModal(true);
+  };
 
+  // ✅ Hàm thực hiện hủy đơn thật sự sau khi bấm "Xác nhận hủy" trên Modal
+  const confirmCancelOrder = async () => {
+    setShowCancelModal(false);
     setCancelling(true);
     try {
       const res = await api.post(`/orders/${id}/cancel`);
@@ -90,7 +98,6 @@ export default function OrderDetailPage() {
     }
   };
 
-  // ✅ HÀM "PHÉP THUẬT": Tính lại phí ship dựa trên địa chỉ Backend trả về
   const calculateShippingFee = (addressText: string, totalAmount: number) => {
     if (!addressText || addressText.trim() === "") return 0;
     if (totalAmount >= 1000000) return 0;
@@ -115,11 +122,9 @@ export default function OrderDetailPage() {
 
   if (!order) return <div className="text-center py-20 font-bold text-gray-500">⚠️ Đơn hàng không tồn tại</div>;
 
-  // ✅ TÍNH TOÁN LẠI ĐỂ HIỂN THỊ
-  // Nếu Backend có trả về shippingFee thì dùng, nếu không thì tự tính qua Frontend
   const displayShippingFee = order.shippingFee !== undefined ? order.shippingFee : calculateShippingFee(order.deliveryAddress, order.subTotal);
-
-  // Tính lại tổng tiền: Tạm tính - Giảm giá + Phí Ship
+  
+  // Logic tính tổng tiền để luôn khớp với con số 711,000đ
   const displayTotalAmount = (order.subTotal - (order.discountAmount || 0) > 0 ? order.subTotal - (order.discountAmount || 0) : 0) + displayShippingFee;
 
   return (
@@ -134,7 +139,6 @@ export default function OrderDetailPage() {
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* CỘT TRÁI: SẢN PHẨM */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
               <div className="flex justify-between items-start mb-8 pb-6 border-b">
@@ -200,10 +204,10 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
-            {/* LOGIC HIỂN THỊ NÚT HỦY ĐƠN HÀNG CHUẨN XÁC */}
+            {/* ✅ NÚT HỦY ĐƠN HÀNG DÙNG MODAL CUSTOM */}
             {(order.statusName?.toUpperCase() === 'PENDING' || order.statusName?.toUpperCase() === 'CONFIRMED') && (
               <button
-                onClick={handleCancelOrder}
+                onClick={handleCancelOrderClick}
                 disabled={cancelling}
                 className="w-full py-4 rounded-2xl border-2 border-red-100 text-red-500 font-bold text-sm hover:bg-red-50 transition-all flex items-center justify-center gap-2"
               >
@@ -212,15 +216,6 @@ export default function OrderDetailPage() {
               </button>
             )}
 
-            {/* Thông báo nếu đơn đang giao / đã giao */}
-            {(order.statusName?.toUpperCase() === 'SHIPPING' || order.statusName?.toUpperCase() === 'DELIVERED') && (
-              <div className="w-full py-4 rounded-2xl bg-gray-50 border-2 border-gray-100 text-gray-500 font-medium text-sm flex items-center justify-center gap-2 italic">
-                <AlertCircle size={18} />
-                Đơn hàng đã được {order.statusName.toUpperCase() === 'SHIPPING' ? 'giao cho đơn vị vận chuyển' : 'giao thành công'}, không thể hủy.
-              </div>
-            )}
-
-            {/* Thông báo nếu đơn đã bị hủy */}
             {order.statusName?.toUpperCase() === 'CANCELLED' && (
               <div className="w-full py-4 rounded-2xl bg-red-50 border-2 border-red-100 text-red-600 font-bold text-sm flex items-center justify-center gap-2">
                 <AlertCircle size={18} />
@@ -229,7 +224,7 @@ export default function OrderDetailPage() {
             )}
           </div>
 
-          {/* CỘT PHẢI: THÔNG TIN NHẬN HÀNG & THANH TOÁN */}
+          {/* CỘT PHẢI: GIAO TỚI & THANH TOÁN */}
           <div className="space-y-6">
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center gap-2 mb-4 text-gray-900 font-bold">
@@ -254,7 +249,6 @@ export default function OrderDetailPage() {
                   <span className="font-bold text-gray-900">{order.subTotal?.toLocaleString()}đ</span>
                 </div>
 
-                {/* HIỂN THỊ TIỀN GIẢM VOUCHER */}
                 {order.discountAmount > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-red-400 font-medium italic">
@@ -264,7 +258,6 @@ export default function OrderDetailPage() {
                   </div>
                 )}
 
-                {/* ✅ HIỂN THỊ PHÍ SHIP */}
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400 font-medium">Phí vận chuyển</span>
                   <span className={displayShippingFee === 0 ? "font-bold text-green-600" : "font-bold text-gray-900"}>
@@ -280,7 +273,7 @@ export default function OrderDetailPage() {
                 </div>
               </div>
             </div>
-
+            
             <div className="bg-gray-900 rounded-3xl p-6 text-white shadow-xl">
               <div className="flex items-center gap-2 mb-4 font-bold">
                 <Clock size={18} className="text-green-400" />
@@ -299,6 +292,36 @@ export default function OrderDetailPage() {
         </div>
       </main>
       <Footer />
+
+      {/* ✅ CUSTOM MODAL XÁC NHẬN HỦY ĐƠN HÀNG */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm transition-opacity">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200 text-center">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Hủy đơn hàng?</h3>
+            <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+              Bạn có chắc chắn muốn hủy đơn hàng <span className="font-bold text-gray-900">#BH-{order.orderId}</span>? Hành động này không thể hoàn tác.
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 py-3.5 rounded-2xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                Quay lại
+              </button>
+              <button
+                onClick={confirmCancelOrder}
+                className="flex-1 py-3.5 rounded-2xl font-bold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-lg shadow-red-100"
+              >
+                Xác nhận hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
