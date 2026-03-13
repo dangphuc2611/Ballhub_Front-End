@@ -36,6 +36,7 @@ export const OrderTable = ({
     <table className="w-full text-sm">
       <thead className="text-slate-400 text-[11px] uppercase border-b border-slate-50">
         <tr>
+          <th className="text-left pb-4 w-10">STT</th>
           <th className="text-left pb-4">Mã đơn</th>
           <th className="text-left pb-4">Khách hàng</th>
           <th className="text-left pb-4">Ngày đặt</th>
@@ -46,11 +47,14 @@ export const OrderTable = ({
       </thead>
       <tbody className="divide-y divide-slate-50">
         {orders && orders.length > 0 ? (
-          orders.map((o) => (
+          orders.map((o, index) => (
             <tr
               key={o.orderId}
               className="hover:bg-slate-50/50 transition-colors group"
             >
+              <td className="py-4 text-slate-400 font-medium">
+                {page * pageSize + index + 1}
+              </td>
               <td className="py-4 font-bold text-emerald-600">#{o.orderId}</td>
               <td className="py-4">
                 <p className="font-bold text-xs text-slate-700">{o.userFullName || `User ID: ${o.userId}`}</p>
@@ -69,6 +73,7 @@ export const OrderTable = ({
                 <button
                   onClick={() => onView?.(o.orderId)}
                   className="p-2 text-slate-300 hover:text-blue-500 transition-all"
+                  title="Xem chi tiết"
                 >
                   <Eye size={16} />
                 </button>
@@ -77,7 +82,7 @@ export const OrderTable = ({
           ))
         ) : (
           <tr>
-            <td colSpan={6} className="py-4 text-center text-slate-400">
+            <td colSpan={7} className="py-4 text-center text-slate-400">
               Không có đơn hàng
             </td>
           </tr>
@@ -95,9 +100,9 @@ export const OrderTable = ({
           <button
             onClick={() => goTo(page - 1)}
             disabled={page <= 0}
-            className="px-3 py-1 rounded-md bg-white border text-sm disabled:opacity-50"
+            className="px-3 py-1 rounded-md bg-white border text-sm disabled:opacity-50 hover:bg-slate-50"
           >
-            Prev
+            Trang trước
           </button>
 
           {[...Array(totalPages || 1)].map((_, i) => (
@@ -113,9 +118,9 @@ export const OrderTable = ({
           <button
             onClick={() => goTo(page + 1)}
             disabled={page >= (totalPages || 1) - 1}
-            className="px-3 py-1 rounded-md bg-white border text-sm disabled:opacity-50"
+            className="px-3 py-1 rounded-md bg-white border text-sm disabled:opacity-50 hover:bg-slate-50"
           >
-            Next
+            Trang sau
           </button>
         </div>
       </div>

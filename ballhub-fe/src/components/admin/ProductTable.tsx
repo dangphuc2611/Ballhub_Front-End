@@ -46,6 +46,7 @@ export const ProductTable = ({
       <table className="w-full text-sm">
         <thead className="text-slate-400 text-[11px] uppercase tracking-wider">
           <tr>
+            <th className="text-left pb-4 w-10">STT</th>
             <th className="text-left pb-4">Sản phẩm</th>
             <th className="text-left pb-4">Hãng</th>
             <th className="text-left pb-4">Giá bán</th>
@@ -54,11 +55,14 @@ export const ProductTable = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50">
-          {products.map((p) => (
+          {products.map((p, index) => (
             <tr
               key={p.productId}
               className="hover:bg-slate-50/50 transition-colors group"
             >
+              <td className="py-4 text-slate-400 font-medium">
+                {page * pageSize + index + 1}
+              </td>
               <td className="py-4">
                 <div className="flex items-center gap-3">
                   <Image
@@ -81,7 +85,7 @@ export const ProductTable = ({
               
               <td>
                 <StatusTag
-                  label={p.status ? "Active" : "Inactive"}
+                  label={p.status ? "Hoạt động" : "Tạm khóa"}
                   color={p.status ? "green" : "red"}
                 />
               </td>
@@ -110,7 +114,7 @@ export const ProductTable = ({
             disabled={page <= 0}
             className="px-3 py-1 rounded-md bg-white border text-sm hover:bg-slate-50 disabled:opacity-50 transition-colors"
           >
-            Prev
+            Trang trước
           </button>
 
           {[...Array(totalPages || 1)].map((_, i) => (
@@ -128,7 +132,7 @@ export const ProductTable = ({
             disabled={page >= (totalPages || 1) - 1}
             className="px-3 py-1 rounded-md bg-white border text-sm hover:bg-slate-50 disabled:opacity-50 transition-colors"
           >
-            Next
+            Trang sau
           </button>
         </div>
       </div>
