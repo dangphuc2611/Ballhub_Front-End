@@ -18,6 +18,7 @@ import {
   Palette,
   Briefcase,
   MessageSquare,
+  Store, // ✅ THÊM ICON STORE CHO POS
 } from "lucide-react";
 
 import { NavItem } from "@/components/admin/NavItem";
@@ -37,6 +38,7 @@ import { BrandTable } from "@/components/admin/BrandTable";
 import { BrandModal } from "@/components/admin/BrandModal";
 import { ReviewTable } from "@/components/admin/ReviewTable";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
+import { PosView } from "@/components/admin/PosView"; // ✅ IMPORT GIAO DIỆN POS
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("Tổng quan");
@@ -45,8 +47,6 @@ export default function AdminDashboard() {
   const [productsDataFetch, setProductsDataFetch] = useState<any[]>([]);
   const [productPage, setProductPage] = useState<number>(0);
   const [productPageInfo, setProductPageInfo] = useState<any>(null);
-  // Orders list for tables – start as empty array so we can safely call map before
-  // the fetch resolves. The API may return an object wrapper so we coerce later.
   const [orders, setOrders] = useState<any[]>([]);
   const [orderPage, setOrderPage] = useState<number>(0);
   const [orderPageInfo, setOrderPageInfo] = useState<any>(null);
@@ -115,7 +115,6 @@ export default function AdminDashboard() {
     setConfirmConfig({ open: true, title, description, onConfirm, variant });
   };
 
-  // fetch orders and products separately; product fetch is paginated
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -131,8 +130,6 @@ export default function AdminDashboard() {
         );
 
         const result = await res.json();
-        console.log("products page result", result);
-
         const payload = result?.data ?? result;
         setProductsDataFetch(payload?.content ?? []);
         setProductPageInfo({
@@ -166,8 +163,6 @@ export default function AdminDashboard() {
         );
 
         const result = await res.json();
-        console.log("orders result", result);
-
         const payload = result?.data ?? result;
         setOrders(payload?.content ?? []);
         setOrderPageInfo({
@@ -196,9 +191,6 @@ export default function AdminDashboard() {
         });
 
         const result = await res.json();
-        console.log("users result", result);
-
-        // endpoint might wrap the array in a data field, or return it directly
         setUsers(result?.data ?? result ?? []);
       } catch (error) {
         console.error("Fetch users error:", error);
@@ -208,7 +200,6 @@ export default function AdminDashboard() {
     fetchUsers();
   }, []);
 
-  // Fetch vouchers
   useEffect(() => {
     const fetchVouchers = async () => {
       try {
@@ -253,7 +244,6 @@ export default function AdminDashboard() {
     );
   };
 
-  // Fetch Colors
   useEffect(() => {
     const fetchColors = async () => {
       try {
@@ -303,7 +293,6 @@ export default function AdminDashboard() {
     );
   };
 
-  // Fetch Brands
   useEffect(() => {
     const fetchBrands = async () => {
       try {
@@ -353,7 +342,6 @@ export default function AdminDashboard() {
     );
   };
 
-  // Fetch Reviews
   useEffect(() => {
     const fetchReviews = async () => {
       try {
@@ -403,36 +391,6 @@ export default function AdminDashboard() {
     );
   };
 
-  // const orders: any[] = [
-  //   {
-  //     id: "#ORD-00125",
-  //     customer: "Nguyễn Văn A",
-  //     phone: "0901234567",
-  //     date: "20/05/2024",
-  //     total: "1.200.000đ",
-  //     status: "Hoàn thành",
-  //     color: "green",
-  //   },
-  //   {
-  //     id: "#ORD-00124",
-  //     customer: "Trần Thị B",
-  //     phone: "0909876543",
-  //     date: "19/05/2024",
-  //     total: "950.000đ",
-  //     status: "Chờ xử lý",
-  //     color: "orange",
-  //   },
-  //   {
-  //     id: "#ORD-00123",
-  //     customer: "Lê Văn C",
-  //     phone: "0912345678",
-  //     date: "18/05/2024",
-  //     total: "1.500.000đ",
-  //     status: "Đang giao",
-  //     color: "blue",
-  //   },
-  // ];
-
   useEffect(() => {
     if (!loading) {
       if (!user) router.replace("/login");
@@ -450,7 +408,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
-      {/* SIDEBAR - GIỮ NGUYÊN */}
       <aside className="w-64 bg-white border-r border-slate-100 flex flex-col fixed h-screen z-20">
         <div className="p-6 mb-4">
           <Link
@@ -483,6 +440,13 @@ export default function AdminDashboard() {
               label="Đơn hàng"
               active={activeTab === "Đơn hàng"}
               onClick={() => setActiveTab("Đơn hàng")}
+            />
+            {/* ✅ MENU BÁN TẠI QUẦY (POS) THÊM VÀO ĐÂY */}
+            <NavItem
+              icon={<Store size={18} />}
+              label="Bán tại quầy"
+              active={activeTab === "Bán tại quầy"}
+              onClick={() => setActiveTab("Bán tại quầy")}
             />
             <NavItem
               icon={<Users size={18} />}
@@ -539,7 +503,8 @@ export default function AdminDashboard() {
         <header className="flex justify-between items-center mb-8">
           <div className="flex flex-col">
             <h2 className="text-2xl font-black text-slate-800 tracking-tight">
-              Dashboard Thống kê
+              {/* Thay đổi Tiêu đề động theo Tab */}
+              {activeTab === "Bán tại quầy" ? "Máy tính tiền (POS)" : "Dashboard Thống kê"}
             </h2>
             <p className="text-xs text-slate-400 font-medium">
               Chào mừng trở lại, {user.fullName}
@@ -573,13 +538,8 @@ export default function AdminDashboard() {
         <div className="animate-in fade-in duration-500">
           {activeTab === "Tổng quan" && (
             <div className="space-y-8">
-              {/* 1. Thẻ số liệu */}
               <DashboardStats />
-
-              {/* 2. Biểu đồ */}
               <RevenueChart />
-
-              {/* 3. Đơn hàng mới nhất */}
               <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="font-black text-slate-800">
@@ -637,6 +597,13 @@ export default function AdminDashboard() {
                   onView={(id: number) => setSelectedOrderId(id)}
                 />
               </div>
+            </div>
+          )}
+
+          {/* ✅ RENDER GIAO DIỆN POS Ở ĐÂY */}
+          {activeTab === "Bán tại quầy" && (
+            <div className="col-span-12">
+              <PosView />
             </div>
           )}
 

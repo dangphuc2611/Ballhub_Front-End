@@ -70,11 +70,11 @@ export const ConfirmModal = ({
           <div className={`w-16 h-16 ${styles.bg} ${styles.item} rounded-full flex items-center justify-center mx-auto mb-6`}>
             {styles.icon}
           </div>
-          
+
           <h3 className="text-xl font-black text-slate-800 mb-2">{title}</h3>
-          <p className="text-sm text-slate-500 font-medium leading-relaxed px-2">
+          <div className="text-sm text-slate-500 font-medium leading-relaxed px-2">
             {description}
-          </p>
+          </div>
         </div>
 
         <div className="p-6 pt-0 flex gap-3">

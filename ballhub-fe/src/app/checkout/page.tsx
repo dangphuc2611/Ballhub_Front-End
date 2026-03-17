@@ -127,8 +127,32 @@ export default function CheckoutPage() {
 
       const res = await api.post("/orders", payload);
       toast.success("Đặt hàng thành công!");
-      router.push(`/order/success/${res.data.data.orderId}`);
-      // Phát sự kiện để cập nhật badge giỏ hàng ở Header
+      
+      const resData = res.data;
+      let createdOrderId = null;
+      
+      console.log("👉 Dữ liệu Backend trả về:", resData);
+
+      // ✅ BỘ LỌC ĐÃ ĐƯỢC NÂNG CẤP ĐỂ TÌM VÀO TẬN TRONG LÕI "order"
+      if (typeof resData?.data === 'number' || typeof resData?.data === 'string') {
+        createdOrderId = resData.data;
+      } 
+
+      else if (resData?.data?.order?.orderId) createdOrderId = resData.data.order.orderId;
+      else if (resData?.data?.order?.id) createdOrderId = resData.data.order.id;
+      else if (resData?.data?.orderId) createdOrderId = resData.data.orderId;
+      else if (resData?.data?.id) createdOrderId = resData.data.id;
+      else if (resData?.orderId) createdOrderId = resData.orderId;
+      else if (resData?.id) createdOrderId = resData.id;
+
+      if (createdOrderId) {
+        setQrModal({ show: false, url: "", orderId: null });
+        router.push(`/order-success/${createdOrderId}`); // Chuyển trang thành công!
+      } else {
+        toast.error("Tạo đơn thành công nhưng không lấy được mã đơn!");
+        router.push("/profile/orders");
+      }
+
       window.dispatchEvent(new Event("cartUpdated"));
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Lỗi khi đặt hàng");
