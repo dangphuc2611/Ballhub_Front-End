@@ -44,14 +44,9 @@ export default function CartPage() {
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const router = useRouter();
 
-<<<<<<< HEAD
   // ✅ STATE CHO CUSTOM MODAL XÓA SẢN PHẨM
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [itemToRemove, setItemToRemove] = useState<{id: number, name: string} | null>(null);
-=======
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [targetId, setTargetId] = useState<number | null>(null);
->>>>>>> ae72dbc (done)
 
   const fetchCart = async () => {
     try {
@@ -75,20 +70,19 @@ export default function CartPage() {
     return url.startsWith("http") ? url : `${BASE_URL}${url}`;
   };
 
-<<<<<<< HEAD
+  const formatPrice = (price: any) => {
+    if (price === null || price === undefined) return "0đ";
+    const numPrice = typeof price === "string" ? parseFloat(price) : price;
+    if (isNaN(numPrice)) return "0đ";
+    return numPrice.toLocaleString("vi-VN") + "đ";
+  };
+
   const updateQty = async (
     cartItemId: number,
     currentQty: number,
     delta: number,
     maxStock: number
   ) => {
-=======
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
-  };
-
-  const updateQty = async (cartItemId: number, currentQty: number, delta: number, maxStock: number) => {
->>>>>>> ae72dbc (done)
     const newQty = currentQty + delta;
     if (newQty < 1) return;
     if (newQty > maxStock) {
@@ -108,7 +102,6 @@ export default function CartPage() {
     }
   };
 
-<<<<<<< HEAD
   // ✅ HÀM NÀY GIỜ CHỈ MỞ POPUP, KHÔNG XÓA NGAY
   const handleRemoveClick = (id: number, name: string) => {
     setItemToRemove({ id, name });
@@ -123,49 +116,17 @@ export default function CartPage() {
     setShowRemoveModal(false); // Đóng popup ngay
 
     toast.promise(api.delete(`/cart/items/${id}`), {
-=======
-  const setQtyDirectly = async (cartItemId: number, newQty: number, maxStock: number) => {
-    if (isNaN(newQty) || newQty < 1) newQty = 1;
-    if (newQty > maxStock) {
-      newQty = maxStock;
-      toast.error(`Kho chỉ còn ${maxStock} sản phẩm`);
-    }
-
-    setUpdatingId(cartItemId);
-    try {
-      await api.put(`/cart/items/${cartItemId}`, { quantity: newQty });
-      await fetchCart();
-      window.dispatchEvent(new Event("cartUpdated"));
-    } catch {
-      toast.error("Không thể cập nhật số lượng");
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const executeRemove = () => {
-    if (!targetId) return;
-    setConfirmOpen(false);
-    toast.promise(api.delete(`/cart/items/${targetId}`), {
->>>>>>> ae72dbc (done)
       loading: "Đang xóa...",
       success: () => {
         fetchCart();
         window.dispatchEvent(new Event("cartUpdated"));
-<<<<<<< HEAD
         return "Đã xóa sản phẩm khỏi giỏ hàng";
-=======
-        return "Đã xóa sản phẩm";
->>>>>>> ae72dbc (done)
       },
       error: "Lỗi khi xóa",
     });
   };
 
-  const removeItem = (id: number) => {
-    setTargetId(id);
-    setConfirmOpen(true);
-  };
+
 
   if (loading)
     return (
@@ -252,11 +213,7 @@ export default function CartPage() {
                             <td className="p-5 text-center font-medium text-sm">{formatPrice(item.finalPrice)}</td>
                             <td className="p-5">
                               <div className="flex justify-center">
-<<<<<<< HEAD
                                 <div className="flex items-center border rounded-lg bg-white">
-=======
-                                <div className="flex items-center border rounded-lg bg-white overflow-hidden focus-within:ring-2 ring-green-100 transition-all">
->>>>>>> ae72dbc (done)
                                   <button
                                     onClick={() => updateQty(item.cartItemId, item.quantity, -1, maxStock)}
                                     disabled={updatingId === item.cartItemId || item.quantity <= 1}
@@ -265,26 +222,9 @@ export default function CartPage() {
                                   >
                                     <Minus size={10} />
                                   </button>
-<<<<<<< HEAD
                                   <span className="w-8 text-center text-xs font-bold">
                                     {updatingId === item.cartItemId ? ".." : item.quantity}
                                   </span>
-=======
-
-                                  <input
-                                    type="number"
-                                    value={item.quantity}
-                                    disabled={updatingId === item.cartItemId}
-                                    onChange={(e) => {
-                                      const val = parseInt(e.target.value);
-                                      if (!isNaN(val)) {
-                                        setQtyDirectly(item.cartItemId, val, maxStock);
-                                      }
-                                    }}
-                                    className="w-10 text-center text-xs font-bold outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-transparent"
-                                  />
-
->>>>>>> ae72dbc (done)
                                   <button
                                     onClick={() => updateQty(item.cartItemId, item.quantity, 1, maxStock)}
                                     disabled={updatingId === item.cartItemId || isMaxQty}
@@ -325,10 +265,6 @@ export default function CartPage() {
               <div className="lg:col-span-4">
                 <div className="bg-white rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.04)] border border-gray-100 sticky top-24">
                   <h3 className="text-xl font-bold mb-6">Đơn hàng của bạn</h3>
-<<<<<<< HEAD
-=======
-
->>>>>>> ae72dbc (done)
                   <div className="space-y-4 mb-6">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Tạm tính</span>
@@ -339,10 +275,6 @@ export default function CartPage() {
                       <span className="text-green-600 font-bold">Miễn phí</span>
                     </div>
                   </div>
-<<<<<<< HEAD
-=======
-
->>>>>>> ae72dbc (done)
                   <div className="border-t border-gray-100 pt-6 mb-8 flex justify-between items-center">
                     <span className="font-bold text-gray-900">Tổng cộng</span>
                     <div className="text-right">
@@ -375,7 +307,6 @@ export default function CartPage() {
       </main>
 
       <Footer />
-<<<<<<< HEAD
 
       {/* ✅ CUSTOM MODAL XÁC NHẬN XÓA SẢN PHẨM */}
       {showRemoveModal && (
@@ -406,17 +337,6 @@ export default function CartPage() {
           </div>
         </div>
       )}
-=======
-      <ConfirmModal
-        open={confirmOpen}
-        title="Xóa khỏi giỏ hàng?"
-        description="Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng không?"
-        variant="danger"
-        confirmLabel="Xóa ngay"
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={executeRemove}
-      />
->>>>>>> ae72dbc (done)
     </div>
   );
 }
