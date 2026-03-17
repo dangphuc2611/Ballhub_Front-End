@@ -91,7 +91,9 @@ export default function OrdersPage() {
       case "DELIVERED":
         return { label: "Đã giao", classes: "bg-green-100 text-green-600" };
       case "CANCELLED":
-        return { label: "Đã hủy", classes: "bg-red-100 text-red-600" };
+        return { label: "Đã hủy", classes: "bg-gray-100 text-gray-600" };
+      case "RETURNED":
+        return { label: "Đã trả hàng", classes: "bg-red-100 text-red-600" };
       default:
         return { label: status || "Không rõ", classes: "bg-gray-100 text-gray-600" };
     }

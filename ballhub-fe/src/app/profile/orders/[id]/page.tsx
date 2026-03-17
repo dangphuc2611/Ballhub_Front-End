@@ -93,7 +93,8 @@ export default function OrderDetailPage() {
     switch (status?.toUpperCase()) {
       case "PENDING": return "bg-orange-100 text-orange-600";
       case "DELIVERED": return "bg-green-100 text-green-600";
-      case "CANCELLED": return "bg-red-100 text-red-600";
+      case "CANCELLED": return "bg-gray-100 text-gray-600";
+      case "RETURNED": return "bg-red-100 text-red-600";
       default: return "bg-blue-100 text-blue-600";
     }
   };
@@ -217,9 +218,17 @@ export default function OrderDetailPage() {
             )}
 
             {order.statusName?.toUpperCase() === 'CANCELLED' && (
-              <div className="w-full py-4 rounded-2xl bg-red-50 border-2 border-red-100 text-red-600 font-bold text-sm flex items-center justify-center gap-2">
+              <div className="w-full py-4 rounded-2xl bg-gray-50 border-2 border-gray-200 text-gray-600 font-bold text-sm flex items-center justify-center gap-2">
                 <AlertCircle size={18} />
                 ĐƠN HÀNG ĐÃ BỊ HỦY
+              </div>
+            )}
+
+            {/* Thông báo nếu đơn đã hoàn trả */}
+            {order.statusName?.toUpperCase() === 'RETURNED' && (
+              <div className="w-full py-4 rounded-2xl bg-red-50 border-2 border-red-100 text-red-600 font-bold text-sm flex items-center justify-center gap-2">
+                <AlertCircle size={18} />
+                ĐƠN HÀNG ĐÃ BỊ TRẢ LẠI
               </div>
             )}
           </div>

@@ -21,6 +21,10 @@ export const ProductTable = ({
   onEdit,
 }: Props) => {
   const totalCount = totalElements ?? products.length;
+  
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+  };
 
   const goTo = (p: number) => {
     if (!onPageChange) return;
@@ -46,7 +50,11 @@ export const ProductTable = ({
       <table className="w-full text-sm">
         <thead className="text-slate-400 text-[11px] uppercase tracking-wider">
           <tr>
+<<<<<<< HEAD
             <th className="text-left pb-4 w-10">STT</th>
+=======
+            <th className="text-left pb-4 w-12">STT</th>
+>>>>>>> ae72dbc (done)
             <th className="text-left pb-4">Sản phẩm</th>
             <th className="text-left pb-4">Hãng</th>
             <th className="text-left pb-4">Giá bán</th>
@@ -60,7 +68,11 @@ export const ProductTable = ({
               key={p.productId}
               className="hover:bg-slate-50/50 transition-colors group"
             >
+<<<<<<< HEAD
               <td className="py-4 text-slate-400 font-medium">
+=======
+              <td className="py-4 text-slate-400 font-medium text-xs">
+>>>>>>> ae72dbc (done)
                 {page * pageSize + index + 1}
               </td>
               <td className="py-4">
@@ -80,12 +92,20 @@ export const ProductTable = ({
                 </div>
               </td>
               <td className="font-bold text-slate-600">{p.brandName}</td>
+<<<<<<< HEAD
               
               <td className="font-bold text-emerald-600">{formatPrice(p.maxPrice)}</td>
               
               <td>
                 <StatusTag
                   label={p.status ? "Hoạt động" : "Tạm khóa"}
+=======
+              <td className="font-bold text-slate-600">{formatPrice(p.maxPrice)}</td>
+              {/* <td className="text-slate-500 font-medium">{p.stock}</td> */}
+              <td>
+                <StatusTag
+                  label={p.status ? "Hoạt Động" : "Không Hoạt Động"}
+>>>>>>> ae72dbc (done)
                   color={p.status ? "green" : "red"}
                 />
               </td>
@@ -114,7 +134,11 @@ export const ProductTable = ({
             disabled={page <= 0}
             className="px-3 py-1 rounded-md bg-white border text-sm hover:bg-slate-50 disabled:opacity-50 transition-colors"
           >
+<<<<<<< HEAD
             Trang trước
+=======
+            Trước
+>>>>>>> ae72dbc (done)
           </button>
 
           {[...Array(totalPages || 1)].map((_, i) => (
@@ -132,7 +156,11 @@ export const ProductTable = ({
             disabled={page >= (totalPages || 1) - 1}
             className="px-3 py-1 rounded-md bg-white border text-sm hover:bg-slate-50 disabled:opacity-50 transition-colors"
           >
+<<<<<<< HEAD
             Trang sau
+=======
+            Sau
+>>>>>>> ae72dbc (done)
           </button>
         </div>
       </div>

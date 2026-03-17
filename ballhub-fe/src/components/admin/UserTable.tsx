@@ -8,6 +8,7 @@ export const UserTable = ({ users = [] }: { users?: any[] }) => (
     <table className="w-full text-sm">
       <thead className="text-slate-400 text-[11px] uppercase border-b border-slate-50">
         <tr>
+          <th className="text-left pb-4 w-12">STT</th>
           <th className="text-left pb-4">ID</th>
           <th className="text-left pb-4">Tên người dùng</th>
           <th className="text-left pb-4">Email</th>
@@ -18,11 +19,14 @@ export const UserTable = ({ users = [] }: { users?: any[] }) => (
       </thead>
       <tbody className="divide-y divide-slate-50">
         {users && users.length > 0 ? (
-          users.map((user) => (
+          users.map((user, index) => (
             <tr
               key={user.userId}
               className="hover:bg-slate-50/50 transition-colors group"
             >
+              <td className="py-4 text-slate-400 font-medium text-xs">
+                {index + 1}
+              </td>
               <td className="py-4 font-bold text-emerald-600">
                 #{user.userId}
               </td>
@@ -53,7 +57,7 @@ export const UserTable = ({ users = [] }: { users?: any[] }) => (
           ))
         ) : (
           <tr>
-            <td colSpan={6} className="py-4 text-center text-slate-400">
+            <td colSpan={7} className="py-4 text-center text-slate-400">
               Không có người dùng
             </td>
           </tr>

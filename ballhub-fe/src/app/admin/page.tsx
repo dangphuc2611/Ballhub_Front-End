@@ -14,6 +14,10 @@ import {
   Search,
   Bell,
   Users,
+  Tag,
+  Palette,
+  Briefcase,
+  MessageSquare,
 } from "lucide-react";
 
 import { NavItem } from "@/components/admin/NavItem";
@@ -25,9 +29,17 @@ import { DashboardStats } from "@/components/admin/DashboardStats";
 import { RevenueChart } from "@/components/admin/RevenueChart";
 import { ProductEditModal } from "@/components/admin/ProductEditModal";
 import { OrderDetailModal } from "@/components/admin/OrderDetailModal";
+import { VoucherTable } from "@/components/admin/VoucherTable";
+import { VoucherModal } from "@/components/admin/VoucherModal";
+import { ColorTable } from "@/components/admin/ColorTable";
+import { ColorModal } from "@/components/admin/ColorModal";
+import { BrandTable } from "@/components/admin/BrandTable";
+import { BrandModal } from "@/components/admin/BrandModal";
+import { ReviewTable } from "@/components/admin/ReviewTable";
+import { ConfirmModal } from "@/components/common/ConfirmModal";
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState("Dashboard");
+  const [activeTab, setActiveTab] = useState("Tổng quan");
   const { user, logout, loading } = useAuth();
   const router = useRouter();
   const [productsDataFetch, setProductsDataFetch] = useState<any[]>([]);
@@ -44,6 +56,64 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<any[]>([]);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // ── Voucher state ────────────────────────────────────────────────────────
+  const [vouchers, setVouchers] = useState<any[]>([]);
+  const [voucherPage, setVoucherPage] = useState<number>(0);
+  const [voucherPageInfo, setVoucherPageInfo] = useState<any>(null);
+  const [voucherRefreshTrigger, setVoucherRefreshTrigger] = useState(0);
+  const [voucherModal, setVoucherModal] = useState<{
+    open: boolean;
+    mode: "view" | "create" | "edit";
+    voucher?: any;
+  }>({ open: false, mode: "create" });
+
+  // ── Color state ──────────────────────────────────────────────────────────
+  const [colors, setColors] = useState<any[]>([]);
+  const [colorPage, setColorPage] = useState<number>(0);
+  const [colorPageInfo, setColorPageInfo] = useState<any>(null);
+  const [colorRefreshTrigger, setColorRefreshTrigger] = useState(0);
+  const [colorModal, setColorModal] = useState<{
+    open: boolean;
+    mode: "create" | "edit";
+    colorData?: any;
+  }>({ open: false, mode: "create" });
+
+  // ── Brand state ──────────────────────────────────────────────────────────
+  const [brands, setBrands] = useState<any[]>([]);
+  const [brandPage, setBrandPage] = useState<number>(0);
+  const [brandPageInfo, setBrandPageInfo] = useState<any>(null);
+  const [brandRefreshTrigger, setBrandRefreshTrigger] = useState(0);
+  const [brandModal, setBrandModal] = useState<{
+    open: boolean;
+    mode: "create" | "edit";
+    brandData?: any;
+  }>({ open: false, mode: "create" });
+
+  // ── Review state ─────────────────────────────────────────────────────────
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewPage, setReviewPage] = useState<number>(0);
+  const [reviewPageInfo, setReviewPageInfo] = useState<any>(null);
+  const [reviewRefreshTrigger, setReviewRefreshTrigger] = useState(0);
+
+  // ── Global Confirm state ───────────────────────────────────────────────
+  const [confirmConfig, setConfirmConfig] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+    variant: "danger" | "warning" | "success" | "info";
+  }>({
+    open: false,
+    title: "",
+    description: "",
+    onConfirm: () => {},
+    variant: "warning",
+  });
+
+  const askConfirm = (title: string, description: string, onConfirm: () => void, variant: any = "danger") => {
+    setConfirmConfig({ open: true, title, description, onConfirm, variant });
+  };
 
   // fetch orders and products separately; product fetch is paginated
   useEffect(() => {
@@ -138,6 +208,201 @@ export default function AdminDashboard() {
     fetchUsers();
   }, []);
 
+  // Fetch vouchers
+  useEffect(() => {
+    const fetchVouchers = async () => {
+      try {
+        const token = localStorage.getItem("refreshToken");
+        const res = await fetch(
+          `http://localhost:8080/api/promotions/admin/all?page=${voucherPage}&size=10`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const result = await res.json();
+        const payload = result?.data ?? result;
+        setVouchers(payload?.content ?? []);
+        setVoucherPageInfo({
+          pageNumber: payload?.pageNumber ?? 0,
+          pageSize: payload?.pageSize ?? 10,
+          totalElements: payload?.totalElements ?? 0,
+          totalPages: payload?.totalPages ?? 1,
+        });
+      } catch (err) {
+        console.error("Fetch vouchers error:", err);
+      }
+    };
+    fetchVouchers();
+  }, [voucherPage, voucherRefreshTrigger]);
+
+  const handleDeleteVoucher = (id: number) => {
+    askConfirm(
+      "Xóa Voucher?",
+      "Bạn có chắc chắn muốn xóa voucher này? Thao tác này không thể hoàn tác.",
+      async () => {
+        try {
+          const token = localStorage.getItem("refreshToken");
+          await fetch(`http://localhost:8080/api/promotions/admin/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setVoucherRefreshTrigger((p) => p + 1);
+          setConfirmConfig(p => ({ ...p, open: false }));
+        } catch (err) {
+          console.error("Delete voucher error:", err);
+        }
+      }
+    );
+  };
+
+  // Fetch Colors
+  useEffect(() => {
+    const fetchColors = async () => {
+      try {
+        const token = localStorage.getItem("refreshToken");
+        const res = await fetch(
+          `http://localhost:8080/api/admin/colors?page=${colorPage}&size=10`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const result = await res.json();
+        const payload = result?.data ?? result;
+        setColors(payload?.content ?? []);
+        setColorPageInfo({
+          pageNumber: payload?.pageNumber ?? 0,
+          pageSize: payload?.pageSize ?? 10,
+          totalElements: payload?.totalElements ?? 0,
+          totalPages: payload?.totalPages ?? 1,
+        });
+      } catch (err) {
+        console.error("Fetch colors error:", err);
+      }
+    };
+    fetchColors();
+  }, [colorPage, colorRefreshTrigger]);
+
+  const handleDeleteColor = (id: number) => {
+    askConfirm(
+        "Xóa Màu Sắc?",
+        "Bạn có chắc chắn muốn xóa màu này không?",
+        async () => {
+          try {
+            const token = localStorage.getItem("refreshToken");
+            const res = await fetch(`http://localhost:8080/api/admin/colors/${id}`, {
+              method: "DELETE",
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const result = await res.json();
+            if (result.status === "error") {
+              alert(result.message);
+            } else {
+              setColorRefreshTrigger((p) => p + 1);
+              setConfirmConfig(p => ({ ...p, open: false }));
+            }
+          } catch (err) {
+            console.error("Delete color error:", err);
+          }
+        }
+    );
+  };
+
+  // Fetch Brands
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const token = localStorage.getItem("refreshToken");
+        const res = await fetch(
+          `http://localhost:8080/api/admin/brands?page=${brandPage}&size=10`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const result = await res.json();
+        const payload = result?.data ?? result;
+        setBrands(payload?.content ?? []);
+        setBrandPageInfo({
+          pageNumber: payload?.pageNumber ?? 0,
+          pageSize: payload?.pageSize ?? 10,
+          totalElements: payload?.totalElements ?? 0,
+          totalPages: payload?.totalPages ?? 1,
+        });
+      } catch (err) {
+        console.error("Fetch brands error:", err);
+      }
+    };
+    fetchBrands();
+  }, [brandPage, brandRefreshTrigger]);
+
+  const handleDeleteBrand = (id: number) => {
+    askConfirm(
+      "Xóa Thương Hiệu?",
+      "Bạn có chắc chắn muốn xóa thương hiệu này không?",
+      async () => {
+        try {
+          const token = localStorage.getItem("refreshToken");
+          const res = await fetch(`http://localhost:8080/api/admin/brands/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const result = await res.json();
+          if (result.status === "error") {
+            alert(result.message);
+          } else {
+            setBrandRefreshTrigger((p) => p + 1);
+            setConfirmConfig((p) => ({ ...p, open: false }));
+          }
+        } catch (err) {
+          console.error("Delete brand error:", err);
+        }
+      }
+    );
+  };
+
+  // Fetch Reviews
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const token = localStorage.getItem("refreshToken");
+        const res = await fetch(
+          `http://localhost:8080/api/admin/reviews?page=${reviewPage}&size=10`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const result = await res.json();
+        const payload = result?.data ?? result;
+        setReviews(payload?.content ?? []);
+        setReviewPageInfo({
+          pageNumber: payload?.pageNumber ?? 0,
+          pageSize: payload?.pageSize ?? 10,
+          totalElements: payload?.totalElements ?? 0,
+          totalPages: payload?.totalPages ?? 1,
+        });
+      } catch (err) {
+        console.error("Fetch reviews error:", err);
+      }
+    };
+    fetchReviews();
+  }, [reviewPage, reviewRefreshTrigger]);
+
+  const handleDeleteReview = (id: number) => {
+    askConfirm(
+        "Xóa Đánh Giá?",
+        "Bạn có chắc chắn muốn xóa nhận xét này không?",
+        async () => {
+          try {
+            const token = localStorage.getItem("refreshToken");
+            const res = await fetch(`http://localhost:8080/api/admin/reviews/${id}`, {
+              method: "DELETE",
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const result = await res.json();
+            if (result.status === "error") {
+              alert(result.message);
+            } else {
+              setReviewRefreshTrigger((p) => p + 1);
+              setConfirmConfig(p => ({ ...p, open: false }));
+            }
+          } catch (err) {
+            console.error("Delete review error:", err);
+          }
+        }
+    );
+  };
+
   // const orders: any[] = [
   //   {
   //     id: "#ORD-00125",
@@ -203,9 +468,9 @@ export default function AdminDashboard() {
           <nav className="space-y-1">
             <NavItem
               icon={<LayoutDashboard size={18} />}
-              label="Dashboard"
-              active={activeTab === "Dashboard"}
-              onClick={() => setActiveTab("Dashboard")}
+              label="Tổng quan"
+              active={activeTab === "Tổng quan"}
+              onClick={() => setActiveTab("Tổng quan")}
             />
             <NavItem
               icon={<Package size={18} />}
@@ -224,6 +489,30 @@ export default function AdminDashboard() {
               label="Người dùng"
               active={activeTab === "Người dùng"}
               onClick={() => setActiveTab("Người dùng")}
+            />
+            <NavItem
+              icon={<Tag size={18} />}
+              label="Voucher"
+              active={activeTab === "Voucher"}
+              onClick={() => setActiveTab("Voucher")}
+            />
+            <NavItem
+              icon={<Palette size={18} />}
+              label="Màu sắc"
+              active={activeTab === "Màu sắc"}
+              onClick={() => setActiveTab("Màu sắc")}
+            />
+            <NavItem
+              icon={<Briefcase size={18} />}
+              label="Hãng quần áo"
+              active={activeTab === "Hãng quần áo"}
+              onClick={() => setActiveTab("Hãng quần áo")}
+            />
+            <NavItem
+              icon={<MessageSquare size={18} />}
+              label="Đánh giá"
+              active={activeTab === "Đánh giá"}
+              onClick={() => setActiveTab("Đánh giá")}
             />
           </nav>
         </div>
@@ -282,7 +571,7 @@ export default function AdminDashboard() {
         </header>
 
         <div className="animate-in fade-in duration-500">
-          {activeTab === "Dashboard" && (
+          {activeTab === "Tổng quan" && (
             <div className="space-y-8">
               {/* 1. Thẻ số liệu */}
               <DashboardStats />
@@ -358,6 +647,68 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+
+          {activeTab === "Voucher" && (
+            <div className="col-span-12">
+              <VoucherTable
+                vouchers={vouchers}
+                page={voucherPage}
+                totalPages={voucherPageInfo?.totalPages ?? 1}
+                totalElements={voucherPageInfo?.totalElements}
+                pageSize={voucherPageInfo?.pageSize}
+                onPageChange={(p: number) => setVoucherPage(p)}
+                onView={(v: any) => setVoucherModal({ open: true, mode: "view", voucher: v })}
+                onEdit={(v: any) => setVoucherModal({ open: true, mode: "edit", voucher: v })}
+                onDelete={handleDeleteVoucher}
+                onAddNew={() => setVoucherModal({ open: true, mode: "create" })}
+              />
+            </div>
+          )}
+
+          {activeTab === "Màu sắc" && (
+            <div className="col-span-12">
+              <ColorTable
+                colors={colors}
+                page={colorPage}
+                totalPages={colorPageInfo?.totalPages ?? 1}
+                totalElements={colorPageInfo?.totalElements}
+                pageSize={colorPageInfo?.pageSize}
+                onPageChange={(p) => setColorPage(p)}
+                onEdit={(c) => setColorModal({ open: true, mode: "edit", colorData: c })}
+                onDelete={handleDeleteColor}
+                onAddNew={() => setColorModal({ open: true, mode: "create" })}
+              />
+            </div>
+          )}
+          {activeTab === "Hãng quần áo" && (
+            <div className="col-span-12">
+              <BrandTable
+                brands={brands}
+                page={brandPage}
+                totalPages={brandPageInfo?.totalPages ?? 1}
+                totalElements={brandPageInfo?.totalElements}
+                pageSize={brandPageInfo?.pageSize}
+                onPageChange={(p: number) => setBrandPage(p)}
+                onEdit={(b) => setBrandModal({ open: true, mode: "edit", brandData: b })}
+                onDelete={handleDeleteBrand}
+                onAddNew={() => setBrandModal({ open: true, mode: "create" })}
+              />
+            </div>
+          )}
+
+          {activeTab === "Đánh giá" && (
+            <div className="col-span-12">
+              <ReviewTable
+                reviews={reviews}
+                page={reviewPage}
+                totalPages={reviewPageInfo?.totalPages ?? 1}
+                totalElements={reviewPageInfo?.totalElements}
+                pageSize={reviewPageInfo?.pageSize}
+                onPageChange={(p: number) => setReviewPage(p)}
+                onDelete={handleDeleteReview}
+              />
+            </div>
+          )}
         </div>
       </main>
 
@@ -376,6 +727,44 @@ export default function AdminDashboard() {
           onRefresh={() => setOrderRefreshTrigger((p) => p + 1)}
         />
       )}
+
+      {voucherModal.open && (
+        <VoucherModal
+          mode={voucherModal.mode}
+          voucher={voucherModal.voucher}
+          onClose={() => setVoucherModal({ open: false, mode: "create" })}
+          onSuccess={() => setVoucherRefreshTrigger((p) => p + 1)}
+        />
+      )}
+
+      {colorModal.open && (
+        <ColorModal
+          mode={colorModal.mode}
+          open={colorModal.open}
+          colorData={colorModal.colorData}
+          onClose={() => setColorModal({ open: false, mode: "create" })}
+          onRefresh={() => setColorRefreshTrigger((p) => p + 1)}
+        />
+      )}
+
+      {brandModal.open && (
+        <BrandModal
+          mode={brandModal.mode}
+          open={brandModal.open}
+          brandData={brandModal.brandData}
+          onClose={() => setBrandModal({ open: false, mode: "create" })}
+          onRefresh={() => setBrandRefreshTrigger((p) => p + 1)}
+        />
+      )}
+
+      <ConfirmModal
+        open={confirmConfig.open}
+        title={confirmConfig.title}
+        description={confirmConfig.description}
+        variant={confirmConfig.variant}
+        onClose={() => setConfirmConfig((p) => ({ ...p, open: false }))}
+        onConfirm={confirmConfig.onConfirm}
+      />
     </div>
   );
 }

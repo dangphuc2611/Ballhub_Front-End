@@ -28,6 +28,10 @@ export const OrderTable = ({
     onPageChange(p);
   };
 
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+  };
+
   return (
   <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
     <div className="flex justify-between items-center mb-6">
@@ -36,7 +40,11 @@ export const OrderTable = ({
     <table className="w-full text-sm">
       <thead className="text-slate-400 text-[11px] uppercase border-b border-slate-50">
         <tr>
+<<<<<<< HEAD
           <th className="text-left pb-4 w-10">STT</th>
+=======
+          <th className="text-left pb-4 w-12">STT</th>
+>>>>>>> ae72dbc (done)
           <th className="text-left pb-4">Mã đơn</th>
           <th className="text-left pb-4">Khách hàng</th>
           <th className="text-left pb-4">Ngày đặt</th>
@@ -52,6 +60,7 @@ export const OrderTable = ({
               key={o.orderId}
               className="hover:bg-slate-50/50 transition-colors group"
             >
+<<<<<<< HEAD
               <td className="py-4 text-slate-400 font-medium">
                 {page * pageSize + index + 1}
               </td>
@@ -66,6 +75,18 @@ export const OrderTable = ({
               <td className="font-bold text-slate-700">
                 {o.totalAmount?.toLocaleString()}đ
               </td>
+=======
+              <td className="py-4 text-slate-400 font-medium text-xs">
+                {page * pageSize + index + 1}
+              </td>
+              <td className="py-4 font-bold text-emerald-600">{o.orderId}</td>
+              <td className="py-4">
+                <p className="font-bold text-xs text-slate-700">{o.fullName}</p>
+                <p className="text-[10px] text-slate-400">{o.phone}</p>
+              </td>
+              <td className="text-slate-500 text-xs">{o.orderDate}</td>
+              <td className="font-bold text-slate-700">{formatPrice(o.totalAmount)}</td>
+>>>>>>> ae72dbc (done)
               <td>
                 <StatusTag label={o.statusName} color={o.color} />
               </td>
@@ -102,7 +123,11 @@ export const OrderTable = ({
             disabled={page <= 0}
             className="px-3 py-1 rounded-md bg-white border text-sm disabled:opacity-50 hover:bg-slate-50"
           >
+<<<<<<< HEAD
             Trang trước
+=======
+            Trước
+>>>>>>> ae72dbc (done)
           </button>
 
           {[...Array(totalPages || 1)].map((_, i) => (
@@ -120,7 +145,11 @@ export const OrderTable = ({
             disabled={page >= (totalPages || 1) - 1}
             className="px-3 py-1 rounded-md bg-white border text-sm disabled:opacity-50 hover:bg-slate-50"
           >
+<<<<<<< HEAD
             Trang sau
+=======
+            Sau
+>>>>>>> ae72dbc (done)
           </button>
         </div>
       </div>

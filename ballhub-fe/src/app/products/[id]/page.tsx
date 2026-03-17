@@ -151,6 +151,7 @@ export default function ProductDetailPage() {
     }
   };
 
+<<<<<<< HEAD
   /* ================= XỬ LÝ NHẬP SỐ LƯỢNG ================= */
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -171,12 +172,29 @@ export default function ProductDetailPage() {
       toast.warning(`Kho chỉ còn ${matchedVariant.stockQuantity} sản phẩm`);
     } else {
       setQuantity(num);
+=======
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value);
+    const max = matchedVariant?.stockQuantity || 1;
+    
+    if (isNaN(val) || val < 1) {
+      setQuantity(1);
+    } else if (val > max) {
+      setQuantity(max);
+      toast.error(`Số lượng tối đa hiện có là ${max}`);
+    } else {
+      setQuantity(val);
+>>>>>>> ae72dbc (done)
     }
   };
 
   const handleQuantityBlur = () => {
+<<<<<<< HEAD
     // 4. Nếu người dùng click ra ngoài mà bỏ trống ô, hoặc nhập số 0, thì tự động đưa về 1
     if (quantity === "" || Number(quantity) < 1) {
+=======
+    if (isNaN(quantity) || quantity < 1) {
+>>>>>>> ae72dbc (done)
       setQuantity(1);
     }
   };
@@ -461,6 +479,7 @@ export default function ProductDetailPage() {
                   <div className="flex items-center gap-4">
                     <span className="font-semibold text-gray-900">Số lượng</span>
 
+<<<<<<< HEAD
                     <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:border-blue-500 transition-colors">
                       <button
                         onClick={() => setQuantity((q) => Math.max(1, (Number(q) || 1) - 1))}
@@ -479,13 +498,33 @@ export default function ProductDetailPage() {
                         maxLength={3} // Giới hạn gõ tối đa 3 chữ số (999)
                       />
 
+=======
+                    <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:ring-2 ring-blue-100 transition-all">
+                      <button
+                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                        className="w-10 h-10 hover:bg-gray-50 font-bold transition-colors border-r"
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        value={quantity}
+                        onChange={handleQuantityChange}
+                        onBlur={handleQuantityBlur}
+                        className="w-12 h-10 text-center font-bold text-gray-900 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+>>>>>>> ae72dbc (done)
                       <button
                         onClick={() =>
                           setQuantity((q) =>
                             Math.min(matchedVariant.stockQuantity, (Number(q) || 0) + 1)
                           )
                         }
+<<<<<<< HEAD
                         className="w-10 h-10 hover:bg-gray-50 font-bold flex items-center justify-center text-gray-600 transition"
+=======
+                        className="w-10 h-10 hover:bg-gray-50 font-bold transition-colors border-l"
+>>>>>>> ae72dbc (done)
                       >
                         +
                       </button>
