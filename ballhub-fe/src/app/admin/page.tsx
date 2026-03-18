@@ -18,7 +18,7 @@ import {
   Palette,
   Briefcase,
   MessageSquare,
-  Store, // ✅ THÊM ICON STORE CHO POS
+  Store, 
 } from "lucide-react";
 
 import { NavItem } from "@/components/admin/NavItem";
@@ -38,7 +38,7 @@ import { BrandTable } from "@/components/admin/BrandTable";
 import { BrandModal } from "@/components/admin/BrandModal";
 import { ReviewTable } from "@/components/admin/ReviewTable";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
-import { PosView } from "@/components/admin/PosView"; // ✅ IMPORT GIAO DIỆN POS
+import { PosView } from "@/components/admin/PosView";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("Tổng quan");
@@ -441,7 +441,6 @@ export default function AdminDashboard() {
               active={activeTab === "Đơn hàng"}
               onClick={() => setActiveTab("Đơn hàng")}
             />
-            {/* ✅ MENU BÁN TẠI QUẦY (POS) THÊM VÀO ĐÂY */}
             <NavItem
               icon={<Store size={18} />}
               label="Bán tại quầy"
@@ -503,7 +502,6 @@ export default function AdminDashboard() {
         <header className="flex justify-between items-center mb-8">
           <div className="flex flex-col">
             <h2 className="text-2xl font-black text-slate-800 tracking-tight">
-              {/* Thay đổi Tiêu đề động theo Tab */}
               {activeTab === "Bán tại quầy" ? "Máy tính tiền (POS)" : "Dashboard Thống kê"}
             </h2>
             <p className="text-xs text-slate-400 font-medium">
@@ -560,6 +558,8 @@ export default function AdminDashboard() {
                   pageSize={orderPageInfo?.pageSize}
                   onPageChange={(p: number) => setOrderPage(p)}
                   onView={(id: number) => setSelectedOrderId(id)}
+                  // ✅ ĐÃ THÊM ONREFRESH VÀO ĐÂY
+                  onRefresh={() => setOrderRefreshTrigger((p) => p + 1)} 
                 />
               </div>
             </div>
@@ -595,12 +595,13 @@ export default function AdminDashboard() {
                   pageSize={orderPageInfo?.pageSize}
                   onPageChange={(p: number) => setOrderPage(p)}
                   onView={(id: number) => setSelectedOrderId(id)}
+                  // ✅ ĐÃ THÊM ONREFRESH VÀO ĐÂY
+                  onRefresh={() => setOrderRefreshTrigger((p) => p + 1)} 
                 />
               </div>
             </div>
           )}
 
-          {/* ✅ RENDER GIAO DIỆN POS Ở ĐÂY */}
           {activeTab === "Bán tại quầy" && (
             <div className="col-span-12">
               <PosView />

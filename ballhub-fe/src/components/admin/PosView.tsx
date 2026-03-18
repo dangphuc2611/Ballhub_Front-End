@@ -24,6 +24,9 @@ export const PosView = () => {
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // ✅ 1. Thêm State lưu tên khách hàng
+  const [customerName, setCustomerName] = useState("");
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -76,10 +79,6 @@ export const PosView = () => {
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const formatPrice = (price: number) => price.toLocaleString("vi-VN") + "đ";
 
-  // ==========================================
-  // LOGIC IN HÓA ĐƠN & THANH TOÁN HOÀN CHỈNH
-  // ==========================================
-
   const handlePrint = () => {
     if (cart.length === 0) {
       toast.warning("Giỏ hàng trống!");
@@ -95,10 +94,18 @@ export const PosView = () => {
     try {
       const token = localStorage.getItem("refreshToken");
 
-      // ==============================================================
-      // BƯỚC 1: ĐẨY SẢN PHẨM VÀO GIỎ HÀNG CỦA ADMIN
-      // ==============================================================
       for (const item of cart) {
+        const detailRes = await fetch(`http://localhost:8080/api/products/${item.productId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const detailData = await detailRes.json();
+        const variants = detailData.data?.variants || detailData.data?.productVariants;
+        
+        if (!variants || variants.length === 0) {
+           throw new Error(`Sản phẩm ${item.productName} chưa được cấu hình Size/Màu trong Database!`);
+        }
+        const realVariantId = variants[0].variantId || variants[0].id; 
+
         const addCartRes = await fetch(`http://localhost:8080/api/cart/items`, {
           method: 'POST',
           headers: { 
@@ -106,29 +113,26 @@ export const PosView = () => {
             Authorization: `Bearer ${token}` 
           },
           body: JSON.stringify({ 
-            // ✅ ĐÃ SỬA: Đổi từ productId thành variantId cho đúng DTO của Backend
-            variantId: item.productId, 
+            variantId: realVariantId, 
             quantity: item.quantity 
           })
         });
 
         if (!addCartRes.ok) {
-           const errText = await addCartRes.text();
-           console.error("Lỗi thêm giỏ hàng:", errText);
            throw new Error("Không thể thêm sản phẩm vào giỏ hàng hệ thống!");
         }
       }
 
-      // ==============================================================
-      // BƯỚC 2: GỌI API TẠO ĐƠN HÀNG (Chuẩn URL /api/orders)
-      // ==============================================================
+      // ✅ 2. Nhét tên khách hàng vào Ghi chú (Note)
+      const finalNote = customerName.trim() !== "" ? `POS - Khách: ${customerName}` : "Khách mua trực tiếp tại quầy";
+
       const orderPayload = {
-        addressId: null, // Bán tại quầy không cần địa chỉ giao hàng
-        paymentMethodId: 1, // Tiền mặt
-        note: "Khách mua trực tiếp tại quầy",
+        addressId: null,
+        paymentMethodId: 1,
+        note: finalNote, // Gửi ghi chú lên Server
         promoCode: null,
         shippingFee: 0,
-        isPos: true // Cờ báo cho Backend đây là đơn POS
+        isPos: true
       };
 
       const orderRes = await fetch(`http://localhost:8080/api/orders`, {
@@ -142,18 +146,15 @@ export const PosView = () => {
 
       if (!orderRes.ok) {
         const errorData = await orderRes.json();
-        console.error("Lỗi tạo đơn:", errorData);
         throw new Error(errorData.message || "Lỗi khi chốt hóa đơn!");
       }
 
-      // ==============================================================
-      // BƯỚC 3: THÀNH CÔNG -> IN HÓA ĐƠN & RESET
-      // ==============================================================
-      window.print(); // Bật cửa sổ in hóa đơn máy in nhiệt
+      window.print();
       toast.success("Thanh toán thành công!", { icon: <CheckCircle2 className="text-emerald-500" /> });
-      setCart([]); // Xóa trắng giỏ hàng
       
-      // Load lại dữ liệu thống kê bên Admin (nếu có dùng event)
+      // ✅ 3. Xóa giỏ hàng và Reset luôn ô nhập tên
+      setCart([]);
+      setCustomerName("");
       window.dispatchEvent(new Event("cartUpdated"));
       
     } catch (error: any) {
@@ -188,7 +189,8 @@ export const PosView = () => {
           <div className="border-b border-dashed border-black my-2"></div>
           <p className="font-bold">HÓA ĐƠN BÁN LẺ</p>
           <p className="text-xs">Ngày: {new Date().toLocaleString('vi-VN')}</p>
-          <p className="text-xs">Khách hàng: Khách lẻ</p>
+          {/* ✅ Hiển thị tên khách trên hóa đơn in ra */}
+          <p className="text-xs">Khách hàng: {customerName.trim() !== "" ? customerName : "Khách lẻ"}</p>
           <div className="border-b border-dashed border-black my-2"></div>
         </div>
 
@@ -272,9 +274,16 @@ export const PosView = () => {
         {/* CỘT PHẢI */}
         <div className="w-[420px] bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col">
           <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white z-10">
-            <div className="flex items-center gap-2 text-emerald-600 font-bold bg-emerald-50 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-emerald-100 transition">
-              <User size={16} />
-              <span className="text-sm">Khách lẻ</span>
+            <div className="flex items-center gap-2">
+              <User size={16} className="text-emerald-600" />
+              {/* ✅ 4. Đổi chữ Khách lẻ thành Ô nhập văn bản */}
+              <input 
+                type="text" 
+                placeholder="Tên khách (Trống = Khách lẻ)" 
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                className="text-sm font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg outline-none placeholder:text-emerald-300 focus:ring-1 ring-emerald-400 transition-all w-52"
+              />
             </div>
             <div className="text-sm font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-lg">
               {totalItems} món
