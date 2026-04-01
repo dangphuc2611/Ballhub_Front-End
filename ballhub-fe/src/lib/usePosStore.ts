@@ -145,10 +145,25 @@ export const usePosStore = create<PosState>()(
         const orderIndex = orders.findIndex(o => o.id === activeOrderId);
         if (orderIndex === -1) return;
 
+        const order = orders[orderIndex];
         const newOrders = [...orders];
-        newOrders[orderIndex].items = newOrders[orderIndex].items.map(i => 
-          i.variantId === variantId ? { ...i, quantity: Math.max(1, quantity) } : i
-        );
+        
+        newOrders[orderIndex].items = order.items.map(item => {
+          if (item.variantId === variantId) {
+            // Chặn dưới: Không được nhỏ hơn 1
+            let newQty = Math.max(1, quantity);
+            
+            // Chặn trên: Không được vượt quá tồn kho
+            if (newQty > item.stockQuantity) {
+              toast.warning(`Chỉ còn ${item.stockQuantity} sản phẩm trong kho!`);
+              newQty = item.stockQuantity;
+            }
+            
+            return { ...item, quantity: newQty };
+          }
+          return item;
+        });
+
         set({ orders: newOrders });
         get().calculateBestVoucher();
       },
