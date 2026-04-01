@@ -30,9 +30,14 @@ export interface PosOrder {
   items: PosCartItem[];
   customerName: string;
   customerPhone: string;
-  shippingFee: number;
   appliedVoucher: PosVoucher | null;
   discountAmount: number;
+  
+  customerId: number | null; 
+  isDelivery: boolean;       
+  addressId: number | null;  
+  deliveryAddress: string;   
+  shippingFee: number;       
 }
 
 interface PosState {
@@ -54,7 +59,22 @@ interface PosState {
 export const usePosStore = create<PosState>()(
   persist(
     (set, get) => ({
-      orders: [{ id: 'HD1', items: [], customerName: '', customerPhone: '', shippingFee: 0, appliedVoucher: null, discountAmount: 0 }],
+      orders: [
+        { 
+          id: 'HD1', 
+          items: [], 
+          customerName: '', 
+          customerPhone: '', 
+          shippingFee: 0, 
+          appliedVoucher: null, 
+          discountAmount: 0,
+          // ✅ Bổ sung giá trị mặc định lúc khởi tạo Store
+          customerId: null,
+          isDelivery: false,
+          addressId: null,
+          deliveryAddress: ''
+        }
+      ],
       activeOrderId: 'HD1',
       orderCounter: 1,
       availableVouchers: [],
@@ -73,7 +93,23 @@ export const usePosStore = create<PosState>()(
         const nextCounter = orderCounter + 1;
         const newOrderId = `HD${nextCounter}`;
         set({
-          orders: [...orders, { id: newOrderId, items: [], customerName: '', customerPhone: '', shippingFee: 0, appliedVoucher: null, discountAmount: 0 }],
+          orders: [
+            ...orders, 
+            { 
+              id: newOrderId, 
+              items: [], 
+              customerName: '', 
+              customerPhone: '', 
+              shippingFee: 0, 
+              appliedVoucher: null, 
+              discountAmount: 0,
+              // ✅ Bổ sung giá trị mặc định lúc bấm "Tạo đơn mới"
+              customerId: null,
+              isDelivery: false,
+              addressId: null,
+              deliveryAddress: ''
+            }
+          ],
           activeOrderId: newOrderId,
           orderCounter: nextCounter,
         });
@@ -150,15 +186,11 @@ export const usePosStore = create<PosState>()(
         
         newOrders[orderIndex].items = order.items.map(item => {
           if (item.variantId === variantId) {
-            // Chặn dưới: Không được nhỏ hơn 1
             let newQty = Math.max(1, quantity);
-            
-            // Chặn trên: Không được vượt quá tồn kho
             if (newQty > item.stockQuantity) {
               toast.warning(`Chỉ còn ${item.stockQuantity} sản phẩm trong kho!`);
               newQty = item.stockQuantity;
             }
-            
             return { ...item, quantity: newQty };
           }
           return item;

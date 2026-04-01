@@ -47,8 +47,6 @@ export const OrderTable = ({
     }).format(price);
   };
 
-  console.log("👉 DỮ LIỆU ĐƠN HÀNG TRONG BẢNG:", orders);
-
   return (
     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col h-full overflow-hidden">
       <div className="flex justify-between items-center mb-6 z-10">
@@ -83,39 +81,12 @@ export const OrderTable = ({
           <tbody className="divide-y divide-slate-50">
             {orders && orders.length > 0 ? (
               orders.map((o, index) => {
-                // KIỂM TRA ĐƠN TẠI QUẦY HOẶC ONLINE
+                // KIỂM TRA ĐƠN TẠI QUẦY HOẶC ONLINE (Dựa vào việc có địa chỉ ship hay không)
                 const isPosOrder = !o.deliveryAddress || o.deliveryAddress === "";
                 
-                // BỘ DÒ QUÉT TÊN VÀ SỐ ĐIỆN THOẠI
-                let displayCustomerName = "Khách hàng";
-                let displayPhone = "---";
-
-                if (isPosOrder) {
-                   // 1. Nếu là đơn tại quầy (POS)
-                   if (o.note && o.note.includes("POS - Khách:")) {
-                     displayCustomerName = o.note.replace("POS - Khách: ", "").trim();
-                   } else {
-                     displayCustomerName = "Khách lẻ";
-                   }
-                   displayPhone = "Tại quầy";
-                } else {
-                   // 2. Nếu là đơn Online (Quét mọi ngóc ngách của Backend trả về)
-                   displayCustomerName = 
-                     o.fullName || 
-                     o.customerName || 
-                     o.receiverName || 
-                     o.user?.fullName || 
-                     o.user?.username || 
-                     o.deliveryAddress?.fullName || 
-                     o.deliveryAddress?.receiverName || 
-                     "Khách Online";
-
-                   displayPhone = 
-                     o.phone || 
-                     o.user?.phone || 
-                     o.deliveryAddress?.phone || 
-                     "---";
-                }
+                // ✅ LOGIC MỚI: Cực kỳ tối giản, lấy thẳng biến userFullName từ Backend
+                const displayCustomerName = o.userFullName || o.fullName || o.customerName || "Khách lẻ";
+                const displayPhone = o.phone || o.user?.phone || (isPosOrder ? "Tại quầy" : "---");
 
                 return (
                 <tr
@@ -125,7 +96,7 @@ export const OrderTable = ({
                   <td className="py-4 text-slate-400 font-medium text-xs">
                     {page * pageSize + index + 1}
                   </td>
-                  <td className="py-4 font-bold text-emerald-600">{o.orderId}</td>
+                  <td className="py-4 font-bold text-emerald-600">HD{o.orderId}</td>
                   
                   <td>
                     {isPosOrder ? (
@@ -144,7 +115,7 @@ export const OrderTable = ({
                     </p>
                   </td>
                   
-                  <td className="text-slate-500 text-xs">{o.orderDate}</td>
+                  <td className="text-slate-500 text-xs">{o.orderDate ? new Date(o.orderDate).toLocaleString('vi-VN') : '---'}</td>
                   <td className="font-bold text-slate-700">
                     {formatPrice(o.totalAmount)}
                   </td>

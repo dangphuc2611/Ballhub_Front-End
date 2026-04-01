@@ -2,13 +2,17 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Search, ShoppingCart, CreditCard, Printer, User, Trash2, Minus, Plus, CheckCircle2, X, Tag } from "lucide-react";
+import { Search, ShoppingCart, CreditCard, Printer, User, Trash2, Minus, Plus, CheckCircle2, X, Tag, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { usePosStore, PosVoucher } from "@/lib/usePosStore"; 
 import { PosVariantModal } from "@/components/admin/PosVariantModal";
+import { PosCustomerModal } from "@/components/admin/PosCustomerModal";
+import { PosAddressModal } from "@/components/admin/PosAddressModal";
 
 export const PosView = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [promoInput, setPromoInput] = useState("");
 
@@ -20,56 +24,116 @@ export const PosView = () => {
 
   const activeOrder = orders.find(o => o.id === activeOrderId);
 
-  // 1. Fetch Voucher
+  // ==========================================
+  // STATE & LOGIC CHO CHỌN ĐỊA CHỈ (PROVINCE API)
+  // ==========================================
+  const [provinces, setProvinces] = useState<any[]>([]);
+  const [districts, setDistricts] = useState<any[]>([]);
+  const [wards, setWards] = useState<any[]>([]);
+
+  const [selectedProv, setSelectedProv] = useState("");
+  const [selectedDist, setSelectedDist] = useState("");
+  const [selectedWard, setSelectedWard] = useState("");
+  const [street, setStreet] = useState("");
+  const [deliveryNote, setDeliveryNote] = useState("");
+  
+  // Trạng thái kiểm soát việc hiện form gõ hay hiện text tĩnh
+  const [isTypingNewAddress, setIsTypingNewAddress] = useState(true);
+
+  // 1. Tải danh sách 63 Tỉnh Thành từ Open API VN
+  useEffect(() => {
+    fetch("https://provinces.open-api.vn/api/?depth=3")
+      .then(res => res.json())
+      .then(data => setProvinces(data))
+      .catch(err => console.error("Lỗi API Tỉnh thành:", err));
+  }, []);
+
+  // 2. Tự động ghép chuỗi địa chỉ khi thu ngân chọn Dropdown
+  useEffect(() => {
+    if (!activeOrder?.isDelivery || !isTypingNewAddress) return;
+    
+    const pName = provinces.find(p => p.code == selectedProv)?.name || "";
+    const dName = districts.find(d => d.code == selectedDist)?.name || "";
+    const wName = wards.find(w => w.code == selectedWard)?.name || "";
+
+    const fullAddr = [street, wName, dName, pName].filter(Boolean).join(", ");
+    updateActiveOrderDetails({ deliveryAddress: fullAddr });
+  }, [selectedProv, selectedDist, selectedWard, street, isTypingNewAddress]);
+
+  // 3. HÀM GIẢ LẬP TÍNH PHÍ SHIP (CHỜ TÍCH HỢP GHN)
+  const simulateShippingCalculation = (provCode: string) => {
+    if (!provCode) {
+      updateActiveOrderDetails({ shippingFee: 0 });
+      return;
+    }
+
+    // ✅ ĐÃ SỬA: Tách ra biến riêng và thêm "|| 0" để TypeScript không báo lỗi undefined
+    const currentOrder = usePosStore.getState().orders.find(o => o.id === activeOrderId);
+    const currentSubTotal = currentOrder?.items.reduce((sum, item) => sum + ((item.discountPrice || item.price) * item.quantity), 0) || 0;
+
+    // Dù chọn tỉnh nào, cứ trên 1tr là 0 đồng
+    if (currentSubTotal >= 1000000) {
+       updateActiveOrderDetails({ shippingFee: 0 });
+       return;
+    }
+
+    // Demo: Nội thành HN (mã 1) hoặc HCM (mã 79) giá 20k, tỉnh khác 35k
+    const fee = (provCode === "1" || provCode === "79") ? 20000 : 35000;
+    updateActiveOrderDetails({ shippingFee: fee });
+  };
+
+  // ==========================================
+  // VOUCHER & TÍNH TOÁN TIỀN
+  // ==========================================
   useEffect(() => {
     const fetchVouchers = async () => {
       try {
         const token = localStorage.getItem("refreshToken");
         const res = await fetch(`http://localhost:8080/api/promotions/active`, {
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` 
-          },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         });
-        
         const result = await res.json();
-        if (result.success && result.data) {
-           setAvailableVouchers(result.data.content || result.data);
-        }
-      } catch (error) {
-        console.error("Lỗi mạng khi tải voucher:", error);
-      }
+        if (result.success && result.data) setAvailableVouchers(result.data.content || result.data);
+      } catch (error) { console.error("Lỗi voucher:", error); }
     };
     fetchVouchers();
   }, [setAvailableVouchers]);
 
-  // 2. Tính toán
+  // TÍNH TOÁN TIỀN TẠM TÍNH
   const subTotal = activeOrder?.items.reduce((sum, item) => sum + ((item.discountPrice || item.price) * item.quantity), 0) || 0;
+  
+  // KIỂM TRA ĐIỀU KIỆN FREESHIP (> 1 TRIỆU)
+  const isFreeshipEligible = subTotal >= 1000000;
+
+  // LOGIC TỰ ĐỘNG FREESHIP KHI ĐƠN > 1 TRIỆU
+  useEffect(() => {
+    if (!activeOrder || !activeOrder.isDelivery) return;
+
+    if (isFreeshipEligible && activeOrder.shippingFee !== 0) {
+       // Nếu đủ đk mà phí ship đang > 0 thì ép về 0
+       updateActiveOrderDetails({ shippingFee: 0 });
+       toast.success("Đơn hàng trên 1 triệu đã tự động được MIỄN PHÍ VẬN CHUYỂN!", { icon: "🎉" });
+    } else if (!isFreeshipEligible && activeOrder.shippingFee === 0 && selectedProv) {
+       // Nếu xóa bớt đồ làm đơn rớt xuống dưới 1 Triệu -> Tính lại tiền ship
+       simulateShippingCalculation(selectedProv);
+    }
+  }, [subTotal, activeOrder?.isDelivery, isFreeshipEligible]);
+
   const discountAmount = activeOrder?.discountAmount || 0;
-  const finalTotal = Math.max(0, subTotal - discountAmount);
+  const shippingFee = activeOrder?.isDelivery ? (activeOrder?.shippingFee || 0) : 0;
+  const finalTotal = Math.max(0, subTotal - discountAmount) + shippingFee;
   const totalItems = activeOrder?.items.reduce((sum, item) => sum + item.quantity, 0) || 0;
   const formatPrice = (price: number) => price.toLocaleString("vi-VN") + "đ";
 
-  // 3A. Hàm áp dụng mã qua ô nhập
   const handleApplyVoucherInput = () => {
-    if (!promoInput.trim()) {
-      toast.warning("Vui lòng nhập mã khuyến mãi!");
-      return;
-    }
+    if (!promoInput.trim()) { toast.warning("Vui lòng nhập mã khuyến mãi!"); return; }
     const voucher = availableVouchers.find(v => v.promoCode.toUpperCase() === promoInput.toUpperCase());
-    if (!voucher) {
-      toast.error("Mã giảm giá không hợp lệ hoặc đã hết hạn!");
-      return;
-    }
+    if (!voucher) { toast.error("Mã giảm giá không hợp lệ hoặc đã hết hạn!"); return; }
     handleSelectVoucher(voucher);
   };
 
-  // 3B. Hàm áp dụng khi CLICK trực tiếp vào danh sách voucher
   const handleSelectVoucher = (voucher: PosVoucher) => {
-    if (subTotal < voucher.minOrderAmount) {
-      toast.error(`Đơn hàng chưa đủ ${formatPrice(voucher.minOrderAmount)} để dùng mã này!`);
-      return;
-    }
+    if (subTotal < voucher.minOrderAmount) { toast.error(`Đơn hàng chưa đủ ${formatPrice(voucher.minOrderAmount)} để dùng mã này!`); return; }
     updateActiveOrderDetails({ appliedVoucher: voucher });
     usePosStore.getState().calculateBestVoucher(); 
     toast.success(`Đã áp dụng mã ${voucher.promoCode} thành công!`);
@@ -77,10 +141,7 @@ export const PosView = () => {
   };
 
   const handlePrint = () => {
-    if (!activeOrder || activeOrder.items.length === 0) {
-      toast.warning("Hóa đơn trống!");
-      return;
-    }
+    if (!activeOrder || activeOrder.items.length === 0) { toast.warning("Hóa đơn trống!"); return; }
     window.print();
   };
 
@@ -90,29 +151,43 @@ export const PosView = () => {
 
     try {
       const token = localStorage.getItem("refreshToken");
+
+      // 1. GỌI API THÊM VÀO GIỎ HÀNG
       for (const item of activeOrder.items) {
-        await fetch(`http://localhost:8080/api/cart/items`, {
+        const res = await fetch(`http://localhost:8080/api/cart/items`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ variantId: item.variantId, quantity: item.quantity })
         });
+        if (!res.ok) {
+           const errData = await res.json();
+           throw new Error(errData.message || `Lỗi thêm giỏ hàng (Mã ${res.status})`);
+        }
       }
 
-      // ✅ ĐÃ CẬP NHẬT: Format Note để Backend dễ cắt tên và SĐT
+      // 2. CHUẨN BỊ GHI CHÚ BẰNG ĐỊA CHỈ GÕ TAY
       const customerName = activeOrder.customerName.trim() !== "" ? activeOrder.customerName : "Khách lẻ";
       const customerPhone = activeOrder.customerPhone.trim() !== "" ? activeOrder.customerPhone : "Trống";
-      const finalNote = `POS_CUSTOMER|${customerName}|${customerPhone}`;
+      
+      // Nhồi địa chỉ giao hàng vào Note để Backend lưu lại
+      let finalNote = `POS_CUSTOMER|${customerName}|${customerPhone}`;
+      if (activeOrder.isDelivery && activeOrder.deliveryAddress) {
+          finalNote += `|Giao đến: ${activeOrder.deliveryAddress}`;
+          if (deliveryNote) finalNote += ` - Ghi chú: ${deliveryNote}`;
+      }
 
+      // 3. GỌI API TẠO ĐƠN HÀNG (ĐÃ BƠM ID KHÁCH HÀNG & ĐỊA CHỈ GÕ TAY)
       const orderPayload = {
-        addressId: null,
+        addressId: activeOrder.addressId || null,
+        customerId: activeOrder.customerId || null, // ✅ Khách có tài khoản thì điền vào đây
         paymentMethodId: 1,
         note: finalNote,
         promoCode: activeOrder.appliedVoucher?.promoCode || null,
-        shippingFee: 0,
-        isPos: true,
-        // Dành cho trường hợp Backend của bạn có hỗ trợ nhận thẳng field này
+        shippingFee: shippingFee,
+        isPos: true, 
         fullName: customerName,
-        phone: customerPhone === "Trống" ? "" : customerPhone
+        phone: customerPhone === "Trống" ? "" : customerPhone,
+        deliveryAddress: activeOrder.deliveryAddress // ✅ Gửi địa chỉ gõ tay lên
       };
 
       const orderRes = await fetch(`http://localhost:8080/api/orders`, {
@@ -121,7 +196,10 @@ export const PosView = () => {
         body: JSON.stringify(orderPayload)
       });
 
-      if (!orderRes.ok) throw new Error("Lỗi khi chốt hóa đơn!");
+      if (!orderRes.ok) {
+         const errData = await orderRes.json();
+         throw new Error(errData.message || `Lỗi tạo đơn hàng (Mã ${orderRes.status})`);
+      }
 
       window.print();
       toast.success("Thanh toán thành công!", { icon: <CheckCircle2 className="text-emerald-500" /> });
@@ -129,7 +207,7 @@ export const PosView = () => {
       window.dispatchEvent(new Event("cartUpdated"));
       
     } catch (error: any) {
-      toast.error(error.message || "Lỗi khi thanh toán!");
+      toast.error(error.message); 
     } finally {
       setIsProcessing(false);
     }
@@ -168,14 +246,15 @@ export const PosView = () => {
           <div className="text-right font-bold pt-2 border-t border-black">
             <p>Tổng: {formatPrice(subTotal)}</p>
             {discountAmount > 0 && <p>Giảm giá: -{formatPrice(discountAmount)}</p>}
-            <p className="text-lg">CẦN TRẢ: {formatPrice(finalTotal)}</p>
+            {shippingFee > 0 && <p>Phí ship: {formatPrice(shippingFee)}</p>}
+            <p className="text-lg mt-1">CẦN TRẢ: {formatPrice(finalTotal)}</p>
           </div>
         </div>
       )}
 
       <div className="flex flex-col h-[calc(100vh-80px)] print:hidden gap-4">
         
-        {/* THANH TAB - GIỚI HẠN 5 ĐƠN */}
+        {/* THANH TAB ĐƠN HÀNG */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar">
           {orders.map((order) => (
             <div key={order.id} onClick={() => setActiveOrder(order.id)}
@@ -205,6 +284,7 @@ export const PosView = () => {
           </div>
         ) : (
           <div className="flex gap-4 flex-1 min-h-0">
+            
             {/* CỘT TRÁI - CHI TIẾT SẢN PHẨM */}
             <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
               <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white">
@@ -244,11 +324,7 @@ export const PosView = () => {
                         </div>
                         <div className="col-span-2 flex justify-center">
                           <div className="flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200">
-                            <button onClick={() => updateItemQuantity(item.variantId, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-all text-slate-600">
-                              <Minus size={14}/>
-                            </button>
-                            
-                            {/* Input nhập tay số lượng */}
+                            <button onClick={() => updateItemQuantity(item.variantId, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-all text-slate-600"><Minus size={14}/></button>
                             <input 
                               type="number" 
                               className="w-12 text-center font-black bg-transparent outline-none text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
@@ -258,10 +334,7 @@ export const PosView = () => {
                                 updateItemQuantity(item.variantId, isNaN(val) ? 1 : val);
                               }}
                             />
-                            
-                            <button onClick={() => updateItemQuantity(item.variantId, item.quantity + 1)} className="w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-all text-slate-600">
-                              <Plus size={14}/>
-                            </button>
+                            <button onClick={() => updateItemQuantity(item.variantId, item.quantity + 1)} className="w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-all text-slate-600"><Plus size={14}/></button>
                           </div>
                         </div>
                         <div className="col-span-2 text-right">
@@ -280,49 +353,158 @@ export const PosView = () => {
               </div>
             </div>
 
-            {/* CỘT PHẢI - THANH TOÁN & VOUCHER */}
-            <div className="w-[380px] shrink-0 flex flex-col gap-4">
+            {/* CỘT PHẢI - KHÁCH HÀNG & THANH TOÁN */}
+            <div className="w-[420px] shrink-0 flex flex-col gap-4 overflow-y-auto custom-scrollbar pb-2 pr-1">
+              
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-                <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><User size={18} className="text-emerald-500"/> Khách hàng</h3>
-                <input type="text" placeholder="Tên khách hàng" value={activeOrder.customerName} onChange={(e) => updateActiveOrderDetails({ customerName: e.target.value })} className="w-full text-sm font-medium text-slate-700 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-emerald-500 mb-3" />
-                <input type="text" placeholder="Số điện thoại" value={activeOrder.customerPhone} onChange={(e) => updateActiveOrderDetails({ customerPhone: e.target.value })} className="w-full text-sm font-medium text-slate-700 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-emerald-500" />
+                <div className="flex justify-between items-center mb-4">
+                   <h3 className="font-bold text-slate-700 flex items-center gap-2"><User size={18} className="text-emerald-500"/> Khách hàng</h3>
+                   <button 
+                      onClick={() => setIsCustomerModalOpen(true)} 
+                      className="bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 border border-emerald-100"
+                   >
+                      <Search size={12}/> CHỌN KHÁCH
+                   </button>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                   <div>
+                      <label className="text-[10px] text-slate-500 font-bold mb-1 block">Họ và tên</label>
+                      <input type="text" placeholder="Khách lẻ" value={activeOrder.customerName} onChange={(e) => updateActiveOrderDetails({ customerName: e.target.value })} className="w-full text-xs font-medium text-slate-700 bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-emerald-500" />
+                   </div>
+                   <div>
+                      <label className="text-[10px] text-slate-500 font-bold mb-1 block">Số điện thoại</label>
+                      <input type="text" placeholder="Trống" value={activeOrder.customerPhone} onChange={(e) => updateActiveOrderDetails({ customerPhone: e.target.value })} className="w-full text-xs font-medium text-slate-700 bg-slate-50 px-3 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-emerald-500" />
+                   </div>
+                </div>
+
+                {/* TOGGLE GIAO HÀNG */}
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                   <span className="text-sm font-bold text-slate-600">Giao hàng tận nơi</span>
+                   <label className="relative inline-flex items-center cursor-pointer">
+                     <input type="checkbox" className="sr-only peer" checked={activeOrder.isDelivery} onChange={(e) => updateActiveOrderDetails({ isDelivery: e.target.checked, shippingFee: 0, addressId: null, deliveryAddress: '' })} />
+                     <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                   </label>
+                </div>
+
+                {/* FORM NHẬP ĐỊA CHỈ */}
+                {activeOrder.isDelivery && (
+                   <div className="mt-4 animate-in fade-in slide-in-from-top-2 bg-slate-50/50 p-4 rounded-xl border border-slate-200 shadow-sm">
+                      <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-200/60">
+                         <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Chi tiết nhận hàng</span>
+                         <button 
+                            onClick={() => {
+                               if (!activeOrder.customerId) { toast.warning("Vui lòng CHỌN KHÁCH HÀNG trước!"); return; }
+                               setIsAddressModalOpen(true);
+                               setIsTypingNewAddress(false);
+                            }}
+                            className="text-[10px] bg-orange-50 text-orange-600 border border-orange-200 px-2.5 py-1.5 rounded font-bold hover:bg-orange-500 hover:text-white transition-all flex items-center gap-1 shadow-sm"
+                         >
+                            <MapPin size={12}/> SỔ ĐỊA CHỈ
+                         </button>
+                      </div>
+
+                      {!isTypingNewAddress && activeOrder.deliveryAddress ? (
+                          <div className="bg-white p-3 rounded-lg border border-emerald-200 shadow-sm relative mb-3">
+                              <p className="text-xs text-slate-700 leading-relaxed font-medium">{activeOrder.deliveryAddress}</p>
+                              <button onClick={() => setIsTypingNewAddress(true)} className="text-[10px] text-blue-500 mt-2 underline font-medium">Nhập địa chỉ mới</button>
+                          </div>
+                      ) : (
+                          <div className="space-y-3 mb-4">
+                              <div className="grid grid-cols-1 gap-2">
+                                 <select className="w-full text-xs font-medium text-slate-700 bg-white px-2 py-2.5 rounded-lg border border-slate-200 outline-none focus:border-emerald-500"
+                                    value={selectedProv}
+                                    onChange={(e) => {
+                                       const code = e.target.value;
+                                       setSelectedProv(code);
+                                       const p = provinces.find(x => x.code == code);
+                                       setDistricts(p ? p.districts : []);
+                                       setSelectedDist(""); setWards([]); setSelectedWard("");
+                                       simulateShippingCalculation(code);
+                                    }}
+                                 >
+                                   <option value="">Tỉnh/thành phố...</option>
+                                   {provinces.map(p => <option key={p.code} value={p.code}>{p.name}</option>)}
+                                 </select>
+
+                                 <div className="grid grid-cols-2 gap-2">
+                                    <select className="w-full text-xs font-medium text-slate-700 bg-white px-2 py-2.5 rounded-lg border border-slate-200 outline-none focus:border-emerald-500"
+                                       value={selectedDist}
+                                       disabled={!selectedProv}
+                                       onChange={(e) => {
+                                          const code = e.target.value;
+                                          setSelectedDist(code);
+                                          const d = districts.find(x => x.code == code);
+                                          setWards(d ? d.wards : []);
+                                          setSelectedWard("");
+                                       }}
+                                    >
+                                      <option value="">Quận/huyện...</option>
+                                      {districts.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
+                                    </select>
+                                    
+                                    <select className="w-full text-xs font-medium text-slate-700 bg-white px-2 py-2.5 rounded-lg border border-slate-200 outline-none focus:border-emerald-500"
+                                       value={selectedWard}
+                                       disabled={!selectedDist}
+                                       onChange={(e) => setSelectedWard(e.target.value)}
+                                    >
+                                      <option value="">Xã/phường...</option>
+                                      {wards.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
+                                    </select>
+                                 </div>
+                              </div>
+
+                              <input type="text" placeholder="Địa chỉ cụ thể (Số nhà, tên đường...)" className="w-full text-xs font-medium text-slate-700 bg-white px-3 py-2.5 rounded-lg border border-slate-200 outline-none focus:border-emerald-500" value={street} onChange={(e) => setStreet(e.target.value)} />
+                              <input type="text" placeholder="Ghi chú giao hàng (Không bắt buộc)" className="w-full text-xs font-medium text-slate-700 bg-white px-3 py-2.5 rounded-lg border border-slate-200 outline-none focus:border-emerald-500" value={deliveryNote} onChange={(e) => setDeliveryNote(e.target.value)} />
+                          </div>
+                      )}
+
+                      {/* ✅ KHUNG CHỈNH SỬA PHÍ SHIP ĐÃ FIX (CÓ HIỆU ỨNG FREESHIP) */}
+                      <div className="flex items-center justify-between pt-3 border-t border-slate-200/60">
+                         <div className="flex flex-col">
+                            <span className="text-xs font-bold text-slate-500">Phí giao hàng:</span>
+                            {isFreeshipEligible && (
+                               <span className="text-[10px] text-emerald-600 font-bold bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded mt-1 w-fit animate-in zoom-in">
+                                  Đơn {'>'} 1Tr (Freeship)
+                               </span>
+                            )}
+                         </div>
+                         <div className="flex items-center gap-1.5">
+                            <input 
+                               type="number" 
+                               disabled={isFreeshipEligible} 
+                               className={`w-24 bg-white border px-3 py-1.5 rounded-lg text-sm font-black outline-none text-right shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all
+                                  ${isFreeshipEligible ? 'border-emerald-500 text-emerald-500 bg-emerald-50/50 cursor-not-allowed' : 'border-slate-200 focus:border-emerald-500 text-emerald-600'}`} 
+                               value={isFreeshipEligible ? 0 : shippingFee} 
+                               onChange={(e) => updateActiveOrderDetails({ shippingFee: parseInt(e.target.value) || 0 })} 
+                            />
+                            <span className="text-xs font-bold text-slate-400">VNĐ</span>
+                         </div>
+                      </div>
+                   </div>
+                )}
               </div>
 
+              {/* KHU VỰC TÍNH TIỀN */}
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex-1 flex flex-col">
                 <h3 className="font-bold text-slate-700 mb-4 border-b border-slate-100 pb-3 uppercase text-xs tracking-wider">Thanh toán</h3>
                 
                 <div className="space-y-4 text-sm flex-1">
                   
-                  {/* ====== PHẦN Ô NHẬP VÀ DANH SÁCH VOUCHER ====== */}
+                  {/* ====== VOUCHER ====== */}
                   <div className="bg-slate-50 rounded-xl border border-slate-100 p-3 mb-2 flex flex-col">
                     <p className="text-xs font-bold text-slate-600 mb-2 flex items-center gap-1"><Tag size={14}/> Mã giảm giá</p>
                     <div className="flex gap-2 mb-3">
-                      <input 
-                        type="text" 
-                        placeholder="Nhập mã..." 
-                        className="flex-1 border border-slate-200 px-3 py-2 rounded-lg text-sm font-bold outline-none focus:border-emerald-500 transition-all uppercase"
-                        value={promoInput}
-                        onChange={(e) => setPromoInput(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleApplyVoucherInput()}
-                      />
+                      <input type="text" placeholder="Nhập mã..." className="flex-1 border border-slate-200 px-3 py-2 rounded-lg text-sm font-bold outline-none focus:border-emerald-500 transition-all uppercase" value={promoInput} onChange={(e) => setPromoInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleApplyVoucherInput()}/>
                       <button onClick={handleApplyVoucherInput} className="bg-slate-800 text-white px-4 rounded-lg font-bold hover:bg-slate-700 transition-all">Áp dụng</button>
                     </div>
 
-                    {/* Danh sách mã có sẵn */}
                     {availableVouchers.length > 0 && (
-                      <div className="flex flex-col gap-2 max-h-[140px] overflow-y-auto custom-scrollbar pt-2 border-t border-slate-200">
+                      <div className="flex flex-col gap-2 max-h-[120px] overflow-y-auto custom-scrollbar pt-2 border-t border-slate-200">
                         {availableVouchers.map(v => {
                           const isEligible = subTotal >= v.minOrderAmount;
                           return (
-                            <div 
-                              key={v.promotionId}
-                              onClick={() => isEligible && handleSelectVoucher(v)}
-                              className={`p-2 border rounded-lg flex justify-between items-center transition-all ${
-                                isEligible 
-                                  ? 'bg-white border-emerald-200 hover:border-emerald-500 cursor-pointer shadow-sm' 
-                                  : 'bg-slate-100 border-slate-200 opacity-60 cursor-not-allowed'
-                              }`}
-                            >
+                            <div key={v.promotionId} onClick={() => isEligible && handleSelectVoucher(v)} className={`p-2 border rounded-lg flex justify-between items-center transition-all ${isEligible ? 'bg-white border-emerald-200 hover:border-emerald-500 cursor-pointer shadow-sm' : 'bg-slate-100 border-slate-200 opacity-60 cursor-not-allowed'}`}>
                               <div>
                                 <p className={`text-xs font-bold ${isEligible ? 'text-emerald-700' : 'text-slate-500'}`}>{v.promoCode}</p>
                                 <p className="text-[10px] text-slate-500">Đơn từ {formatPrice(v.minOrderAmount)}</p>
@@ -337,7 +519,6 @@ export const PosView = () => {
                       </div>
                     )}
 
-                    {/* Hiển thị mã đang được áp dụng */}
                     {activeOrder.appliedVoucher && (
                       <div className="mt-3 flex items-center justify-between bg-emerald-100 border border-emerald-200 px-3 py-2 rounded-lg">
                         <div className="flex items-center gap-2">
@@ -347,20 +528,12 @@ export const PosView = () => {
                             <p className="text-[10px] text-emerald-600">Đã giảm {formatPrice(discountAmount)}</p>
                           </div>
                         </div>
-                        <button 
-                          onClick={() => {
-                            updateActiveOrderDetails({ appliedVoucher: null, discountAmount: 0 });
-                            toast.success("Đã gỡ mã giảm giá");
-                          }} 
-                          className="text-slate-400 hover:text-red-500 p-1"
-                        >
-                          <X size={16}/>
-                        </button>
+                        <button onClick={() => { updateActiveOrderDetails({ appliedVoucher: null, discountAmount: 0 }); toast.success("Đã gỡ mã giảm giá"); }} className="text-slate-400 hover:text-red-500 p-1"><X size={16}/></button>
                       </div>
                     )}
                   </div>
-                  {/* ====== KẾT THÚC PHẦN VOUCHER ====== */}
 
+                  {/* BẢNG TÍNH TIỀN */}
                   <div className="flex justify-between text-slate-500 font-medium px-1">
                     <span>Tổng tiền hàng ({totalItems} món)</span>
                     <span className="text-slate-800 font-bold">{formatPrice(subTotal)}</span>
@@ -368,8 +541,15 @@ export const PosView = () => {
 
                   {discountAmount > 0 && (
                      <div className="flex justify-between text-emerald-600 font-bold px-1">
-                        <span>Giảm giá</span>
+                        <span>Giảm giá voucher</span>
                         <span>-{formatPrice(discountAmount)}</span>
+                     </div>
+                  )}
+
+                  {activeOrder.isDelivery && (
+                     <div className="flex justify-between text-orange-600 font-bold px-1 animate-in fade-in">
+                        <span>Phí vận chuyển</span>
+                        <span>{shippingFee === 0 ? "Miễn phí" : formatPrice(shippingFee)}</span>
                      </div>
                   )}
 
@@ -397,6 +577,14 @@ export const PosView = () => {
       </div>
 
       <PosVariantModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <PosCustomerModal isOpen={isCustomerModalOpen} onClose={() => setIsCustomerModalOpen(false)} />
+      
+      <PosAddressModal 
+         isOpen={isAddressModalOpen} 
+         onClose={() => setIsAddressModalOpen(false)} 
+         customerId={activeOrder?.customerId || null} 
+         onSelectSuccess={() => setIsTypingNewAddress(false)} 
+      />
     </>
   );
 };
