@@ -161,7 +161,7 @@ export default function OrdersPage() {
             <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 min-h-[500px]">
               <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                 <Package className="text-green-600" size={24}/>
-                Quản lý đơn hàng
+                Đơn hàng của tôi
               </h2>
 
               <div className="overflow-x-auto">

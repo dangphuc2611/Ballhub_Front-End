@@ -47,28 +47,28 @@ export function ShippingForm({ formData, setFormData }: any) {
         street: ''
     });
 
-    // ✅ Đã fix logic: Xóa sạch địa chỉ thì clear luôn form data để phí ship về 0
     const fetchAddresses = async () => {
         try {
-            const response = await api.get("/users/me/addresses");
-            const addrData = response.data.data;
-            setAddresses(addrData);
+            // ✅ SỬA ĐƯỜNG LINK GET TẠI ĐÂY
+            const response = await api.get("/addresses/me");
+            const addrData = response.data.data || response.data || [];
+            
+            const finalAddrData = Array.isArray(addrData) ? addrData : [];
+            setAddresses(finalAddrData);
 
-            // Nếu có địa chỉ nhưng khách chưa chọn cái nào -> Tự lấy cái mặc định
-            if (addrData.length > 0 && (!formData.addressId || formData.addressId === '')) {
-                const defaultAddr = addrData.find((a: any) => a.isDefault) || addrData[0];
+            if (finalAddrData.length > 0 && (!formData.addressId || formData.addressId === '')) {
+                const defaultAddr = finalAddrData.find((a: any) => a.isDefault) || finalAddrData[0];
                 setFormData((prev: any) => ({
                     ...prev,
-                    addressId: defaultAddr.addressId,
+                    addressId: defaultAddr.addressId || defaultAddr.id,
                     addressText: defaultAddr.fullAddress
                 }));
             }
-            // Nếu list địa chỉ rỗng (khách xóa hết) -> Clear sạch data
-            else if (addrData.length === 0) {
+            else if (finalAddrData.length === 0) {
                 setFormData((prev: any) => ({
                     ...prev,
                     addressId: null,
-                    addressText: '' // Đưa text về rỗng để kích hoạt tính năng Freeship mặc định
+                    addressText: '' 
                 }));
             }
         } catch (error) {
@@ -84,7 +84,7 @@ export function ShippingForm({ formData, setFormData }: any) {
                     fetch("https://provinces.open-api.vn/api/p/").then(res => res.json())
                 ]);
 
-                const userData = userRes.data.data;
+                const userData = userRes.data.data || userRes.data;
                 if (userData) {
                     const profile = {
                         fullName: userData.fullName || '',
@@ -93,13 +93,12 @@ export function ShippingForm({ formData, setFormData }: any) {
                     };
                     setAddressForm(prev => ({ ...prev, ...profile }));
 
-                    // Chỉ fill tên và phone, không được ghi đè addressText
                     setFormData((prev: any) => ({ ...prev, fullName: profile.fullName, phone: profile.phone }));
                 }
                 setProvinces(provinceRes);
                 await fetchAddresses();
             } catch (error) {
-                toast.error("Không thể khởi tạo dữ liệu");
+                console.error("Lỗi khởi tạo:", error);
             } finally {
                 setLoading(false);
             }
@@ -130,57 +129,70 @@ export function ShippingForm({ formData, setFormData }: any) {
     const handleAddNewAddress = async () => {
         const { city, district, ward, street } = addressForm;
         if (!city || !district || !ward || !street) {
-            return toast.error("Vui lòng điền đầy đủ địa chỉ");
+            return toast.error("Vui lòng điền đầy đủ địa chỉ (Tỉnh/Quận/Xã/Số nhà)");
+        }
+        if (!formData.fullName || !formData.phone) {
+            return toast.error("Vui lòng điền Họ tên và Số điện thoại ở bên trên trước!");
         }
 
         setIsSubmitting(true);
         try {
             const fullString = `${street}, ${ward}, ${district}, ${city}`;
-            const response = await api.post("/users/me/addresses", {
+            
+            const payload = {
+                fullName: formData.fullName,
+                phone: formData.phone,
                 fullAddress: fullString,
                 isDefault: addresses.length === 0
-            });
+            };
 
-            if (response.data.success) {
-                toast.success("Thêm địa chỉ mới thành công");
-                setIsAdding(false);
-                await fetchAddresses();
-                setFormData((prev: any) => ({
-                    ...prev,
-                    addressId: response.data.data.addressId,
-                    addressText: fullString
-                }));
-                setAddressForm(prev => ({ ...prev, city: '', district: '', ward: '', street: '' }));
-                setSelectedProvinceCode("");
-                setSelectedDistrictCode("");
-            }
-        } catch (error) {
-            toast.error("Lỗi khi lưu địa chỉ");
+            // ✅ SỬA ĐƯỜNG LINK POST TẠI ĐÂY
+            const response = await api.post("/addresses/me", payload);
+            
+            toast.success("Thêm địa chỉ mới thành công");
+            setIsAdding(false);
+            await fetchAddresses();
+
+            const resData = response.data;
+            const newAddressId = resData?.data?.addressId || resData?.data?.id || resData?.addressId || resData?.id || null;
+
+            setFormData((prev: any) => ({
+                ...prev,
+                addressId: newAddressId,
+                addressText: fullString
+            }));
+
+            setAddressForm(prev => ({ ...prev, city: '', district: '', ward: '', street: '' }));
+            setSelectedProvinceCode("");
+            setSelectedDistrictCode("");
+
+        } catch (error: any) {
+            console.error("Chi tiết lỗi lưu địa chỉ:", error.response);
+            const errorMsg = error.response?.data?.message || error.response?.data?.error || "Lỗi máy chủ khi lưu địa chỉ";
+            toast.error(errorMsg);
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // ✅ Đã fix: Clear addressText khi xóa địa chỉ
     const executeDelete = async () => {
         if (!deleteConfirm.id) return;
         try {
-            const response = await api.delete(`/users/me/addresses/${deleteConfirm.id}`);
-            if (response.data.success) {
-                toast.success("Đã xóa địa chỉ");
+            // ✅ SỬA ĐƯỜNG LINK DELETE TẠI ĐÂY
+            await api.delete(`/addresses/me/${deleteConfirm.id}`);
+            toast.success("Đã xóa địa chỉ");
 
-                // Nếu cái địa chỉ bị xóa đang được khách tick chọn -> Gỡ sạch
-                if (formData.addressId === deleteConfirm.id) {
-                    setFormData((prev: any) => ({
-                        ...prev,
-                        addressId: null,
-                        addressText: '' // Trả về rỗng để trang ngoài reset phí ship về 0
-                    }));
-                }
-                await fetchAddresses(); // Load lại list, nếu có list khác tự nó sẽ nhảy, nếu hết thì về 0
+            if (formData.addressId === deleteConfirm.id) {
+                setFormData((prev: any) => ({
+                    ...prev,
+                    addressId: null,
+                    addressText: '' 
+                }));
             }
-        } catch (error) {
-            toast.error("Lỗi khi xóa địa chỉ");
+            await fetchAddresses(); 
+        } catch (error: any) {
+            const errorMsg = error.response?.data?.message || "Lỗi khi xóa địa chỉ";
+            toast.error(errorMsg);
         } finally {
             setDeleteConfirm({ show: false, id: null });
         }
@@ -315,7 +327,8 @@ export function ShippingForm({ formData, setFormData }: any) {
                         <button
                             type="button"
                             onClick={handleAddNewAddress}
-                            className="w-full bg-green-600 text-white h-12 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-green-700 transition-all"
+                            disabled={isSubmitting}
+                            className="w-full bg-green-600 text-white h-12 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-green-700 transition-all disabled:opacity-50"
                         >
                             {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
                             Lưu địa chỉ
@@ -328,16 +341,16 @@ export function ShippingForm({ formData, setFormData }: any) {
                     <div className="grid grid-cols-1 gap-3">
                         {addresses.map((addr) => (
                             <div
-                                key={addr.addressId}
+                                key={addr.addressId || addr.id}
                                 onClick={() => setFormData({
                                     ...formData,
-                                    addressId: addr.addressId,
+                                    addressId: addr.addressId || addr.id,
                                     addressText: addr.fullAddress
                                 })}
-                                className={`group relative p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center gap-4 ${formData.addressId === addr.addressId ? 'border-green-500 bg-green-50/30' : 'border-gray-50 hover:border-gray-200'
+                                className={`group relative p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center gap-4 ${formData.addressId === (addr.addressId || addr.id) ? 'border-green-500 bg-green-50/30' : 'border-gray-50 hover:border-gray-200'
                                     }`}
                             >
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${formData.addressId === addr.addressId ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${formData.addressId === (addr.addressId || addr.id) ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
                                     <MapPin size={20} />
                                 </div>
                                 <div className="flex-1 pr-10">
@@ -346,15 +359,14 @@ export function ShippingForm({ formData, setFormData }: any) {
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                    {formData.addressId === addr.addressId && <CheckCircle2 className="text-green-600" size={20} />}
+                                    {formData.addressId === (addr.addressId || addr.id) && <CheckCircle2 className="text-green-600" size={20} />}
 
-                                    {/* ✅ CHỈ HIỆN NÚT XÓA KHI CÓ NHIỀU HƠN 1 ĐỊA CHỈ */}
                                     {addresses.length > 1 && (
                                         <button
                                             type="button"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                setDeleteConfirm({ show: true, id: addr.addressId });
+                                                setDeleteConfirm({ show: true, id: addr.addressId || addr.id });
                                             }}
                                             className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all md:opacity-0 md:group-hover:opacity-100"
                                             title="Xóa địa chỉ này"

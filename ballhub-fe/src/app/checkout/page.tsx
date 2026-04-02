@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -16,6 +16,12 @@ import { ConfirmModal } from "@/components/common/ConfirmModal";
 
 const BASE_URL = "http://localhost:8080";
 
+// ==========================================
+// CẤU HÌNH API GIAO HÀNG NHANH (GHN)
+// ==========================================
+const GHN_TOKEN = "dd94ceb1-2e67-11f1-b97a-a2781b0fd428"; 
+const SHOP_DISTRICT_ID = 3440; 
+
 export default function CheckoutPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -27,7 +33,7 @@ export default function CheckoutPage() {
     email: "",
     addressId: null,
     addressText: "",
-    paymentMethodId: 1, // Mặc định COD
+    paymentMethodId: 1, 
     note: "",
   });
 
@@ -41,10 +47,13 @@ export default function CheckoutPage() {
     url: "",
     orderId: null,
   });
+  
   const [shippingFee, setShippingFee] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  
+  // Lưu trữ dữ liệu tỉnh/quận từ GHN để đối chiếu chuỗi địa chỉ
+  const [ghnProvinces, setGhnProvinces] = useState<any[]>([]);
 
-  // Lấy dữ liệu giỏ hàng
   const fetchCart = async () => {
     try {
       const response = await api.get("/cart");
@@ -62,34 +71,98 @@ export default function CheckoutPage() {
     }
   };
 
+  // Tải danh sách Tỉnh từ GHN khi load trang
   useEffect(() => {
     fetchCart();
+    fetch("https://online-gateway.ghn.vn/shiip/public-api/master-data/province", {
+      headers: { "token": GHN_TOKEN }
+    })
+    .then(res => res.json())
+    .then(data => { if (data.code === 200) setGhnProvinces(data.data || []); })
+    .catch(err => console.error("Lỗi API GHN:", err));
   }, []);
 
-  // Hàm tính phí ship theo vùng miền
-  const calculateShippingFee = (addressText: string, totalAmount: number) => {
-    if (!addressText || addressText.trim() === "") return 0;
-    if (totalAmount >= 1000000) return 0; // Miễn phí ship đơn trên 1 triệu
+  // ==========================================
+  // HÀM TÍNH PHÍ SHIP BẰNG GHN API TỪ CHUỖI ĐỊA CHỈ
+  // ==========================================
+  const calculateShippingFee = async (addressStr: string, totalAmount: number) => {
+    if (!addressStr || addressStr.trim() === "") return 0;
+    if (totalAmount >= 1000000) return 0; // Freeship đơn > 1 Triệu
 
-    let baseFee = 30000;
-    const addr = addressText.toLowerCase();
+    try {
+      // 1. Bóc tách chuỗi địa chỉ thành mảng (VD: ["Số 10", "Láng Hạ", "Đống Đa", "Hà Nội"])
+      const parts = addressStr.split(",").map(s => s.trim().toLowerCase());
+      if (parts.length < 3) return 30000; // Trả về phí mặc định nếu địa chỉ quá ngắn không rõ ràng
 
-    if (addr.includes("hà nội") || addr.includes("ha noi")) baseFee = 15000;
-    else if (addr.includes("hồ chí minh") || addr.includes("ho chi minh") || addr.includes("hcm")) baseFee = 35000;
-    else if (addr.includes("đà nẵng") || addr.includes("da nang")) baseFee = 25000;
-    else if (addr.includes("hải phòng") || addr.includes("hai phong") || addr.includes("quảng ninh")) baseFee = 20000;
-    else if (addr.includes("cần thơ") || addr.includes("can tho") || addr.includes("bình dương")) baseFee = 30000;
+      const provName = parts[parts.length - 1]; // Phần tử cuối thường là Tỉnh
+      const distName = parts[parts.length - 2]; // Phần tử kế cuối thường là Quận
+      const wardName = parts[parts.length - 3]; // Phần tử kế nữa thường là Xã
 
-    return baseFee;
+      // 2. Tìm ID Tỉnh từ GHN
+      const matchedProv = ghnProvinces.find(p => provName.includes(p.ProvinceName.toLowerCase()) || p.ProvinceName.toLowerCase().includes(provName));
+      if (!matchedProv) return 35000; // Mặc định nếu không khớp
+
+      // 3. Tìm ID Quận Huyện từ GHN (Gọi API lấy danh sách quận thuộc tỉnh đó)
+      const distRes = await fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/district?province_id=${matchedProv.ProvinceID}`, { headers: { "token": GHN_TOKEN } });
+      const distData = await distRes.json();
+      if (distData.code !== 200) return 35000;
+
+      // Tìm tên quận khớp (Có thể chứa từ khóa "quận", "huyện", "thị xã")
+      let matchedDist = distData.data.find((d: any) => {
+         const dName = d.DistrictName.toLowerCase();
+         return distName.includes(dName) || dName.includes(distName.replace(/(quận|huyện|thị xã|thành phố)\s+/g, ''));
+      });
+      
+      if (!matchedDist) return 35000;
+
+      // 4. Tìm Mã Xã/Phường từ GHN (Để tính ship chuẩn nhất)
+      const wardRes = await fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id=${matchedDist.DistrictID}`, { headers: { "token": GHN_TOKEN } });
+      const wardData = await wardRes.json();
+      let matchedWardCode = "";
+      
+      if (wardData.code === 200) {
+          const matchedWard = wardData.data.find((w: any) => {
+             const wName = w.WardName.toLowerCase();
+             return wardName.includes(wName) || wName.includes(wardName.replace(/(phường|xã|thị trấn)\s+/g, ''));
+          });
+          if (matchedWard) matchedWardCode = matchedWard.WardCode;
+      }
+
+      // 5. Gọi API tính phí GHN
+      const feeRes = await fetch("https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee", {
+        method: "POST",
+        headers: { "token": GHN_TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          service_type_id: 2, 
+          from_district_id: SHOP_DISTRICT_ID, 
+          to_district_id: matchedDist.DistrictID, 
+          to_ward_code: matchedWardCode, 
+          weight: 500 
+        })
+      });
+      
+      const feeResult = await feeRes.json();
+      if (feeResult.code === 200) {
+         return feeResult.data.total;
+      }
+      return 35000; // Trả về mặc định nếu API GHN lỗi
+      
+    } catch (error) {
+      console.error("Lỗi tính phí GHN:", error);
+      return 30000; // Phí mặc định an toàn
+    }
   };
 
-  // Cập nhật phí ship khi địa chỉ thay đổi
+  // Lắng nghe sự thay đổi của Địa chỉ để đi tính lại tiền ship
   useEffect(() => {
-    if (cartData.totalAmount > 0) {
-      const fee = calculateShippingFee(formData.addressText, cartData.totalAmount);
-      setShippingFee(fee);
-    }
-  }, [formData.addressText, cartData.totalAmount]);
+    const updateFee = async () => {
+       if (cartData.totalAmount > 0) {
+         const fee = await calculateShippingFee(formData.addressText, cartData.totalAmount);
+         setShippingFee(fee);
+       }
+    };
+    updateFee();
+  }, [formData.addressText, cartData.totalAmount, ghnProvinces]);
 
   const discount = appliedPromo?.discountAmount || 
                    appliedPromo?.discountValue || 
@@ -131,13 +204,9 @@ export default function CheckoutPage() {
       const resData = res.data;
       let createdOrderId = null;
       
-      console.log("👉 Dữ liệu Backend trả về:", resData);
-
-      // ✅ BỘ LỌC ĐÃ ĐƯỢC NÂNG CẤP ĐỂ TÌM VÀO TẬN TRONG LÕI "order"
       if (typeof resData?.data === 'number' || typeof resData?.data === 'string') {
         createdOrderId = resData.data;
       } 
-
       else if (resData?.data?.order?.orderId) createdOrderId = resData.data.order.orderId;
       else if (resData?.data?.order?.id) createdOrderId = resData.data.order.id;
       else if (resData?.data?.orderId) createdOrderId = resData.data.orderId;
@@ -147,7 +216,7 @@ export default function CheckoutPage() {
 
       if (createdOrderId) {
         setQrModal({ show: false, url: "", orderId: null });
-        router.push(`/order-success/${createdOrderId}`); // Chuyển trang thành công!
+        router.push(`/order-success/${createdOrderId}`); 
       } else {
         toast.error("Tạo đơn thành công nhưng không lấy được mã đơn!");
         router.push("/profile/orders");
@@ -206,15 +275,12 @@ export default function CheckoutPage() {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[999] p-4 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center space-y-6 shadow-2xl animate-in zoom-in-95 duration-200">
             <h3 className="text-xl font-bold text-gray-900">Quét mã để thanh toán</h3>
-
             <div className="bg-white p-2 rounded-2xl border-2 border-dashed border-gray-200">
               <img src={qrModal.url} alt="Payment QR" className="w-full aspect-square object-contain rounded-xl" />
             </div>
-
             <div className="text-sm text-gray-500">
               <p>Sử dụng App Ngân hàng hoặc ZaloPay để quét mã.</p>
             </div>
-
             <div className="space-y-3 pt-4 border-t border-gray-100">
               <button
                 onClick={submitOrderToBackend}
@@ -223,7 +289,6 @@ export default function CheckoutPage() {
               >
                 {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : "Tôi đã thanh toán"}
               </button>
-
               <button
                 onClick={() => setQrModal({ show: false, url: "", orderId: null })}
                 disabled={isSubmitting}

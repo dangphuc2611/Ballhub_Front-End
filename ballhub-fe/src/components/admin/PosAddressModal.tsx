@@ -51,8 +51,6 @@ export const PosAddressModal = ({ isOpen, onClose, customerId, onSelectSuccess }
 
   const handleSelectAddress = (addr: Address) => {
     updateActiveOrderDetails({
-      customerName: addr.fullName,
-      customerPhone: addr.phone,  
       addressId: addr.addressId,
       deliveryAddress: addr.fullAddress,
       shippingFee: 30000 

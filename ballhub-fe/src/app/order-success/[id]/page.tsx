@@ -84,7 +84,7 @@ export default function OrderSuccessPage() {
               onClick={() => router.push("/profile/orders")} 
               className="flex-1 h-14 rounded-2xl font-bold bg-green-600 hover:bg-green-700 text-white shadow-xl shadow-green-100 transition-all active:scale-95 flex items-center justify-center"
             >
-              Quản lý đơn hàng
+              Đơn hàng của tôi
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
