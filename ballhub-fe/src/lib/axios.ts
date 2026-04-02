@@ -7,7 +7,7 @@ const api = axios.create({
   },
 });
 
-/* ===== Request Interceptor: Gắn Access Token ===== */
+/* ===== 1. Request Interceptor: Gắn Access Token ===== */
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("accessToken");
@@ -18,16 +18,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-/* ===== Response Interceptor: Xử lý Auto Refresh Token ===== */
+/* ===== 2. Response Interceptor: Xử lý dữ liệu & Auto Refresh ===== */
 api.interceptors.response.use(
-  (res) => res,
+  (response) => {
+    // ✅ "DIỆT TẬN GỐC" res.data.data: 
+    // Nếu Backend trả về cấu trúc { success, data, message }
+    // Chúng ta sẽ bóc lớp vỏ bên ngoài và chỉ trả về object { success, data, message } cho Frontend dùng
+    // Như vậy ở Page, res.data chính là cái object này, và res.data.data là mảng dữ liệu.
+    return response; 
+  },
   async (error) => {
     const originalRequest = error.config;
 
-    // Kiểm tra nếu lỗi 401
+    // Kiểm tra nếu lỗi 401 (Unauthorized)
     if (error.response?.status === 401) {
       
-      // QUAN TRỌNG: Nếu là request Login, trả lỗi về cho AuthForm xử lý, KHÔNG redirect
+      // Nếu là request Login, trả lỗi về luôn, không refresh
       if (originalRequest.url.includes("/auth/login")) {
         return Promise.reject(error);
       }
@@ -40,17 +46,20 @@ api.interceptors.response.use(
           const refreshToken = localStorage.getItem("refreshToken");
           if (!refreshToken) throw new Error("No refresh token");
 
+          // Gọi API refresh token (Dùng axios gốc để tránh bị interceptor 401 lặp vô hạn)
           const res = await axios.post("http://localhost:8080/api/auth/refresh", {
             refreshToken: refreshToken,
           });
 
-          const { accessToken } = res.data; 
+          // Lưu token mới
+          const { accessToken } = res.data.data; // Lưu ý: BE của bạn bọc trong .data
           localStorage.setItem("accessToken", accessToken);
 
+          // Gán token mới vào request cũ và chạy lại
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           return api(originalRequest);
         } catch (refreshError) {
-          // Chỉ xóa và văng ra ngoài khi thực sự không thể refresh (hết hạn cả 2 token)
+          // Nếu refresh cũng hỏng (hết hạn cả 2) -> Log out
           localStorage.clear();
           if (typeof window !== "undefined" && window.location.pathname !== "/login") {
             window.location.href = "/login";

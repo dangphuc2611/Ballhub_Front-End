@@ -5,7 +5,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
 import ProfileForm from "@/components/account/ProfileForm";
-import { User as UserIcon, Package, Heart, LogOut, Loader2, Eye } from "lucide-react";
+import { User as UserIcon, Package, Heart, LogOut, Loader2, Eye, MapPin, KeyRound } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -97,8 +97,10 @@ export default function AccountPage() {
 
   const menuItems = [
     { name: "Thông tin cá nhân", icon: <UserIcon size={16} />, href: "/profile" },
+    { name: "Sổ địa chỉ", icon: <MapPin size={16} />, href: "/profile/address" },
     { name: "Đơn hàng của tôi", icon: <Package size={16} />, href: "/profile/orders" },
     { name: "Sản phẩm yêu thích", icon: <Heart size={16} />, href: "/profile/favorites" },
+    { name: "Đổi mật khẩu", icon: <KeyRound size={16} />, href: "/profile/change-password" },
   ];
 
   return (

@@ -8,7 +8,7 @@ import { Footer } from "@/components/sections/Footer";
 import { useAuth } from "@/app/context/AuthContext";
 import { useEffect, Suspense, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
-import { useGoogleLogin } from "@react-oauth/google"; // 1. Import
+import { useGoogleLogin } from "@react-oauth/google";
 import api from "@/lib/axios";
 import { toast } from "sonner";
 
@@ -16,7 +16,7 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: authLoading, login } = useAuth();
-  const [isProcessing, setIsProcessing] = useState(false); // Loading riêng cho Google
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const isRegistered = searchParams.get("status") === "registered";
 
@@ -26,7 +26,6 @@ function LoginContent() {
     }
   }, [user, authLoading, router]);
 
-  // 2. Logic xử lý Google Login chuyển ra đây
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setIsProcessing(true);
@@ -49,17 +48,16 @@ function LoginContent() {
     onError: () => toast.error("Không thể kết nối với Google"),
   });
 
-  if (authLoading) return (
-    <div className="min-h-[calc(100vh-128px)] flex items-center justify-center">
+  // ✅ FIX HYDRATION: Đồng bộ thẻ div ngoài cùng cho trạng thái Loading
+  if (authLoading || user) return (
+    <div className="min-h-[calc(100vh-128px)] flex items-center justify-center bg-gray-50 px-4 py-12">
       <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
-  if (user) return null;
-
   return (
     <div className="min-h-[calc(100vh-128px)] flex items-center justify-center bg-gray-50 px-4 py-12">
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
+      <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
         
         {isRegistered && (
           <div className="mb-6 p-4 bg-green-50 border border-green-100 rounded-xl flex items-center gap-3 text-green-700">
@@ -68,7 +66,12 @@ function LoginContent() {
           </div>
         )}
 
-        <h1 className="text-2xl font-bold text-center mb-6">Đăng nhập BallHub</h1>
+        <div className="flex justify-center mb-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+            <span className="text-white font-black text-2xl">B</span>
+          </div>
+        </div>
+        <h1 className="text-2xl font-bold text-center mb-6 text-gray-900">Đăng nhập BallHub</h1>
 
         <AuthForm 
           initialMode="login" 
@@ -78,8 +81,8 @@ function LoginContent() {
           }} 
         />
 
-        <div className="flex justify-end mt-2">
-          <Link href="/forgot-password" className="text-xs text-gray-400 hover:text-green-600">
+        <div className="flex justify-end mt-3">
+          <Link href="/forgot-password" className="text-xs font-semibold text-gray-500 hover:text-green-600 transition-colors">
             Quên mật khẩu?
           </Link>
         </div>
@@ -88,34 +91,28 @@ function LoginContent() {
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t border-gray-200"></span>
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white px-2 text-gray-400 font-medium">Hoặc đăng nhập bằng</span>
+          <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest">
+            <span className="bg-white px-4 text-gray-400">Hoặc tiếp tục với</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <button 
-            onClick={() => handleGoogleLogin()}
-            disabled={isProcessing}
-            className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition font-medium text-sm text-gray-700 disabled:opacity-50"
-          >
-            {isProcessing ? (
-               <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
-            )}
-            Google
-          </button>
+        {/* NÚT GOOGLE FULL CHIỀU RỘNG */}
+        <button 
+          onClick={() => handleGoogleLogin()}
+          disabled={isProcessing}
+          className="w-full flex items-center justify-center gap-3 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition font-bold text-sm text-gray-700 disabled:opacity-50 shadow-sm"
+        >
+          {isProcessing ? (
+             <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
+          )}
+          Đăng nhập bằng Google
+        </button>
 
-          <button className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition font-medium text-sm text-gray-700">
-            <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" className="w-5 h-5" alt="Facebook" />
-            Facebook
-          </button>
-        </div>
-
-        <p className="text-center text-sm mt-8 text-gray-500">
+        <p className="text-center text-sm mt-8 text-gray-600">
           Chưa có tài khoản?{" "}
-          <Link href="/register" className="text-green-600 font-semibold hover:underline">
+          <Link href="/register" className="text-green-600 font-bold hover:underline">
             Đăng ký ngay
           </Link>
         </p>
@@ -128,7 +125,7 @@ export default function LoginPage() {
   return (
     <>
       <Header />
-      <Suspense fallback={<div className="min-h-screen" />}>
+      <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
         <LoginContent />
       </Suspense>
       <Footer />

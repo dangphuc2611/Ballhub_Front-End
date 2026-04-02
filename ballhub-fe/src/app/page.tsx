@@ -75,7 +75,6 @@ export default function Home() {
 
   // demo: chia ra 2 section (new + best)
   const newProducts = useMemo(() => products, [products]);
-  const bestProducts = useMemo(() => products, [products]);
 
   return (
     <main className="w-full min-h-screen bg-white">
@@ -118,12 +117,6 @@ export default function Home() {
             discount="10%"
             buttonText="Xem thêm"
             buttonHref="/promotions"
-          />
-
-          <ProductSection
-            title="Bán chạy nhất"
-            products={bestProducts}
-            viewAllHref="/products?sort=popular"
           />
         </>
       )}

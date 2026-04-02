@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, Eye, ShoppingCart } from "lucide-react";
+import { Heart, Eye, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -15,43 +15,37 @@ const BASE_URL = "http://localhost:8080";
 interface ProductCardProps {
   product: Product;
   variant?: "default" | "featured";
-  // ✅ Đã fix TypeScript: Chỉ định rõ productId là số (number) và isFavorited là boolean
   onFavoriteToggle?: (productId: number, isFavorited: boolean) => void;
 }
 
 export function ProductCard({ product, variant, onFavoriteToggle }: ProductCardProps) {
   const router = useRouter();
-  const { user } = useAuth(); // Lấy thông tin user đăng nhập
+  const { user } = useAuth();
 
-  // STATE: Quản lý trạng thái thả tim
   const [isFavorited, setIsFavorited] = useState(false);
   const [loadingFav, setLoadingFav] = useState(false);
 
-  // 1. Format Giá
-  const formattedPrice = new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    minimumFractionDigits: 0,
-  }).format(product.minPrice || product.price || 0);
+  // ✅ FORMAT TIỀN TỆ: Đảm bảo server và client hiển thị đồng nhất
+  const formatVND = (value: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      minimumFractionDigits: 0,
+    }).format(value);
+  };
 
-  const isFlashSale = (product.discountPercent || 0) > 0;
-  
-  const formattedOriginalPrice = isFlashSale && product.minOriginalPrice
-    ? new Intl.NumberFormat("vi-VN", {
-        style: "currency",
-        currency: "VND",
-        minimumFractionDigits: 0,
-      }).format(product.minOriginalPrice)
-    : null;
+  const currentPrice = product.minPrice || product.price || 0;
+  const originalPrice = product.minOriginalPrice || 0;
+  const discountPercent = product.discountPercent || 0;
+  const isSale = discountPercent > 0;
 
   const getFullImageUrl = (url: string) => {
     if (!url) return "/placeholder.svg";
-    return url.startsWith("http") ? url : `${BASE_URL}${url}`;
+    return url.startsWith("http") ? url : `${BASE_URL}/${url.replace(/^\/+/, "")}`;
   };
 
   const productId = product.productId || product.id;
 
-  // 2. KIỂM TRA TRẠNG THÁI TIM (khi load trang)
   useEffect(() => {
     if (user && productId) {
       api.get(`/favorites/${productId}/check`)
@@ -60,34 +54,21 @@ export function ProductCard({ product, variant, onFavoriteToggle }: ProductCardP
     }
   }, [user, productId]);
 
-  // 3. XỬ LÝ KHI BẤM NÚT TIM
   const handleWishlist = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation(); // Ngăn click nhầm vào thẻ Link ở dưới
-
+    e.preventDefault(); e.stopPropagation();
     if (!user) {
       toast.error("Vui lòng đăng nhập để thêm vào yêu thích!");
-      router.push("/login"); // Điều hướng tới trang đăng nhập
-      return;
+      router.push("/login"); return;
     }
-
     setLoadingFav(true);
     try {
       const res = await api.post(`/favorites/${productId}/toggle`);
       if (res.data.success) {
-        const newStatus = Boolean(res.data.data); // Ép kiểu về true/false
+        const newStatus = Boolean(res.data.data);
         setIsFavorited(newStatus); 
-        
-        // ✅ Gọi hàm callback báo cáo cho Component Cha (Đã fix lỗi TypeScript)
-        if (onFavoriteToggle && productId) {
-          onFavoriteToggle(Number(productId), newStatus);
-        }
-
-        if (newStatus) {
-          toast.success(`❤️ Đã thêm "${product.productName || product.name}" vào yêu thích`);
-        } else {
-          toast.info(`🤍 Đã bỏ "${product.productName || product.name}" khỏi yêu thích`);
-        }
+        if (onFavoriteToggle && productId) onFavoriteToggle(Number(productId), newStatus);
+        if (newStatus) toast.success(`❤️ Đã thêm "${product.productName || product.name}" vào yêu thích`);
+        else toast.info(`🤍 Đã bỏ khỏi yêu thích`);
       }
     } catch (error) {
       toast.error("Có lỗi xảy ra, vui lòng thử lại!");
@@ -97,104 +78,85 @@ export function ProductCard({ product, variant, onFavoriteToggle }: ProductCardP
   };
 
   const handleGoToDetail = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     router.push(`/products/${productId}`);
   };
 
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-lg transition-all">
-      {/* IMAGE */}
-      <Link href={`/products/${productId}`} className="block">
-        <div className="relative aspect-square bg-gradient-to-b from-gray-50 to-white">
+    <div className="group relative flex flex-col overflow-hidden rounded-[2rem] bg-white border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500">
+      
+      {/* IMAGE SECTION */}
+      <div className="relative aspect-[4/5] bg-gray-50/50 overflow-hidden">
+        <Link href={`/products/${productId}`} className="absolute inset-0 z-0">
           <Image
             src={getFullImageUrl(product.mainImage || product.image || "")}
             alt={product.productName || product.name || "Sản phẩm"}
             fill
-            className="object-contain p-5 transition-transform duration-300 group-hover:scale-105"
+            className="object-contain p-8 mix-blend-multiply transition-transform duration-700 group-hover:scale-110"
             unoptimized
           />
+        </Link>
 
-          {/* NHÃN FLASH SALE (-XX%) */}
-          {isFlashSale && (
-            <div className="absolute top-3 left-3 px-3 py-1 rounded-br-2xl text-[12px] font-black bg-red-600 text-white shadow-md z-10">
-              GIẢM {product.discountPercent}%
-            </div>
-          )}
-
-          {/* CATEGORY */}
-          {!isFlashSale && (product.categoryName || product.category) && (
-            <div className="absolute top-3 left-3 px-3 py-1 rounded-full text-[11px] font-bold bg-white/90 text-gray-800 shadow-sm backdrop-blur">
-              {product.categoryName || product.category}
-            </div>
-          )}
-
-          {/* WISHLIST BUTTON */}
-          <button
-            onClick={handleWishlist}
-            disabled={loadingFav}
-            className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur hover:scale-105 transition"
-            aria-label="Yêu thích"
-          >
-            <Heart 
-              className={`w-5 h-5 transition-colors ${
-                isFavorited 
-                  ? "fill-red-500 text-red-500" // Khi đã thả tim -> Tim đỏ chót
-                  : "text-gray-500 hover:text-red-500" // Khi chưa thả tim -> Tim xám rỗng
-              }`} 
-            />
+        {/* OVERLAY ACTIONS */}
+        <div className="absolute inset-x-0 bottom-0 p-4 opacity-0 translate-y-8 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500 ease-out flex gap-2 z-20">
+          <button onClick={handleGoToDetail} className="flex-1 h-12 rounded-xl bg-white text-gray-900 font-bold shadow-lg hover:bg-gray-100 flex items-center justify-center gap-2 transition-colors">
+            <Eye size={18} /> Xem
+          </button>
+          <button onClick={handleGoToDetail} className="flex-1 h-12 rounded-xl bg-blue-600 text-white font-bold shadow-lg hover:bg-blue-700 flex items-center justify-center gap-2 transition-colors">
+            <ShoppingBag size={18} /> Chọn
           </button>
         </div>
-      </Link>
+        
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-gray-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none"></div>
 
-      {/* CONTENT */}
-      <div className="flex flex-col gap-3 p-4">
+        {/* BADGES */}
+        <div className="absolute top-4 left-4 flex flex-col gap-2 z-20 pointer-events-none">
+          {isSale && (
+            <span className="px-3 py-1.5 rounded-full text-[10px] font-black bg-red-500 text-white shadow-lg animate-pulse">
+              -{discountPercent}%
+            </span>
+          )}
+          {product.badge && (
+            <span className="px-3 py-1.5 rounded-full text-[10px] font-black bg-green-500 text-white shadow-sm">
+              {product.badge}
+            </span>
+          )}
+        </div>
+
+        {/* WISHLIST */}
+        <button
+          onClick={handleWishlist} disabled={loadingFav}
+          className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md hover:scale-110 transition-transform z-20"
+        >
+          <Heart className={`w-5 h-5 transition-colors ${isFavorited ? "fill-red-500 text-red-500" : "text-gray-400 hover:text-red-500"}`} />
+        </button>
+      </div>
+
+      {/* CONTENT SECTION */}
+      <div className="flex flex-col gap-2 p-6">
+        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+          {product.categoryName || product.category || "BallHub Item"}
+        </span>
+
         <Link href={`/products/${productId}`}>
-          <h3 className="font-bold text-gray-900 leading-snug line-clamp-2 min-h-[44px]">
+          <h3 className="font-bold text-base text-gray-900 leading-snug line-clamp-2 hover:text-blue-600 transition-colors min-h-[44px]">
             {product.productName || product.name}
           </h3>
         </Link>
 
-        {/* PRICE */}
-        <div className="flex items-end justify-between gap-2">
-          <div>
-            <p className={`text-xl font-extrabold ${isFlashSale ? 'text-red-600' : 'text-blue-600'}`}>
-              {formattedPrice}
+        {/* PRICE - ✅ Thêm suppressHydrationWarning */}
+        <div className="flex items-baseline gap-2.5 mt-2" suppressHydrationWarning>
+          <p className="text-xl font-black text-blue-600">
+            {formatVND(currentPrice)}
+          </p>
+          {isSale && originalPrice > currentPrice && (
+            <p className="text-xs line-through text-gray-300 font-bold">
+              {formatVND(originalPrice)}
             </p>
-            {formattedOriginalPrice && (
-              <p className="text-xs line-through text-gray-400 mt-0.5 font-medium">
-                {formattedOriginalPrice}
-              </p>
-            )}
-          </div>
-
-          {/* BADGE KHÁC */}
-          {product.badge && (
-            <div className="px-2 py-1 rounded-full text-[10px] font-black bg-blue-50 text-blue-600">
-              {product.badge}
-            </div>
           )}
         </div>
-
-        {/* ACTIONS */}
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          <Link
-            href={`/products/${productId}`}
-            className="h-11 rounded-xl border border-gray-200 text-gray-700 font-semibold text-sm flex items-center justify-center gap-1 hover:border-blue-600 hover:text-blue-600 hover:bg-blue-50 transition"
-          >
-            <Eye className="w-4 h-4" />
-            Xem
-          </Link>
-
-          <button
-            onClick={handleGoToDetail}
-            className="h-11 rounded-xl bg-blue-600 text-white font-bold text-sm flex items-center justify-center gap-1 hover:bg-blue-700 transition"
-          >
-            <ShoppingCart className="w-4 h-4" />
-            Chọn
-          </button>
-        </div>
       </div>
+
     </div>
   );
 }

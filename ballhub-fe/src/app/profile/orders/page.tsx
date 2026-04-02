@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
-import { User, Package, Heart, LogOut, Loader2, Eye, Info } from "lucide-react";
+import { User, Package, Heart, LogOut, Loader2, Eye, Info, UserIcon, MapPin, KeyRound} from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/app/context/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
@@ -100,9 +100,11 @@ export default function OrdersPage() {
   };
 
   const menuItems = [
-    { name: "Thông tin cá nhân", icon: <User size={16} />, href: "/profile" },
+    { name: "Thông tin cá nhân", icon: <UserIcon size={16} />, href: "/profile" },
+    { name: "Sổ địa chỉ", icon: <MapPin size={16} />, href: "/profile/address" },
     { name: "Đơn hàng của tôi", icon: <Package size={16} />, href: "/profile/orders" },
     { name: "Sản phẩm yêu thích", icon: <Heart size={16} />, href: "/profile/favorites" },
+    { name: "Đổi mật khẩu", icon: <KeyRound size={16} />, href: "/profile/change-password" },
   ];
 
   if (!user && !loading) return <div className="text-center py-20 font-bold text-xl">Vui lòng đăng nhập để xem trang này!</div>;

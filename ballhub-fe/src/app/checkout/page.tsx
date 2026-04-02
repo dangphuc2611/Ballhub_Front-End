@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -9,6 +9,9 @@ import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
 import api from "@/lib/cartApi";
 
+// ✅ Import Type Promotion để code chuẩn chỉ
+import { Promotion } from "@/types/promotion"; 
+
 import { ShippingForm } from "@/components/checkout/ShippingForm";
 import { PaymentMethods } from "@/components/checkout/PaymentMethods";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
@@ -16,9 +19,6 @@ import { ConfirmModal } from "@/components/common/ConfirmModal";
 
 const BASE_URL = "http://localhost:8080";
 
-// ==========================================
-// CẤU HÌNH API GIAO HÀNG NHANH (GHN)
-// ==========================================
 const GHN_TOKEN = "dd94ceb1-2e67-11f1-b97a-a2781b0fd428"; 
 const SHOP_DISTRICT_ID = 3440; 
 
@@ -33,12 +33,12 @@ export default function CheckoutPage() {
     email: "",
     addressId: null,
     addressText: "",
-    paymentMethodId: 1, // Mặc định là Tiền mặt (1)
+    paymentMethodId: 1, 
     note: "",
   });
 
-  const [appliedPromo, setAppliedPromo] = useState<any>(null);
-  
+  // ✅ Thay any bằng Promotion | null
+  const [appliedPromo, setAppliedPromo] = useState<Promotion | null>(null);
   const [shippingFee, setShippingFee] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [ghnProvinces, setGhnProvinces] = useState<any[]>([]);
@@ -90,8 +90,8 @@ export default function CheckoutPage() {
       if (distData.code !== 200) return 35000;
 
       let matchedDist = distData.data.find((d: any) => {
-         const dName = d.DistrictName.toLowerCase();
-         return distName.includes(dName) || dName.includes(distName.replace(/(quận|huyện|thị xã|thành phố)\s+/g, ''));
+          const dName = d.DistrictName.toLowerCase();
+          return distName.includes(dName) || dName.includes(distName.replace(/(quận|huyện|thị xã|thành phố)\s+/g, ''));
       });
       
       if (!matchedDist) return 35000;
@@ -140,9 +140,21 @@ export default function CheckoutPage() {
     updateFee();
   }, [formData.addressText, cartData.totalAmount, ghnProvinces]);
 
-  const discount = appliedPromo?.discountAmount || 
-                   appliedPromo?.discountValue || 
-                   appliedPromo?.maxDiscountAmount || 0;
+  // ✅ ĐỒNG BỘ LOGIC TÍNH GIẢM GIÁ VỚI BACKEND
+  const discount = useMemo(() => {
+    if (!appliedPromo || cartData.totalAmount < appliedPromo.minOrderAmount) return 0;
+    
+    let calcDiscount = 0;
+    if (appliedPromo.discountType === "PERCENT") {
+      calcDiscount = (cartData.totalAmount * (appliedPromo.discountPercent || 0)) / 100;
+      if (appliedPromo.maxDiscountAmount && calcDiscount > appliedPromo.maxDiscountAmount) {
+        calcDiscount = appliedPromo.maxDiscountAmount;
+      }
+    } else {
+      calcDiscount = appliedPromo.maxDiscountAmount || 0;
+    }
+    return Math.floor(calcDiscount);
+  }, [appliedPromo, cartData.totalAmount]);
                    
   const finalTotal = Math.max(0, cartData.totalAmount - discount + shippingFee);
 
@@ -154,7 +166,6 @@ export default function CheckoutPage() {
 
   const confirmOrder = () => {
     setShowConfirmModal(false);
-    // ✅ Gọi chung một hàm, mọi logic VNPAY sẽ xử lý ngầm bên trong
     submitOrderToBackend();
   };
 
@@ -169,9 +180,8 @@ export default function CheckoutPage() {
         shippingFee: shippingFee,
       };
 
-      // 1. GỌI API LƯU ĐƠN HÀNG VÀO DATABASE TRƯỚC
+      // 1. GỌI API LƯU ĐƠN HÀNG VÀO DATABASE
       const res = await api.post("/orders", payload);
-      
       const resData = res.data;
       let createdOrderId = null;
       
@@ -186,23 +196,21 @@ export default function CheckoutPage() {
       else if (resData?.id) createdOrderId = resData.id;
 
       if (createdOrderId) {
-        window.dispatchEvent(new Event("cartUpdated")); // Reset số lượng giỏ hàng trên Header
+        window.dispatchEvent(new Event("cartUpdated")); 
         
         // 2. KIỂM TRA PHƯƠNG THỨC THANH TOÁN
         if (formData.paymentMethodId === 2) {
-            // NẾU LÀ VNPAY -> GỌI API TẠO LINK RỒI REDIRECT
             toast.success("Đang chuyển hướng sang VNPAY...");
-            
             try {
                 const vnpayRes = await api.get(`/payment/create-vnpay`, {
-                    params: { amount: finalTotal, orderId: createdOrderId }
+                    // VNPAY yêu cầu số nguyên cho số tiền
+                    params: { amount: Math.floor(finalTotal), orderId: createdOrderId }
                 });
                 
                 if (vnpayRes.data && vnpayRes.data.data) {
-                    // "Đá" khách hàng sang trang thanh toán của VNPAY
                     window.location.href = vnpayRes.data.data;
                 } else {
-                    toast.error("Không thể tạo link thanh toán, vui lòng thử lại sau!");
+                    toast.error("Không thể tạo link thanh toán!");
                     router.push(`/profile/orders`);
                 }
             } catch (err) {
@@ -211,19 +219,18 @@ export default function CheckoutPage() {
                 router.push(`/profile/orders`);
             }
         } else {
-            // NẾU LÀ TIỀN MẶT (COD) -> BAY THẲNG ĐẾN TRANG THÀNH CÔNG
             toast.success("Đặt hàng thành công!");
             router.push(`/order-success/${createdOrderId}`); 
         }
 
       } else {
-        toast.error("Tạo đơn thành công nhưng không lấy được mã đơn!");
+        toast.error("Không lấy được mã đơn hàng!");
         router.push("/profile/orders");
       }
 
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Lỗi khi đặt hàng");
-      setIsSubmitting(false); // Chỉ tắt loading khi bị lỗi (Để VNPAY kịp redirect)
+      setIsSubmitting(false); 
     } 
   };
 
@@ -283,11 +290,11 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Thanh toán:</span>
-                <span className="font-bold text-slate-700">{formData.paymentMethodId === 1 ? "Tiền mặt (COD)" : "Thanh toán ngay VNPAY"}</span>
+                <span className="font-bold text-slate-700">{formData.paymentMethodId === 1 ? "Tiền mặt (COD)" : "VNPAY"}</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-gray-200">
                 <span className="font-bold text-gray-900">Tổng thanh toán:</span>
-                <span className="font-black text-emerald-600 text-sm">
+                <span className="font-black text-emerald-600 text-sm" suppressHydrationWarning>
                   {finalTotal.toLocaleString()}đ
                 </span>
               </div>

@@ -198,7 +198,7 @@ export default function ProductsPage() {
             />
             <div className="flex justify-between text-xs text-gray-500 mt-1">
               <span>0đ</span>
-              <span>{price[1].toLocaleString()}đ</span>
+              <span>{price[1].toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")}đ</span>
             </div>
           </div>
 
