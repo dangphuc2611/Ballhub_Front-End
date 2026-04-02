@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -33,25 +33,14 @@ export default function CheckoutPage() {
     email: "",
     addressId: null,
     addressText: "",
-    paymentMethodId: 1, 
+    paymentMethodId: 1, // Mặc định là Tiền mặt (1)
     note: "",
   });
 
   const [appliedPromo, setAppliedPromo] = useState<any>(null);
-  const [qrModal, setQrModal] = useState<{
-    show: boolean;
-    url: string;
-    orderId: number | null;
-  }>({
-    show: false,
-    url: "",
-    orderId: null,
-  });
   
   const [shippingFee, setShippingFee] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  
-  // Lưu trữ dữ liệu tỉnh/quận từ GHN để đối chiếu chuỗi địa chỉ
   const [ghnProvinces, setGhnProvinces] = useState<any[]>([]);
 
   const fetchCart = async () => {
@@ -71,7 +60,6 @@ export default function CheckoutPage() {
     }
   };
 
-  // Tải danh sách Tỉnh từ GHN khi load trang
   useEffect(() => {
     fetchCart();
     fetch("https://online-gateway.ghn.vn/shiip/public-api/master-data/province", {
@@ -82,32 +70,25 @@ export default function CheckoutPage() {
     .catch(err => console.error("Lỗi API GHN:", err));
   }, []);
 
-  // ==========================================
-  // HÀM TÍNH PHÍ SHIP BẰNG GHN API TỪ CHUỖI ĐỊA CHỈ
-  // ==========================================
   const calculateShippingFee = async (addressStr: string, totalAmount: number) => {
     if (!addressStr || addressStr.trim() === "") return 0;
-    if (totalAmount >= 1000000) return 0; // Freeship đơn > 1 Triệu
+    if (totalAmount >= 1000000) return 0;
 
     try {
-      // 1. Bóc tách chuỗi địa chỉ thành mảng (VD: ["Số 10", "Láng Hạ", "Đống Đa", "Hà Nội"])
       const parts = addressStr.split(",").map(s => s.trim().toLowerCase());
-      if (parts.length < 3) return 30000; // Trả về phí mặc định nếu địa chỉ quá ngắn không rõ ràng
+      if (parts.length < 3) return 30000;
 
-      const provName = parts[parts.length - 1]; // Phần tử cuối thường là Tỉnh
-      const distName = parts[parts.length - 2]; // Phần tử kế cuối thường là Quận
-      const wardName = parts[parts.length - 3]; // Phần tử kế nữa thường là Xã
+      const provName = parts[parts.length - 1]; 
+      const distName = parts[parts.length - 2]; 
+      const wardName = parts[parts.length - 3]; 
 
-      // 2. Tìm ID Tỉnh từ GHN
       const matchedProv = ghnProvinces.find(p => provName.includes(p.ProvinceName.toLowerCase()) || p.ProvinceName.toLowerCase().includes(provName));
-      if (!matchedProv) return 35000; // Mặc định nếu không khớp
+      if (!matchedProv) return 35000;
 
-      // 3. Tìm ID Quận Huyện từ GHN (Gọi API lấy danh sách quận thuộc tỉnh đó)
       const distRes = await fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/district?province_id=${matchedProv.ProvinceID}`, { headers: { "token": GHN_TOKEN } });
       const distData = await distRes.json();
       if (distData.code !== 200) return 35000;
 
-      // Tìm tên quận khớp (Có thể chứa từ khóa "quận", "huyện", "thị xã")
       let matchedDist = distData.data.find((d: any) => {
          const dName = d.DistrictName.toLowerCase();
          return distName.includes(dName) || dName.includes(distName.replace(/(quận|huyện|thị xã|thành phố)\s+/g, ''));
@@ -115,7 +96,6 @@ export default function CheckoutPage() {
       
       if (!matchedDist) return 35000;
 
-      // 4. Tìm Mã Xã/Phường từ GHN (Để tính ship chuẩn nhất)
       const wardRes = await fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id=${matchedDist.DistrictID}`, { headers: { "token": GHN_TOKEN } });
       const wardData = await wardRes.json();
       let matchedWardCode = "";
@@ -128,7 +108,6 @@ export default function CheckoutPage() {
           if (matchedWard) matchedWardCode = matchedWard.WardCode;
       }
 
-      // 5. Gọi API tính phí GHN
       const feeRes = await fetch("https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee", {
         method: "POST",
         headers: { "token": GHN_TOKEN, "Content-Type": "application/json" },
@@ -142,18 +121,15 @@ export default function CheckoutPage() {
       });
       
       const feeResult = await feeRes.json();
-      if (feeResult.code === 200) {
-         return feeResult.data.total;
-      }
-      return 35000; // Trả về mặc định nếu API GHN lỗi
+      if (feeResult.code === 200) return feeResult.data.total;
+      return 35000; 
       
     } catch (error) {
       console.error("Lỗi tính phí GHN:", error);
-      return 30000; // Phí mặc định an toàn
+      return 30000; 
     }
   };
 
-  // Lắng nghe sự thay đổi của Địa chỉ để đi tính lại tiền ship
   useEffect(() => {
     const updateFee = async () => {
        if (cartData.totalAmount > 0) {
@@ -166,8 +142,7 @@ export default function CheckoutPage() {
 
   const discount = appliedPromo?.discountAmount || 
                    appliedPromo?.discountValue || 
-                   appliedPromo?.maxDiscountAmount ||
-                   0;
+                   appliedPromo?.maxDiscountAmount || 0;
                    
   const finalTotal = Math.max(0, cartData.totalAmount - discount + shippingFee);
 
@@ -179,11 +154,7 @@ export default function CheckoutPage() {
 
   const confirmOrder = () => {
     setShowConfirmModal(false);
-    if (formData.paymentMethodId === 2) {
-      const qrUrl = `https://img.vietqr.io/image/MB-0886301661-compact2.png?amount=${finalTotal}&addInfo=Thanh toan don hang&accountName=NGO GIA HIEN`;
-      setQrModal({ show: true, url: qrUrl, orderId: null });
-      return;
-    }
+    // ✅ Gọi chung một hàm, mọi logic VNPAY sẽ xử lý ngầm bên trong
     submitOrderToBackend();
   };
 
@@ -198,8 +169,8 @@ export default function CheckoutPage() {
         shippingFee: shippingFee,
       };
 
+      // 1. GỌI API LƯU ĐƠN HÀNG VÀO DATABASE TRƯỚC
       const res = await api.post("/orders", payload);
-      toast.success("Đặt hàng thành công!");
       
       const resData = res.data;
       let createdOrderId = null;
@@ -215,19 +186,45 @@ export default function CheckoutPage() {
       else if (resData?.id) createdOrderId = resData.id;
 
       if (createdOrderId) {
-        setQrModal({ show: false, url: "", orderId: null });
-        router.push(`/order-success/${createdOrderId}`); 
+        window.dispatchEvent(new Event("cartUpdated")); // Reset số lượng giỏ hàng trên Header
+        
+        // 2. KIỂM TRA PHƯƠNG THỨC THANH TOÁN
+        if (formData.paymentMethodId === 2) {
+            // NẾU LÀ VNPAY -> GỌI API TẠO LINK RỒI REDIRECT
+            toast.success("Đang chuyển hướng sang VNPAY...");
+            
+            try {
+                const vnpayRes = await api.get(`/payment/create-vnpay`, {
+                    params: { amount: finalTotal, orderId: createdOrderId }
+                });
+                
+                if (vnpayRes.data && vnpayRes.data.data) {
+                    // "Đá" khách hàng sang trang thanh toán của VNPAY
+                    window.location.href = vnpayRes.data.data;
+                } else {
+                    toast.error("Không thể tạo link thanh toán, vui lòng thử lại sau!");
+                    router.push(`/profile/orders`);
+                }
+            } catch (err) {
+                console.error("Lỗi tạo VNPAY link:", err);
+                toast.error("Lỗi khi kết nối đến VNPAY!");
+                router.push(`/profile/orders`);
+            }
+        } else {
+            // NẾU LÀ TIỀN MẶT (COD) -> BAY THẲNG ĐẾN TRANG THÀNH CÔNG
+            toast.success("Đặt hàng thành công!");
+            router.push(`/order-success/${createdOrderId}`); 
+        }
+
       } else {
         toast.error("Tạo đơn thành công nhưng không lấy được mã đơn!");
         router.push("/profile/orders");
       }
 
-      window.dispatchEvent(new Event("cartUpdated"));
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Lỗi khi đặt hàng");
-    } finally {
-      setIsSubmitting(false);
-    }
+      setIsSubmitting(false); // Chỉ tắt loading khi bị lỗi (Để VNPAY kịp redirect)
+    } 
   };
 
   if (loading) {
@@ -271,36 +268,6 @@ export default function CheckoutPage() {
       </main>
       <Footer />
 
-      {qrModal.show && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[999] p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center space-y-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-bold text-gray-900">Quét mã để thanh toán</h3>
-            <div className="bg-white p-2 rounded-2xl border-2 border-dashed border-gray-200">
-              <img src={qrModal.url} alt="Payment QR" className="w-full aspect-square object-contain rounded-xl" />
-            </div>
-            <div className="text-sm text-gray-500">
-              <p>Sử dụng App Ngân hàng hoặc ZaloPay để quét mã.</p>
-            </div>
-            <div className="space-y-3 pt-4 border-t border-gray-100">
-              <button
-                onClick={submitOrderToBackend}
-                disabled={isSubmitting}
-                className="w-full bg-green-500 hover:bg-green-600 text-white rounded-xl h-12 font-bold shadow-lg shadow-green-200 transition-all active:scale-95 flex items-center justify-center gap-2"
-              >
-                {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : "Tôi đã thanh toán"}
-              </button>
-              <button
-                onClick={() => setQrModal({ show: false, url: "", orderId: null })}
-                disabled={isSubmitting}
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl h-10 font-medium transition-colors"
-              >
-                Đóng, tôi chưa thanh toán
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <ConfirmModal
         open={showConfirmModal}
         title="Xác nhận đơn hàng?"
@@ -316,7 +283,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Thanh toán:</span>
-                <span className="font-bold text-slate-700">{formData.paymentMethodId === 1 ? "Tiền mặt (COD)" : "Chuyển khoản QR"}</span>
+                <span className="font-bold text-slate-700">{formData.paymentMethodId === 1 ? "Tiền mặt (COD)" : "Thanh toán ngay VNPAY"}</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-gray-200">
                 <span className="font-bold text-gray-900">Tổng thanh toán:</span>

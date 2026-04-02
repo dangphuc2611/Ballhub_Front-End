@@ -30,14 +30,15 @@ export interface PosOrder {
   items: PosCartItem[];
   customerName: string;
   customerPhone: string;
-  appliedVoucher: PosVoucher | null;
+  customerId: number | null;
+  isDelivery: boolean;
+  deliveryAddress: string;
+  addressId: number | null;
+  shippingFee: number;
   discountAmount: number;
+  appliedVoucher: PosVoucher | null;
   
-  customerId: number | null; 
-  isDelivery: boolean;       
-  addressId: number | null;  
-  deliveryAddress: string;   
-  shippingFee: number;       
+  paymentMethodId?: number; 
 }
 
 interface PosState {

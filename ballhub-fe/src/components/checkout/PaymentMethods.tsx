@@ -1,9 +1,19 @@
-import { CreditCard, Info } from 'lucide-react';
+import { CreditCard, Wallet } from 'lucide-react';
 
 export function PaymentMethods({ selectedMethod, onSelect }: any) {
   const options = [
-    { id: 1, title: 'Tiền mặt khi nhận hàng (COD)', desc: 'Thanh toán khi nhận hàng.', icon: <CreditCard size={20} /> },
-    { id: 2, title: 'Chuyển khoản ngân hàng', desc: 'Chuyển khoản qua App hoặc ATM.', icon: <Info size={20} /> },
+    { 
+      id: 1, 
+      title: 'Thanh toán khi nhận hàng (COD)', 
+      desc: 'Thanh toán bằng tiền mặt khi shipper giao hàng tới.', 
+      icon: <Wallet size={20} /> 
+    },
+    { 
+      id: 2, 
+      title: 'Thanh toán ngay (VNPAY)', 
+      desc: 'Thanh toán an toàn qua thẻ ATM nội địa, thẻ quốc tế hoặc ví điện tử VNPAY.', 
+      icon: <CreditCard size={20} /> 
+    },
   ];
 
   return (
@@ -29,6 +39,13 @@ export function PaymentMethods({ selectedMethod, onSelect }: any) {
               </div>
               <p className="text-xs text-gray-500">{opt.desc}</p>
             </div>
+            
+            {/* Hiển thị logo VNPAY nếu chọn id = 2 */}
+            {opt.id === 2 && (
+              <div className="flex-shrink-0">
+                <img src="https://vnpay.vn/s1/statics.vnpay.vn/2023/6/oxqsmxnx302l1685987341181.png" alt="VNPAY" className="h-6 object-contain grayscale opacity-60 transition-all" style={selectedMethod === opt.id ? { filter: 'none', opacity: 1 } : {}} />
+              </div>
+            )}
           </div>
         ))}
       </div>
