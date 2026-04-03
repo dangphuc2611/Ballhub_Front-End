@@ -1,7 +1,15 @@
 "use client";
 
 import React from "react";
-import { Eye, Pencil, Trash2, Plus, Tag, CheckCircle, XCircle } from "lucide-react";
+import {
+  Eye,
+  Pencil,
+  Trash2,
+  Plus,
+  Tag,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 
 type Voucher = {
   promotionId: number;
@@ -73,9 +81,13 @@ export const VoucherTable = ({
             <Tag size={18} className="text-emerald-600" />
           </div>
           <div>
-            <h3 className="font-black text-slate-800 text-base">Quản lý Voucher</h3>
+            <h3 className="font-black text-slate-800 text-base">
+              Quản lý Voucher
+            </h3>
             {totalElements != null && (
-              <p className="text-[11px] text-slate-400 font-medium">{totalElements} voucher</p>
+              <p className="text-[11px] text-slate-400 font-medium">
+                {totalElements} voucher
+              </p>
             )}
           </div>
         </div>
@@ -95,11 +107,17 @@ export const VoucherTable = ({
             <tr className="text-slate-400 text-[11px] uppercase">
               <th className="text-left px-8 py-4 font-semibold w-16">STT</th>
               <th className="text-left px-4 py-4 font-semibold">Mã Voucher</th>
-              <th className="text-left px-4 py-4 font-semibold">Tên chương trình</th>
+              <th className="text-left px-4 py-4 font-semibold">
+                Tên chương trình
+              </th>
               <th className="text-left px-4 py-4 font-semibold">Giảm giá</th>
-              <th className="text-left px-4 py-4 font-semibold">Đơn tối thiểu</th>
+              <th className="text-left px-4 py-4 font-semibold">
+                Đơn tối thiểu
+              </th>
               <th className="text-left px-4 py-4 font-semibold">Lượt dùng</th>
-              <th className="text-left px-4 py-4 font-semibold">Ngày hết hạn</th>
+              <th className="text-left px-4 py-4 font-semibold">
+                Ngày hết hạn
+              </th>
               <th className="text-left px-4 py-4 font-semibold">Trạng thái</th>
               <th className="text-right px-8 py-4 font-semibold">Thao tác</th>
             </tr>
@@ -166,7 +184,9 @@ export const VoucherTable = ({
                   </td>
 
                   {/* End Date */}
-                  <td className="px-4 py-4 text-slate-500 text-xs">{formatDate(v.endDate)}</td>
+                  <td className="px-4 py-4 text-slate-500 text-xs">
+                    {formatDate(v.endDate)}
+                  </td>
 
                   {/* Status */}
                   <td className="px-4 py-4">
@@ -192,14 +212,14 @@ export const VoucherTable = ({
                         <Eye size={15} />
                       </button>
                       <button
-                        onClick={() => onEdit?.(v)}
+                        onClick={() => onEdit?.(v)} // ✅ Đây là hàm mở Modal Sửa
                         title="Chỉnh sửa"
                         className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
                       >
                         <Pencil size={15} />
                       </button>
                       <button
-                        onClick={() => onDelete?.(v.promotionId)}
+                        onClick={() => onDelete?.(v.promotionId)} // ✅ Đây là hàm gọi Modal Xóa
                         title="Xóa"
                         className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
                       >
@@ -216,7 +236,9 @@ export const VoucherTable = ({
                     <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
                       <Tag size={22} className="text-slate-300" />
                     </div>
-                    <p className="text-slate-400 text-sm font-medium">Chưa có voucher nào</p>
+                    <p className="text-slate-400 text-sm font-medium">
+                      Chưa có voucher nào
+                    </p>
                   </div>
                 </td>
               </tr>
@@ -240,7 +262,14 @@ export const VoucherTable = ({
               ← Trước
             </button>
             {[...Array(Math.min(totalPages, 7))].map((_, i) => {
-              const p = totalPages <= 7 ? i : page <= 3 ? i : page >= totalPages - 4 ? totalPages - 7 + i : page - 3 + i;
+              const p =
+                totalPages <= 7
+                  ? i
+                  : page <= 3
+                    ? i
+                    : page >= totalPages - 4
+                      ? totalPages - 7 + i
+                      : page - 3 + i;
               return (
                 <button
                   key={p}

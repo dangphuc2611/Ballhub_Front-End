@@ -18,7 +18,7 @@ import {
   Palette,
   Briefcase,
   MessageSquare,
-  Store, 
+  Store,
 } from "lucide-react";
 
 import { NavItem } from "@/components/admin/NavItem";
@@ -52,10 +52,11 @@ export default function AdminDashboard() {
   const [orderPageInfo, setOrderPageInfo] = useState<any>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [orderRefreshTrigger, setOrderRefreshTrigger] = useState(0);
-  
+
   const [users, setUsers] = useState<any[]>([]);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [userRefreshTrigger, setUserRefreshTrigger] = useState(0);
 
   // ── Voucher state ────────────────────────────────────────────────────────
   const [vouchers, setVouchers] = useState<any[]>([]);
@@ -111,7 +112,12 @@ export default function AdminDashboard() {
     variant: "warning",
   });
 
-  const askConfirm = (title: string, description: string, onConfirm: () => void, variant: any = "danger") => {
+  const askConfirm = (
+    title: string,
+    description: string,
+    onConfirm: () => void,
+    variant: any = "danger",
+  ) => {
     setConfirmConfig({ open: true, title, description, onConfirm, variant });
   };
 
@@ -183,13 +189,9 @@ export default function AdminDashboard() {
     const fetchUsers = async () => {
       try {
         const token = localStorage.getItem("refreshToken");
-
         const res = await fetch("http://localhost:8080/api/admin/stats/users", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-
         const result = await res.json();
         setUsers(result?.data ?? result ?? []);
       } catch (error) {
@@ -198,7 +200,7 @@ export default function AdminDashboard() {
     };
 
     fetchUsers();
-  }, []);
+  }, [userRefreshTrigger]);
 
   useEffect(() => {
     const fetchVouchers = async () => {
@@ -206,7 +208,7 @@ export default function AdminDashboard() {
         const token = localStorage.getItem("refreshToken");
         const res = await fetch(
           `http://localhost:8080/api/promotions/admin/all?page=${voucherPage}&size=10`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         );
         const result = await res.json();
         const payload = result?.data ?? result;
@@ -236,11 +238,11 @@ export default function AdminDashboard() {
             headers: { Authorization: `Bearer ${token}` },
           });
           setVoucherRefreshTrigger((p) => p + 1);
-          setConfirmConfig(p => ({ ...p, open: false }));
+          setConfirmConfig((p) => ({ ...p, open: false }));
         } catch (err) {
           console.error("Delete voucher error:", err);
         }
-      }
+      },
     );
   };
 
@@ -250,7 +252,7 @@ export default function AdminDashboard() {
         const token = localStorage.getItem("refreshToken");
         const res = await fetch(
           `http://localhost:8080/api/admin/colors?page=${colorPage}&size=10`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         );
         const result = await res.json();
         const payload = result?.data ?? result;
@@ -270,26 +272,29 @@ export default function AdminDashboard() {
 
   const handleDeleteColor = (id: number) => {
     askConfirm(
-        "Xóa Màu Sắc?",
-        "Bạn có chắc chắn muốn xóa màu này không?",
-        async () => {
-          try {
-            const token = localStorage.getItem("refreshToken");
-            const res = await fetch(`http://localhost:8080/api/admin/colors/${id}`, {
+      "Xóa Màu Sắc?",
+      "Bạn có chắc chắn muốn xóa màu này không?",
+      async () => {
+        try {
+          const token = localStorage.getItem("refreshToken");
+          const res = await fetch(
+            `http://localhost:8080/api/admin/colors/${id}`,
+            {
               method: "DELETE",
               headers: { Authorization: `Bearer ${token}` },
-            });
-            const result = await res.json();
-            if (result.status === "error") {
-              alert(result.message);
-            } else {
-              setColorRefreshTrigger((p) => p + 1);
-              setConfirmConfig(p => ({ ...p, open: false }));
-            }
-          } catch (err) {
-            console.error("Delete color error:", err);
+            },
+          );
+          const result = await res.json();
+          if (result.status === "error") {
+            alert(result.message);
+          } else {
+            setColorRefreshTrigger((p) => p + 1);
+            setConfirmConfig((p) => ({ ...p, open: false }));
           }
+        } catch (err) {
+          console.error("Delete color error:", err);
         }
+      },
     );
   };
 
@@ -299,7 +304,7 @@ export default function AdminDashboard() {
         const token = localStorage.getItem("refreshToken");
         const res = await fetch(
           `http://localhost:8080/api/admin/brands?page=${brandPage}&size=10`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         );
         const result = await res.json();
         const payload = result?.data ?? result;
@@ -324,10 +329,13 @@ export default function AdminDashboard() {
       async () => {
         try {
           const token = localStorage.getItem("refreshToken");
-          const res = await fetch(`http://localhost:8080/api/admin/brands/${id}`, {
-            method: "DELETE",
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          const res = await fetch(
+            `http://localhost:8080/api/admin/brands/${id}`,
+            {
+              method: "DELETE",
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
           const result = await res.json();
           if (result.status === "error") {
             alert(result.message);
@@ -338,7 +346,7 @@ export default function AdminDashboard() {
         } catch (err) {
           console.error("Delete brand error:", err);
         }
-      }
+      },
     );
   };
 
@@ -348,7 +356,7 @@ export default function AdminDashboard() {
         const token = localStorage.getItem("refreshToken");
         const res = await fetch(
           `http://localhost:8080/api/admin/reviews?page=${reviewPage}&size=10`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         );
         const result = await res.json();
         const payload = result?.data ?? result;
@@ -368,26 +376,29 @@ export default function AdminDashboard() {
 
   const handleDeleteReview = (id: number) => {
     askConfirm(
-        "Xóa Đánh Giá?",
-        "Bạn có chắc chắn muốn xóa nhận xét này không?",
-        async () => {
-          try {
-            const token = localStorage.getItem("refreshToken");
-            const res = await fetch(`http://localhost:8080/api/admin/reviews/${id}`, {
+      "Xóa Đánh Giá?",
+      "Bạn có chắc chắn muốn xóa nhận xét này không?",
+      async () => {
+        try {
+          const token = localStorage.getItem("refreshToken");
+          const res = await fetch(
+            `http://localhost:8080/api/admin/reviews/${id}`,
+            {
               method: "DELETE",
               headers: { Authorization: `Bearer ${token}` },
-            });
-            const result = await res.json();
-            if (result.status === "error") {
-              alert(result.message);
-            } else {
-              setReviewRefreshTrigger((p) => p + 1);
-              setConfirmConfig(p => ({ ...p, open: false }));
-            }
-          } catch (err) {
-            console.error("Delete review error:", err);
+            },
+          );
+          const result = await res.json();
+          if (result.status === "error") {
+            alert(result.message);
+          } else {
+            setReviewRefreshTrigger((p) => p + 1);
+            setConfirmConfig((p) => ({ ...p, open: false }));
           }
+        } catch (err) {
+          console.error("Delete review error:", err);
         }
+      },
     );
   };
 
@@ -502,7 +513,9 @@ export default function AdminDashboard() {
         <header className="flex justify-between items-center mb-8">
           <div className="flex flex-col">
             <h2 className="text-2xl font-black text-slate-800 tracking-tight">
-              {activeTab === "Bán tại quầy" ? "Máy tính tiền (POS)" : "Dashboard Thống kê"}
+              {activeTab === "Bán tại quầy"
+                ? "Máy tính tiền (POS)"
+                : "Dashboard Thống kê"}
             </h2>
             <p className="text-xs text-slate-400 font-medium">
               Chào mừng trở lại, {user.fullName}
@@ -559,7 +572,7 @@ export default function AdminDashboard() {
                   onPageChange={(p: number) => setOrderPage(p)}
                   onView={(id: number) => setSelectedOrderId(id)}
                   // ✅ ĐÃ THÊM ONREFRESH VÀO ĐÂY
-                  onRefresh={() => setOrderRefreshTrigger((p) => p + 1)} 
+                  onRefresh={() => setOrderRefreshTrigger((p) => p + 1)}
                 />
               </div>
             </div>
@@ -596,7 +609,7 @@ export default function AdminDashboard() {
                   onPageChange={(p: number) => setOrderPage(p)}
                   onView={(id: number) => setSelectedOrderId(id)}
                   // ✅ ĐÃ THÊM ONREFRESH VÀO ĐÂY
-                  onRefresh={() => setOrderRefreshTrigger((p) => p + 1)} 
+                  onRefresh={() => setOrderRefreshTrigger((p) => p + 1)}
                 />
               </div>
             </div>
@@ -611,7 +624,10 @@ export default function AdminDashboard() {
           {activeTab === "Người dùng" && (
             <div className="grid grid-cols-12 gap-6 items-start">
               <div className="col-span-12">
-                <UserTable users={users} />
+                <UserTable
+                  users={users}
+                  onRefresh={() => setUserRefreshTrigger((p) => p + 1)} // ✅ Gắn công tắc vào đây
+                />
               </div>
             </div>
           )}
@@ -625,8 +641,12 @@ export default function AdminDashboard() {
                 totalElements={voucherPageInfo?.totalElements}
                 pageSize={voucherPageInfo?.pageSize}
                 onPageChange={(p: number) => setVoucherPage(p)}
-                onView={(v: any) => setVoucherModal({ open: true, mode: "view", voucher: v })}
-                onEdit={(v: any) => setVoucherModal({ open: true, mode: "edit", voucher: v })}
+                onView={(v: any) =>
+                  setVoucherModal({ open: true, mode: "view", voucher: v })
+                }
+                onEdit={(v: any) =>
+                  setVoucherModal({ open: true, mode: "edit", voucher: v })
+                }
                 onDelete={handleDeleteVoucher}
                 onAddNew={() => setVoucherModal({ open: true, mode: "create" })}
               />
@@ -642,7 +662,9 @@ export default function AdminDashboard() {
                 totalElements={colorPageInfo?.totalElements}
                 pageSize={colorPageInfo?.pageSize}
                 onPageChange={(p) => setColorPage(p)}
-                onEdit={(c) => setColorModal({ open: true, mode: "edit", colorData: c })}
+                onEdit={(c) =>
+                  setColorModal({ open: true, mode: "edit", colorData: c })
+                }
                 onDelete={handleDeleteColor}
                 onAddNew={() => setColorModal({ open: true, mode: "create" })}
               />
@@ -657,7 +679,9 @@ export default function AdminDashboard() {
                 totalElements={brandPageInfo?.totalElements}
                 pageSize={brandPageInfo?.pageSize}
                 onPageChange={(p: number) => setBrandPage(p)}
-                onEdit={(b) => setBrandModal({ open: true, mode: "edit", brandData: b })}
+                onEdit={(b) =>
+                  setBrandModal({ open: true, mode: "edit", brandData: b })
+                }
                 onDelete={handleDeleteBrand}
                 onAddNew={() => setBrandModal({ open: true, mode: "create" })}
               />
