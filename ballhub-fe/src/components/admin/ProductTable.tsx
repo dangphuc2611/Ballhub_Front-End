@@ -49,7 +49,7 @@ export const ProductTable = ({
             <th className="text-left pb-4 w-10">STT</th>
             <th className="text-left pb-4">Sản phẩm</th>
             <th className="text-left pb-4">Hãng</th>
-            <th className="text-left pb-4">Giá bán</th>
+            <th className="text-left pb-4 text-xs">Chất liệu / Kiểu dáng</th>
             <th className="text-left pb-4">Trạng thái</th>
             <th className="text-right pb-4"></th>
           </tr>
@@ -70,10 +70,11 @@ export const ProductTable = ({
                     width={50}
                     height={50}
                     alt={p.productName}
+                    className="rounded-lg object-cover border border-slate-100"
                   />
                   <div>
-                    <p className="font-bold text-slate-700">{p.productName}</p>
-                    <p className="text-[10px] text-slate-400 uppercase tracking-tighter truncate max-w-[200px]">
+                    <p className="font-bold text-slate-700 leading-tight">{p.productName}</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-tighter truncate max-w-[200px] mt-0.5">
                       {p.description}
                     </p>
                   </div>
@@ -81,8 +82,17 @@ export const ProductTable = ({
               </td>
               <td className="font-bold text-slate-600">{p.brandName}</td>
               
-              <td className="font-bold text-emerald-600">{formatPrice(p.maxPrice)}</td>
-              
+              <td className="py-4">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md inline-block w-fit">
+                    {p.materialName || "—"}
+                  </span>
+                  <span className="text-[10px] font-medium text-slate-400">
+                    {p.styleName || "—"}
+                  </span>
+                </div>
+              </td>
+
               <td>
                 <StatusTag
                   label={p.status ? "Hoạt động" : "Tạm khóa"}

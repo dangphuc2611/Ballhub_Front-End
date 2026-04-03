@@ -18,6 +18,8 @@ interface FormOptionsResult {
   categories: SelectOption[];
   sizes: SelectOption[];
   colors: SelectOption[];
+  materials: SelectOption[];
+  styles: SelectOption[];
   loading: boolean;
   error: string | null;
 }
@@ -37,6 +39,8 @@ export function useFormOptions(): FormOptionsResult {
   const [categories, setCategories] = useState<SelectOption[]>([]);
   const [sizes, setSizes] = useState<SelectOption[]>([]);
   const [colors, setColors] = useState<SelectOption[]>([]);
+  const [materials, setMaterials] = useState<SelectOption[]>([]);
+  const [styles, setStyles] = useState<SelectOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,12 +55,14 @@ export function useFormOptions(): FormOptionsResult {
         setLoading(true);
         setError(null);
 
-        const [rawBrands, rawCategories, rawSizes, rawColors] =
+        const [rawBrands, rawCategories, rawSizes, rawColors, rawMaterials, rawStyles] =
           await Promise.all([
             fetchJson(`${BACKEND}/api/brands`, token),
             fetchJson(`${BACKEND}/api/categories`, token),
             fetchJson(`${BACKEND}/api/sizes`, token),
             fetchJson(`${BACKEND}/api/colors`, token),
+            fetchJson(`${BACKEND}/api/materials`, token),
+            fetchJson(`${BACKEND}/api/styles`, token),
           ]);
 
         setBrands(
@@ -97,8 +103,22 @@ export function useFormOptions(): FormOptionsResult {
             label: c.colorName,
           }))
         );
+
+        setMaterials(
+          (rawMaterials as any[]).map((m) => ({
+            value: String(m.materialId),
+            label: m.materialName,
+          }))
+        );
+
+        setStyles(
+          (rawStyles as any[]).map((s) => ({
+            value: String(s.styleId),
+            label: s.styleName,
+          }))
+        );
       } catch (e: any) {
-        setError("Không thể tải dữ liệu danh mục / thương hiệu / size / màu");
+        setError("Không thể tải dữ liệu danh mục / thương hiệu / size / màu / chất liệu / kiểu dáng");
       } finally {
         setLoading(false);
       }
@@ -107,5 +127,5 @@ export function useFormOptions(): FormOptionsResult {
     load();
   }, []);
 
-  return { brands, categories, sizes, colors, loading, error };
+  return { brands, categories, sizes, colors, materials, styles, loading, error };
 }

@@ -14,6 +14,8 @@ import {
 import axios from "axios";
 import { useFormOptions } from "@/lib/useFormOptions";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
+import * as Tabs from "@radix-ui/react-tabs";
+import { ProductVariantManager } from "./ProductVariantManager";
 
 const BACKEND = "http://localhost:8080";
 const getToken = () =>
@@ -100,7 +102,8 @@ export const ProductEditModal = ({
   onClose,
   onRefresh,
 }: ProductEditModalProps) => {
-  const { brands, categories, loading: optLoading } = useFormOptions();
+  const { brands, categories, sizes, colors, materials, styles, loading: optLoading } = useFormOptions();
+  const [activeTab, setActiveTab] = useState("info");
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -115,6 +118,8 @@ export const ProductEditModal = ({
     description: "",
     categoryId: "",
     brandId: "",
+    materialId: "",
+    styleId: "",
     status: true,
   });
 
@@ -149,6 +154,8 @@ export const ProductEditModal = ({
           description: p.description || "",
           categoryId: p.categoryId ? p.categoryId.toString() : "",
           brandId: p.brandId ? p.brandId.toString() : "",
+          materialId: p.materialId ? p.materialId.toString() : "",
+          styleId: p.styleId ? p.styleId.toString() : "",
           status: p.status ?? true,
         });
 
@@ -176,6 +183,36 @@ export const ProductEditModal = ({
     if (productId) fetchProductDetails();
   }, [productId]);
 
+  const handleRefreshInner = async () => {
+    // Re-fetch product details to update variants table
+    try {
+      const token = getToken();
+      const res = await axios.get(`${BACKEND}/api/products/${productId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const p = res.data.data ?? res.data;
+      const rawVariants: any[] = p.variants ?? p.productVariants ?? [];
+
+      setVariants(
+        rawVariants.map((v: any) => ({
+          variantId: v.variantId ?? v.productVariantId ?? v.id,
+          sizeId: v.sizeId,
+          sizeName: v.sizeName ?? v.size?.sizeName ?? `Size ${v.sizeId}`,
+          colorId: v.colorId,
+          colorName: v.colorName ?? v.color?.colorName ?? `Màu ${v.colorId}`,
+          price: v.price ?? 0,
+          stockQuantity: v.stockQuantity ?? 0,
+          sku: v.sku ?? "",
+          status: v.status ?? true,
+        }))
+      );
+    } catch (e) {
+      console.error("Refresh inner error:", e);
+    }
+    // Also notify parent (AdminDashboard) that product list might need refresh
+    onRefresh();
+  };
+
   /* ── Submit Logic ─────────────────────────────────────────────────────── */
   const executeSubmit = async () => {
     setSubmitting(true);
@@ -188,6 +225,8 @@ export const ProductEditModal = ({
         description: formData.description,
         categoryId: parseInt(formData.categoryId, 10),
         brandId: parseInt(formData.brandId, 10),
+        materialId: formData.materialId ? parseInt(formData.materialId, 10) : null,
+        styleId: formData.styleId ? parseInt(formData.styleId, 10) : null,
         status: formData.status,
       };
 
@@ -289,165 +328,156 @@ export const ProductEditModal = ({
         </div>
 
         {/* ── Body (scrollable) ── */}
-        <div className="p-7 overflow-y-auto flex-1 custom-scrollbar space-y-7">
-          {/* ── Message Banner ── */}
-          {message && (
-            <div
-              className={`flex items-center gap-3 p-4 rounded-xl border text-sm font-semibold ${
-                message.type === "success"
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                  : "bg-red-50 text-red-700 border-red-100"
-              }`}
-            >
-              {message.type === "success" ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-              {message.text}
-            </div>
-          )}
-
-          {/* ════ FORM: Thông tin cơ bản ════ */}
-          <form id="edit-product-form" onSubmit={handleSubmit} className="space-y-5">
-            <Field label="Tên sản phẩm *">
-              <input
-                type="text"
-                name="productName"
-                value={formData.productName}
-                onChange={(e) => setFormData((p) => ({ ...p, productName: e.target.value }))}
-                placeholder="VD: Giày đá bóng Adidas Predator"
-                className={inputCls}
-                required
-              />
-            </Field>
-
-            <Field label="Mô tả">
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
-                placeholder="Mô tả chi tiết sản phẩm..."
-                rows={3}
-                className={`${inputCls} resize-none`}
-              />
-            </Field>
-
-            {/* ── Danh mục & Thương hiệu → Combobox ── */}
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Danh mục *">
-                <ComboBox
-                  value={formData.categoryId}
-                  options={categories}
-                  loading={optLoading}
-                  placeholder="-- Chọn danh mục --"
-                  onChange={(v) => setFormData((p) => ({ ...p, categoryId: v }))}
-                />
-              </Field>
-              <Field label="Thương hiệu *">
-                <ComboBox
-                  value={formData.brandId}
-                  options={brands}
-                  loading={optLoading}
-                  placeholder="-- Chọn thương hiệu --"
-                  onChange={(v) => setFormData((p) => ({ ...p, brandId: v }))}
-                />
-              </Field>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Tabs.Root
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="flex flex-col h-full"
+          >
+            {/* ── Tab List ── */}
+            <div className="px-7 bg-white border-b border-slate-50">
+              <Tabs.List className="flex gap-8">
+                <Tabs.Trigger
+                  value="info"
+                  className={`py-4 text-xs font-black uppercase tracking-widest transition-all relative ${
+                    activeTab === "info"
+                      ? "text-emerald-500"
+                      : "text-slate-400 hover:text-slate-600"
+                  }`}
+                >
+                  Thông tin cơ bản
+                  {activeTab === "info" && (
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 rounded-t-full" />
+                  )}
+                </Tabs.Trigger>
+                <Tabs.Trigger
+                  value="variants"
+                  className={`py-4 text-xs font-black uppercase tracking-widest transition-all relative ${
+                    activeTab === "variants"
+                      ? "text-emerald-500"
+                      : "text-slate-400 hover:text-slate-600"
+                  }`}
+                >
+                  Quản lý biến thể
+                  {activeTab === "variants" && (
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 rounded-t-full" />
+                  )}
+                </Tabs.Trigger>
+              </Tabs.List>
             </div>
 
-            {/* ════ BẢNG BIẾN THỂ (Read-only) ════ */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-slate-700">
-                <Layers size={16} className="text-emerald-500" />
-                <h3 className="text-sm font-bold uppercase tracking-wider">
-                  Biến thể sản phẩm
-                  <span className="ml-2 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full text-xs font-bold normal-case tracking-normal">
-                    {variants.length}
-                  </span>
-                </h3>
-              </div>
-
-              {variants.length === 0 ? (
-                <div className="text-center py-8 text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-2xl">
-                  Sản phẩm này chưa có biến thể nào.
-                </div>
-              ) : (
-                <div className="border border-slate-100 rounded-2xl overflow-hidden">
-                  {/* Header */}
-                  <div className="grid grid-cols-[40px_1fr_1fr_100px_70px_1fr_60px] gap-2 px-4 py-2.5 bg-slate-50 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
-                    <span>#</span>
-                    <span>Size</span>
-                    <span>Màu</span>
-                    <span>Giá (₫)</span>
-                    <span>SL</span>
-                    <span>SKU</span>
-                    <span className="text-center">TT</span>
-                  </div>
-
-                  {/* Rows */}
-                  <div className="divide-y divide-slate-50 max-h-[260px] overflow-y-auto custom-scrollbar">
-                    {variants.map((v, idx) => (
-                      <div
-                        key={v.variantId ?? idx}
-                        className="grid grid-cols-[40px_1fr_1fr_100px_70px_1fr_60px] gap-2 px-4 py-3 text-sm items-center hover:bg-slate-50/50 transition-colors"
-                      >
-                        <span className="text-slate-400 font-bold text-xs">{idx + 1}</span>
-
-                        {/* Size */}
-                        <span className="inline-flex items-center">
-                          <span className="bg-blue-50 text-blue-700 border border-blue-100 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                            {v.sizeName}
-                          </span>
-                        </span>
-
-                        {/* Màu */}
-                        <span className="inline-flex items-center">
-                          <span className="bg-purple-50 text-purple-700 border border-purple-100 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                            {v.colorName}
-                          </span>
-                        </span>
-
-                        {/* Giá */}
-                        <span className="font-bold text-slate-800">{v.price.toLocaleString()}đ</span>
-
-                        {/* Số lượng */}
-                        <span className={`font-bold ${v.stockQuantity === 0 ? "text-red-500" : "text-slate-700"}`}>
-                          {v.stockQuantity}
-                        </span>
-
-                        {/* SKU */}
-                        <span className="font-mono text-xs text-slate-500 truncate" title={v.sku}>
-                          {v.sku || <span className="text-slate-300 italic">—</span>}
-                        </span>
-
-                        {/* Trạng thái */}
-                        <div className="flex justify-center">
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                              v.active !== false ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"
-                            }`}
-                          >
-                            {v.active !== false ? "Hoạt động" : "Tắt"}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+            <div className="p-7 overflow-y-auto flex-1 custom-scrollbar">
+              {/* ── Message Banner ── */}
+              {message && (
+                <div
+                  className={`flex items-center gap-3 p-4 mb-6 rounded-xl border text-sm font-semibold animate-in fade-in zoom-in-95 duration-300 ${
+                    message.type === "success"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                      : "bg-red-50 text-red-700 border-red-100"
+                  }`}
+                >
+                  {message.type === "success" ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+                  {message.text}
                 </div>
               )}
-            </div>
 
-            {/* ── Trạng thái ── */}
-            <div className="flex items-center gap-3 p-4 border border-slate-200 rounded-xl bg-slate-50/50">
-              <input
-                type="checkbox"
-                id="status"
-                name="status"
-                checked={formData.status}
-                onChange={(e) => setFormData((p) => ({ ...p, status: e.target.checked }))}
-                className="w-5 h-5 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
-              />
-              <label htmlFor="status" className="text-sm font-bold text-slate-700 cursor-pointer select-none">
-                Trạng thái hoạt động
-              </label>
+              <Tabs.Content value="info" className="space-y-7 outline-none">
+                {/* ════ FORM: Thông tin cơ bản ════ */}
+                <form id="edit-product-form" onSubmit={handleSubmit} className="space-y-5">
+                  <Field label="Tên sản phẩm *">
+                    <input
+                      type="text"
+                      name="productName"
+                      value={formData.productName}
+                      onChange={(e) => setFormData((p) => ({ ...p, productName: e.target.value }))}
+                      placeholder="VD: Giày đá bóng Adidas Predator"
+                      className={inputCls}
+                      required
+                    />
+                  </Field>
+
+                  <Field label="Mô tả">
+                    <textarea
+                      name="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
+                      placeholder="Mô tả chi tiết sản phẩm..."
+                      rows={3}
+                      className={`${inputCls} resize-none`}
+                    />
+                  </Field>
+
+                  {/* ── Danh mục & Thương hiệu → Combobox ── */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label="Danh mục *">
+                      <ComboBox
+                        value={formData.categoryId}
+                        options={categories}
+                        loading={optLoading}
+                        placeholder="-- Chọn danh mục --"
+                        onChange={(v) => setFormData((p) => ({ ...p, categoryId: v }))}
+                      />
+                    </Field>
+                    <Field label="Thương hiệu *">
+                      <ComboBox
+                        value={formData.brandId}
+                        options={brands}
+                        loading={optLoading}
+                        placeholder="-- Chọn thương hiệu --"
+                        onChange={(v) => setFormData((p) => ({ ...p, brandId: v }))}
+                      />
+                    </Field>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label="Chất liệu">
+                      <ComboBox
+                        value={formData.materialId}
+                        options={materials}
+                        loading={optLoading}
+                        placeholder="-- Chọn chất liệu --"
+                        onChange={(v) => setFormData((p) => ({ ...p, materialId: v }))}
+                      />
+                    </Field>
+                    <Field label="Kiểu dáng">
+                      <ComboBox
+                        value={formData.styleId}
+                        options={styles}
+                        loading={optLoading}
+                        placeholder="-- Chọn kiểu dáng --"
+                        onChange={(v) => setFormData((p) => ({ ...p, styleId: v }))}
+                      />
+                    </Field>
+                  </div>
+
+                  {/* ── Trạng thái ── */}
+                  <div className="flex items-center gap-3 p-4 border border-slate-200 rounded-xl bg-slate-50/50">
+                    <input
+                      type="checkbox"
+                      id="status"
+                      name="status"
+                      checked={formData.status}
+                      onChange={(e) => setFormData((p) => ({ ...p, status: e.target.checked }))}
+                      className="w-5 h-5 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <label htmlFor="status" className="text-sm font-bold text-slate-700 cursor-pointer select-none">
+                      Trạng thái hoạt động
+                    </label>
+                  </div>
+                </form>
+              </Tabs.Content>
+
+              <Tabs.Content value="variants" className="outline-none">
+                <ProductVariantManager
+                  productId={productId}
+                  variants={variants as any}
+                  sizes={sizes}
+                  colors={colors}
+                  onRefresh={handleRefreshInner}
+                />
+              </Tabs.Content>
             </div>
-          </form>
+          </Tabs.Root>
         </div>
 
         {/* ── Footer Actions ── */}
@@ -471,15 +501,17 @@ export const ProductEditModal = ({
             >
               Hủy
             </button>
-            <button
-              type="submit"
-              form="edit-product-form"
-              disabled={submitting || deleting}
-              className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 text-white rounded-xl font-bold text-sm hover:bg-emerald-600 transition-all active:scale-95 shadow-lg shadow-emerald-200 disabled:opacity-50"
-            >
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />}
-              Lưu thay đổi
-            </button>
+            {activeTab === "info" && (
+              <button
+                type="submit"
+                form="edit-product-form"
+                disabled={submitting || deleting}
+                className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 text-white rounded-xl font-bold text-sm hover:bg-emerald-600 transition-all active:scale-95 shadow-lg shadow-emerald-200 disabled:opacity-50"
+              >
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />}
+                Lưu thay đổi
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -127,6 +127,8 @@ interface BaseFormData {
   description: string;
   categoryId: string;
   brandId: string;
+  materialId: string;
+  styleId: string;
 }
 
 const INITIAL_BASE: BaseFormData = {
@@ -134,11 +136,13 @@ const INITIAL_BASE: BaseFormData = {
   description: "",
   categoryId: "",
   brandId: "",
+  materialId: "",
+  styleId: "",
 };
 
 /* ─── Main component ──────────────────────────────────────────────────────────── */
 export const QuickAddProduct = () => {
-  const { brands, categories, sizes, colors, loading: optLoading } = useFormOptions();
+  const { brands, categories, sizes, colors, materials, styles, loading: optLoading } = useFormOptions();
 
   const [baseData, setBaseData] = useState<BaseFormData>(INITIAL_BASE);
   const [variants, setVariants] = useState<VariantRow[]>([makeVariant()]);
@@ -181,7 +185,7 @@ export const QuickAddProduct = () => {
     setLoading(true);
     setMessage(null);
 
-    const { productName, description, categoryId, brandId } = baseData;
+    const { productName, description, categoryId, brandId, materialId, styleId } = baseData;
 
     if (!productName || !description || !categoryId || !brandId) {
       setMessage({ type: "error", text: "Vui lòng điền đầy đủ thông tin sản phẩm" });
@@ -217,6 +221,8 @@ export const QuickAddProduct = () => {
         description,
         categoryId: parseInt(categoryId),
         brandId: parseInt(brandId),
+        materialId: materialId ? parseInt(materialId) : null,
+        styleId: styleId ? parseInt(styleId) : null,
         variants: variants.map((v) => ({
           sizeId: parseInt(v.sizeId),
           colorId: parseInt(v.colorId),
@@ -344,6 +350,25 @@ export const QuickAddProduct = () => {
                 loadingOptions={optLoading}
                 placeholder="-- Chọn thương hiệu --"
                 onChange={(val) => setBaseData((p) => ({ ...p, brandId: val }))}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <SelectGroup
+                label="Chất liệu"
+                value={baseData.materialId}
+                options={materials}
+                loadingOptions={optLoading}
+                placeholder="-- Chọn chất liệu --"
+                onChange={(val) => setBaseData((p) => ({ ...p, materialId: val }))}
+              />
+              <SelectGroup
+                label="Kiểu dáng"
+                value={baseData.styleId}
+                options={styles}
+                loadingOptions={optLoading}
+                placeholder="-- Chọn kiểu dáng --"
+                onChange={(val) => setBaseData((p) => ({ ...p, styleId: val }))}
               />
             </div>
           </div>
