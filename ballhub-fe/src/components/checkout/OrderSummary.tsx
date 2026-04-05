@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Loader2, Tag, XCircle, Sparkles } from "lucide-react";
+import { ChevronRight, Loader2, Tag, XCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import api from "@/lib/cartApi";
 import { Promotion } from "@/types/promotion";
 
-// ✅ Nhận thêm shippingFee từ file page.tsx truyền xuống (mặc định = 0)
 export function OrderSummary({
   cartData,
   isSubmitting,
@@ -21,19 +21,15 @@ export function OrderSummary({
   const [availablePromos, setAvailablePromos] = useState<Promotion[]>([]);
   const [loadingPromos, setLoadingPromos] = useState(false);
   const [promoInput, setPromoInput] = useState("");
-  const [hasAutoApplied, setHasAutoApplied] = useState(false); // Cờ để chỉ tự động áp dụng 1 lần
+  const [hasAutoApplied, setHasAutoApplied] = useState(false); 
 
   const subTotal = cartData.totalAmount || 0;
 
-  // 1. Fetch danh sách Voucher khi component được mount
   useEffect(() => {
     const fetchPromos = async () => {
       setLoadingPromos(true);
       try {
-        // ✅ FIX 1: Gọi endpoint chuẩn đã thống nhất ở Backend
         const res = await api.get("/promotions/active");
-
-        // ✅ FIX 2: Nhận data từ ApiResponse { success, data, message }
         if (res.data && res.data.data) {
           setAvailablePromos(res.data.data);
         }
@@ -46,25 +42,21 @@ export function OrderSummary({
     fetchPromos();
   }, []);
 
-  // Hàm tính toán số tiền giảm giá của một promo bất kỳ
   const calculateDiscount = (promo: any, currentSubTotal: number) => {
     if (!promo || currentSubTotal < promo.minOrderAmount) return 0;
 
     let discount = 0;
     if (promo.discountType === "PERCENT") {
-      // ✅ Đảm bảo dùng đúng tên trường discountPercent từ Backend
       discount = (currentSubTotal * (promo.discountPercent || 0)) / 100;
       if (promo.maxDiscountAmount && discount > promo.maxDiscountAmount) {
         discount = promo.maxDiscountAmount;
       }
     } else if (promo.discountType === "FIXED") {
-      // ✅ FIXED thì lấy maxDiscountAmount làm giá trị giảm
       discount = promo.maxDiscountAmount || 0;
     }
     return Math.floor(discount);
   };
 
-  // 2. Logic Tự động tìm và áp dụng Voucher tốt nhất
   useEffect(() => {
     if (
       availablePromos.length > 0 &&
@@ -93,7 +85,6 @@ export function OrderSummary({
     }
   }, [availablePromos, subTotal, hasAutoApplied, appliedPromo, setAppliedPromo]);
 
-  // 3. Logic tính toán tiền giảm giá cho mã đang được áp dụng
   let discountAmount = 0;
   if (appliedPromo) {
     if (subTotal >= appliedPromo.minOrderAmount) {
@@ -106,10 +97,8 @@ export function OrderSummary({
     }
   }
 
-  // ✅ 4. TỔNG TIỀN CUỐI CÙNG = Tạm tính - Giảm giá + Phí Ship
   const finalTotal = (subTotal - discountAmount > 0 ? subTotal - discountAmount : 0) + shippingFee;
 
-  // Xử lý khi người dùng ấn nút "Áp dụng" (Nhập tay)
   const handleApplyManualPromo = () => {
     if (!promoInput.trim()) return;
 
@@ -132,7 +121,6 @@ export function OrderSummary({
     }
   };
 
-  // Xử lý khi người dùng chọn thẳng mã từ danh sách (Click)
   const handleSelectPromo = (promo: any) => {
     if (subTotal >= promo.minOrderAmount) {
       setAppliedPromo(promo);
@@ -147,13 +135,13 @@ export function OrderSummary({
       <h3 className="text-lg font-bold mb-6">
         Đơn hàng của bạn{" "}
         <span className="text-gray-400 font-medium">
-          ({cartData.items.length})
+          ({cartData.items?.length || 0})
         </span>
       </h3>
 
       {/* DANH SÁCH SẢN PHẨM TRONG GIỎ */}
       <div className="max-h-[250px] overflow-y-auto pr-2 space-y-4 mb-8 custom-scrollbar">
-        {cartData.items.map((item: any) => (
+        {cartData.items?.map((item: any) => (
           <div key={item.cartItemId} className="flex gap-4">
             <div className="w-16 h-16 relative bg-gray-50 rounded-xl overflow-hidden border flex-shrink-0">
               <Image
@@ -166,9 +154,8 @@ export function OrderSummary({
               <p className="text-[10px] text-gray-500 uppercase mt-1">
                 Size {item.sizeName} | SL: {item.quantity}
               </p>
-              {/* ✅ FIX HYDRATION */}
               <p className="text-sm font-bold text-green-600 mt-1" suppressHydrationWarning>
-                {item.subtotal.toLocaleString()}đ
+                {item.subtotal?.toLocaleString()}đ
               </p>
             </div>
           </div>
@@ -188,64 +175,80 @@ export function OrderSummary({
           )}
         </div>
 
-        <div className="flex gap-2 mb-4">
-          <input
-            type="text" placeholder="Nhập mã khuyến mãi"
-            className="flex-1 border border-gray-200 rounded-xl px-4 text-sm uppercase focus:outline-none focus:border-green-500"
-            value={promoInput} onChange={(e) => setPromoInput(e.target.value)}
-          />
-          <Button onClick={handleApplyManualPromo} variant="outline" className="rounded-xl border-green-600 text-green-600 hover:bg-green-50">
-            Áp dụng
-          </Button>
-        </div>
-
-        {appliedPromo && (
-          <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl p-3 mb-4">
+        {/* LOGIC ĐỔI GIAO DIỆN (NẾU CÓ MÃ THÌ HIỆN THẺ, NẾU KHÔNG THÌ HIỆN INPUT) */}
+        {appliedPromo ? (
+          // TRẠNG THÁI 1: ĐÃ CHỌN MÃ -> HIỂN THỊ THẺ ĐÈ LÊN INPUT
+          <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl p-3 animate-in zoom-in-95 duration-200 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="bg-green-600 text-white rounded-lg p-1.5"><Tag size={16} /></div>
+              <div className="bg-green-600 text-white rounded-lg p-2 shadow-sm">
+                <Tag size={16} />
+              </div>
               <div>
                 <p className="text-xs font-bold text-green-700 uppercase flex items-center gap-1">
                   {appliedPromo.promoCode} {hasAutoApplied && <Sparkles size={10} className="text-yellow-500" />}
                 </p>
-                <p className="text-[10px] text-green-600 font-medium" suppressHydrationWarning>
+                <p className="text-[10px] text-green-600 font-medium mt-0.5" suppressHydrationWarning>
                   Đã giảm {discountAmount.toLocaleString()}đ
                 </p>
               </div>
             </div>
-            <button onClick={() => { setAppliedPromo(null); setHasAutoApplied(true); }} className="text-gray-400 hover:text-red-500 transition-colors">
+            {/* Nút Hủy Mã */}
+            <button 
+              onClick={() => { 
+                setAppliedPromo(null); 
+                setPromoInput(""); 
+                setHasAutoApplied(true); 
+              }} 
+              className="text-green-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-full transition-all"
+              title="Gỡ bỏ mã này"
+            >
               <XCircle size={18} />
             </button>
           </div>
-        )}
-
-        {!appliedPromo && availablePromos.length > 0 && (
-          <div className="space-y-2 mt-4">
-            <p className="text-[11px] text-gray-400 uppercase tracking-wider font-bold">Mã có sẵn</p>
-            <div className="max-h-[140px] overflow-y-auto pr-1 space-y-2 custom-scrollbar">
-              {availablePromos.map((promo) => {
-                const isEligible = subTotal >= promo.minOrderAmount;
-                const estimatedDiscount = isEligible ? calculateDiscount(promo, subTotal) : 0;
-                return (
-                  <div key={promo.promotionId} onClick={() => isEligible && handleSelectPromo(promo)}
-                    className={`flex justify-between items-center p-3 border rounded-xl cursor-pointer transition-all ${isEligible ? "border-gray-200 hover:border-green-500 hover:bg-green-50/50 hover:shadow-sm" : "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed"}`}
-                  >
-                    <div>
-                      <p className={`text-xs font-bold flex items-center gap-2 ${isEligible ? "text-gray-900" : "text-gray-400"}`}>
-                        {promo.promoCode}
-                        {promo.discountPercent && <span className="font-bold text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded">-{promo.discountPercent}%</span>}
-                      </p>
-                      <p className="text-[10px] text-gray-500 mt-1" suppressHydrationWarning>Đơn từ {promo.minOrderAmount.toLocaleString()}đ</p>
-                    </div>
-                    {isEligible && estimatedDiscount > 0 && (
-                      <div className="text-right">
-                        <p className="text-[10px] text-gray-400">Giảm</p>
-                        <p className="text-xs font-bold text-green-600" suppressHydrationWarning>-{estimatedDiscount.toLocaleString()}đ</p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+        ) : (
+          // TRẠNG THÁI 2: CHƯA CHỌN MÃ -> HIỂN THỊ INPUT VÀ DANH SÁCH MÃ
+          <div className="animate-in fade-in duration-200">
+            <div className="flex gap-2 mb-4">
+              <input
+                type="text" placeholder="Nhập mã khuyến mãi"
+                className="flex-1 border border-gray-200 rounded-xl px-4 text-sm uppercase focus:outline-none focus:border-green-500 focus:ring-2 ring-green-50 transition-all"
+                value={promoInput} onChange={(e) => setPromoInput(e.target.value)}
+              />
+              <Button onClick={handleApplyManualPromo} variant="outline" className="rounded-xl border-green-600 text-green-600 hover:bg-green-50">
+                Áp dụng
+              </Button>
             </div>
+
+            {availablePromos.length > 0 && (
+              <div className="space-y-2 mt-4">
+                <p className="text-[11px] text-gray-400 uppercase tracking-wider font-bold">Mã có sẵn</p>
+                <div className="max-h-[140px] overflow-y-auto pr-1 space-y-2 custom-scrollbar">
+                  {availablePromos.map((promo) => {
+                    const isEligible = subTotal >= promo.minOrderAmount;
+                    const estimatedDiscount = isEligible ? calculateDiscount(promo, subTotal) : 0;
+                    return (
+                      <div key={promo.promotionId} onClick={() => isEligible && handleSelectPromo(promo)}
+                        className={`flex justify-between items-center p-3 border rounded-xl cursor-pointer transition-all ${isEligible ? "border-gray-200 hover:border-green-500 hover:bg-green-50/50 hover:shadow-sm" : "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed"}`}
+                      >
+                        <div>
+                          <p className={`text-xs font-bold flex items-center gap-2 ${isEligible ? "text-gray-900" : "text-gray-400"}`}>
+                            {promo.promoCode}
+                            {promo.discountPercent && <span className="font-bold text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded">-{promo.discountPercent}%</span>}
+                          </p>
+                          <p className="text-[10px] text-gray-500 mt-1" suppressHydrationWarning>Đơn từ {promo.minOrderAmount.toLocaleString()}đ</p>
+                        </div>
+                        {isEligible && estimatedDiscount > 0 && (
+                          <div className="text-right">
+                            <p className="text-[10px] text-gray-400">Giảm</p>
+                            <p className="text-xs font-bold text-green-600" suppressHydrationWarning>-{estimatedDiscount.toLocaleString()}đ</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

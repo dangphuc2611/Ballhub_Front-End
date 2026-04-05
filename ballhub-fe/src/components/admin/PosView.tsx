@@ -16,6 +16,9 @@ import {
   Tag,
   MapPin,
   Wallet,
+  XCircle,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { usePosStore, PosVoucher } from "@/lib/usePosStore";
@@ -70,7 +73,7 @@ export const PosView = () => {
       "https://online-gateway.ghn.vn/shiip/public-api/master-data/province",
       {
         headers: { token: GHN_TOKEN },
-      },
+      }
     )
       .then((res) => res.json())
       .then((data) => {
@@ -99,7 +102,7 @@ export const PosView = () => {
     const currentSubTotal =
       currentOrder?.items.reduce(
         (sum, item) => sum + (item.discountPrice || item.price) * item.quantity,
-        0,
+        0
       ) || 0;
     if (currentSubTotal >= 1000000) {
       updateActiveOrderDetails({ shippingFee: 0 });
@@ -119,7 +122,7 @@ export const PosView = () => {
             to_ward_code: wardCode,
             weight: 500,
           }),
-        },
+        }
       );
       const result = await response.json();
       if (result.code === 200)
@@ -132,7 +135,7 @@ export const PosView = () => {
 
   const calculateShippingFeeFromString = async (
     addressStr: string,
-    totalAmount: number,
+    totalAmount: number
   ) => {
     if (!addressStr || addressStr.trim() === "") return 0;
     if (totalAmount >= 1000000) return 0;
@@ -148,13 +151,13 @@ export const PosView = () => {
       const matchedProv = provinces.find(
         (p) =>
           provName.includes(p.ProvinceName.toLowerCase()) ||
-          p.ProvinceName.toLowerCase().includes(provName),
+          p.ProvinceName.toLowerCase().includes(provName)
       );
       if (!matchedProv) return 30000;
 
       const distRes = await fetch(
         `https://online-gateway.ghn.vn/shiip/public-api/master-data/district?province_id=${matchedProv.ProvinceID}`,
-        { headers: { token: GHN_TOKEN } },
+        { headers: { token: GHN_TOKEN } }
       );
       const distData = await distRes.json();
       if (distData.code !== 200) return 30000;
@@ -164,7 +167,7 @@ export const PosView = () => {
         return (
           distName.includes(dName) ||
           dName.includes(
-            distName.replace(/(quận|huyện|thị xã|thành phố)\s+/g, ""),
+            distName.replace(/(quận|huyện|thị xã|thành phố)\s+/g, "")
           )
         );
       });
@@ -172,7 +175,7 @@ export const PosView = () => {
 
       const wardRes = await fetch(
         `https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id=${matchedDist.DistrictID}`,
-        { headers: { token: GHN_TOKEN } },
+        { headers: { token: GHN_TOKEN } }
       );
       const wardData = await wardRes.json();
       let matchedWardCode = "";
@@ -199,7 +202,7 @@ export const PosView = () => {
             to_ward_code: matchedWardCode,
             weight: 500,
           }),
-        },
+        }
       );
 
       const feeResult = await feeRes.json();
@@ -223,7 +226,7 @@ export const PosView = () => {
     const updateFeeFromBook = async () => {
       const currentSubTotal = activeOrder.items.reduce(
         (sum, item) => sum + (item.discountPrice || item.price) * item.quantity,
-        0,
+        0
       );
       if (currentSubTotal >= 1000000) {
         updateActiveOrderDetails({ shippingFee: 0 });
@@ -231,7 +234,7 @@ export const PosView = () => {
       }
       const fee = await calculateShippingFeeFromString(
         activeOrder.deliveryAddress,
-        currentSubTotal,
+        currentSubTotal
       );
       updateActiveOrderDetails({ shippingFee: fee });
     };
@@ -261,7 +264,7 @@ export const PosView = () => {
   const subTotal =
     activeOrder?.items.reduce(
       (sum, item) => sum + (item.discountPrice || item.price) * item.quantity,
-      0,
+      0
     ) || 0;
   const isFreeshipEligible = subTotal >= 1000000;
 
@@ -283,13 +286,31 @@ export const PosView = () => {
     }
   }, [subTotal, activeOrder?.isDelivery, isFreeshipEligible]);
 
-  const discountAmount = activeOrder?.discountAmount || 0;
-  const shippingFee = activeOrder?.isDelivery
-    ? activeOrder?.shippingFee || 0
-    : 0;
+  const calculateDiscount = (voucher: any, currentSubTotal: number) => {
+    if (!voucher || currentSubTotal < voucher.minOrderAmount) return 0;
+    let discount = 0;
+    if (voucher.discountPercent) {
+      discount = (currentSubTotal * voucher.discountPercent) / 100;
+      if (voucher.maxDiscountAmount && discount > voucher.maxDiscountAmount) {
+        discount = voucher.maxDiscountAmount;
+      }
+    } else {
+      discount = voucher.maxDiscountAmount || 0;
+    }
+    return Math.floor(discount);
+  };
+
+  useEffect(() => {
+    if (activeOrder?.appliedVoucher && subTotal < activeOrder.appliedVoucher.minOrderAmount) {
+      updateActiveOrderDetails({ appliedVoucher: null, discountAmount: 0 });
+      toast.error(`Mã ${activeOrder.appliedVoucher.promoCode} đã bị gỡ do đơn không đủ điều kiện!`);
+    }
+  }, [subTotal, activeOrder?.appliedVoucher]);
+
+  const discountAmount = activeOrder?.appliedVoucher ? calculateDiscount(activeOrder.appliedVoucher, subTotal) : 0;
+  const shippingFee = activeOrder?.isDelivery ? activeOrder?.shippingFee || 0 : 0;
   const finalTotal = Math.max(0, subTotal - discountAmount) + shippingFee;
-  const totalItems =
-    activeOrder?.items.reduce((sum, item) => sum + item.quantity, 0) || 0;
+  const totalItems = activeOrder?.items.reduce((sum, item) => sum + item.quantity, 0) || 0;
   const formatPrice = (price: number) => price.toLocaleString("vi-VN") + "đ";
 
   const handleApplyVoucherInput = () => {
@@ -298,7 +319,7 @@ export const PosView = () => {
       return;
     }
     const voucher = availableVouchers.find(
-      (v) => v.promoCode.toUpperCase() === promoInput.toUpperCase(),
+      (v) => v.promoCode.toUpperCase() === promoInput.toUpperCase()
     );
     if (!voucher) {
       toast.error("Mã giảm giá không hợp lệ!");
@@ -308,8 +329,7 @@ export const PosView = () => {
       toast.error(`Đơn hàng chưa đủ ${formatPrice(voucher.minOrderAmount)}`);
       return;
     }
-    updateActiveOrderDetails({ appliedVoucher: voucher });
-    usePosStore.getState().calculateBestVoucher();
+    updateActiveOrderDetails({ appliedVoucher: voucher, discountAmount: calculateDiscount(voucher, subTotal) });
     toast.success(`Đã áp dụng mã ${voucher.promoCode}`);
     setPromoInput("");
   };
@@ -319,8 +339,7 @@ export const PosView = () => {
       toast.error(`Đơn hàng chưa đủ ${formatPrice(voucher.minOrderAmount)}`);
       return;
     }
-    updateActiveOrderDetails({ appliedVoucher: voucher });
-    usePosStore.getState().calculateBestVoucher();
+    updateActiveOrderDetails({ appliedVoucher: voucher, discountAmount: calculateDiscount(voucher, subTotal) });
     toast.success(`Đã áp dụng mã ${voucher.promoCode}`);
   };
 
@@ -351,6 +370,23 @@ export const PosView = () => {
       toast.warning("Vui lòng cung cấp địa chỉ giao hàng!");
       return;
     }
+
+    const selectedMethod = activeOrder.paymentMethodId || 1;
+
+    // ✅ BÍ QUYẾT LÁCH POP-UP BLOCKER: Mở tab trắng ngay lập tức
+    let vnpayTab: Window | null = null;
+    if (selectedMethod === 2) {
+      vnpayTab = window.open("about:blank", "_blank");
+      if (vnpayTab) {
+        vnpayTab.document.write(
+          "<h2 style='font-family:sans-serif; text-align:center; margin-top:100px; color:#333;'>Đang kết nối đến cổng thanh toán VNPAY... Vui lòng chờ vài giây.</h2>"
+        );
+        vnpayTab.document.close();
+      } else {
+        toast.warning("Trình duyệt đã chặn Pop-up. Nút mở VNPAY thủ công sẽ xuất hiện trên màn hình.");
+      }
+    }
+
     setIsProcessing(true);
 
     try {
@@ -388,7 +424,7 @@ export const PosView = () => {
       const orderPayload = {
         addressId: activeOrder.addressId || null,
         customerId: activeOrder.customerId || null,
-        paymentMethodId: activeOrder.paymentMethodId || 1, // LẤY PHƯƠNG THỨC THANH TOÁN
+        paymentMethodId: activeOrder.paymentMethodId || 1, 
         note: finalNote,
         promoCode: activeOrder.appliedVoucher?.promoCode || null,
         shippingFee: shippingFee,
@@ -408,78 +444,71 @@ export const PosView = () => {
       });
 
       const resData = await orderRes.json();
-      if (!orderRes.ok) {
-        throw new Error(resData.message || "Lỗi tạo đơn hàng");
+      
+      // ✅ BẮT LỖI TẠI TRẬN: Dù backend có trả 200 OK nhưng nếu success = false thì cũng chặn
+      if (!orderRes.ok || resData.success === false) {
+        if (vnpayTab) vnpayTab.close();
+        throw new Error(resData.message || "Lỗi tạo đơn hàng. Vui lòng kiểm tra lại Backend!");
       }
 
-      // ✅ BÓC TÁCH ID CHUẨN XÁC ĐỂ TRÁNH GÁN NHẦM OBJECT
-      let finalOrderId = activeOrder.id; // Mặc định dùng mã tạm HDxxx
-
-      if (resData.data) {
-        // Nếu Backend trả về object { paymentUrl, order: { id, ... } }
-        if (resData.data.order && resData.data.order.id) {
-          finalOrderId = resData.data.order.id;
-        }
-        // Nếu Backend trả về thẳng ID hoặc object có trường id/orderId
-        else if (
-          typeof resData.data === "number" ||
-          typeof resData.data === "string"
-        ) {
-          finalOrderId = resData.data;
-        } else {
-          finalOrderId =
-            resData.data.id || resData.data.orderId || activeOrder.id;
-        }
+      // ✅ LẤY ID THẬT TỪ BACKEND (Đã thêm resData?.data?.order?.orderId để lấy được ID: 83 như trong Console)
+      const realOrderId = 
+        resData?.data?.order?.orderId || 
+        resData?.data?.orderId || 
+        resData?.data?.id || 
+        resData?.data?.order?.id || 
+        resData?.orderId || 
+        resData?.id;
+      
+      // CHẶN ĐỨNG "CÚ LỪA HD1": Nếu không lấy được số ID thật, tuyệt đối không cho qua
+      if (!realOrderId) {
+        console.error("Dữ liệu trả về từ Backend không có ID:", resData);
+        if (vnpayTab) vnpayTab.close();
+        throw new Error("Không lấy được mã đơn hàng từ hệ thống. Hủy tiến trình!");
       }
 
-      // XỬ LÝ VNPAY NẾU THU NGÂN CHỌN VNPAY
-      const selectedMethod = activeOrder.paymentMethodId || 1;
+      const finalOrderId = realOrderId; // Dùng ID thật, KHÔNG dùng activeOrder.id (HD1)
+      let finalVnpayUrl = "";
+
+      // XỬ LÝ VNPAY
       if (selectedMethod === 2) {
-        let createdOrderId = null;
-        if (
-          typeof resData?.data === "number" ||
-          typeof resData?.data === "string"
-        )
-          createdOrderId = resData.data;
-        else if (resData?.data?.order?.orderId)
-          createdOrderId = resData.data.order.orderId;
-        else if (resData?.data?.order?.id)
-          createdOrderId = resData.data.order.id;
-        else if (resData?.data?.orderId) createdOrderId = resData.data.orderId;
-        else if (resData?.data?.id) createdOrderId = resData.data.id;
-        else if (resData?.orderId) createdOrderId = resData.orderId;
-        else if (resData?.id) createdOrderId = resData.id;
-
-        if (createdOrderId) {
-          toast.success("Đang mở trang thanh toán VNPAY...");
+        if (realOrderId) {
+          toast.success("Đang tạo link thanh toán VNPAY...");
           try {
+            // Đã thêm lại tham số &isPos=true
             const vnpayRes = await fetch(
-              `http://localhost:8080/api/payment/create-vnpay?amount=${finalTotal}&orderId=${createdOrderId}&isPos=true`,
+              `http://localhost:8080/api/payment/create-vnpay?amount=${Math.floor(finalTotal)}&orderId=${realOrderId}&isPos=true`,
               {
                 headers: { Authorization: `Bearer ${token}` },
-              },
+              }
             );
             const vnpayData = await vnpayRes.json();
             if (vnpayData && vnpayData.data) {
-              // MỞ VNPAY TRONG TAB MỚI CHO KHÁCH QUÉT
-              window.open(vnpayData.data, "_blank");
+              finalVnpayUrl = vnpayData.data;
+              if (vnpayTab) vnpayTab.location.href = finalVnpayUrl;
             } else {
-              toast.error("Không thể tạo link VNPAY");
+              if (vnpayTab) vnpayTab.close();
+              toast.error("Không thể lấy link VNPAY từ Server");
             }
           } catch (error) {
+            if (vnpayTab) vnpayTab.close();
             toast.error("Lỗi khi gọi API VNPAY");
           }
+        } else {
+          if (vnpayTab) vnpayTab.close();
+          toast.error("Không lấy được mã đơn hàng từ Server để gọi VNPAY!");
         }
       }
 
-      // ✅ GÁN ID LÀ CHUỖI/SỐ ĐÃ LỌC VÀO ĐÂY
       setCheckoutSuccessData({
         ...activeOrder,
-        id: finalOrderId, // Chắc chắn đây là String hoặc Number, không phải Object
+        id: finalOrderId, 
         subTotal,
         discountAmount,
         shippingFee,
         finalTotal,
+        isVnpaySuccess: false, 
+        vnpayUrl: finalVnpayUrl,
         displayDate: new Date().toLocaleString("vi-VN"),
       });
 
@@ -488,39 +517,113 @@ export const PosView = () => {
       if (currentOrdersCount <= 1) addOrder();
       window.dispatchEvent(new Event("cartUpdated"));
     } catch (error: any) {
+      if (vnpayTab) vnpayTab.close();
       toast.error(error.message);
     } finally {
       setIsProcessing(false);
     }
   };
 
+  // LOGIC AUTO-POLLING CHUẨN XÁC
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (checkoutSuccessData && checkoutSuccessData.paymentMethodId === 2 && !checkoutSuccessData.isVnpaySuccess) {
+      
+      // ✅ CHỐNG LỖI BACKEND: Không bao giờ được phép gửi chữ "HD" xuống API GET
+      if (String(checkoutSuccessData.id).includes("HD")) {
+          console.warn("Chặn Polling vì ID không hợp lệ: " + checkoutSuccessData.id);
+          return;
+      }
+
+      interval = setInterval(async () => {
+        try {
+          const token = localStorage.getItem("refreshToken");
+          const res = await fetch(`http://localhost:8080/api/orders/${checkoutSuccessData.id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const result = await res.json();
+          
+          const status = result?.data?.statusName || result?.statusName;
+          
+          if (status && status !== "PENDING") {
+            setCheckoutSuccessData((prev: any) => ({ ...prev, isVnpaySuccess: true }));
+            toast.success("✅ VNPAY đã báo nhận tiền thành công!");
+            clearInterval(interval);
+          }
+        } catch (err) {
+          // Bỏ qua lỗi mạng
+        }
+      }, 3000); 
+    }
+
+    return () => clearInterval(interval);
+  }, [checkoutSuccessData]);
+
   const receiptOrder = checkoutSuccessData || activeOrder;
+  
+  const isWaitingVnpay = checkoutSuccessData?.paymentMethodId === 2 && !checkoutSuccessData?.isVnpaySuccess;
 
   return (
     <>
       <style>{`
         @media print {
           body * { visibility: hidden; }
-          #pos-receipt, #pos-receipt * { visibility: visible; }
-          #pos-receipt { position: absolute; left: 0; top: 0; width: 80mm; margin: 0; padding: 10px; }
+          #pos-receipt { 
+            visibility: visible;
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            max-width: 80mm; 
+            margin: 0; 
+            padding: 10px 15px; 
+            color: #000;
+            font-family: 'Courier New', Courier, monospace; 
+          }
+          #pos-receipt * { visibility: visible; }
+          @page { margin: 0; }
         }
       `}</style>
 
+      {/* POPUP THANH TOÁN */}
       {checkoutSuccessData && (
         <div className="fixed inset-0 bg-slate-900/60 z-[9999] flex items-center justify-center print:hidden">
           <div className="bg-white rounded-3xl w-[420px] p-8 flex flex-col items-center shadow-2xl animate-in zoom-in duration-200">
-            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-5 shadow-inner">
-              <CheckCircle2 size={40} className="text-emerald-500" />
+            
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-5 shadow-inner ${isWaitingVnpay ? 'bg-blue-100' : 'bg-emerald-100'}`}>
+              {isWaitingVnpay ? (
+                <Loader2 size={40} className="text-blue-500 animate-spin" />
+              ) : (
+                <CheckCircle2 size={40} className="text-emerald-500" />
+              )}
             </div>
-            <h2 className="text-2xl font-black text-slate-800 mb-1">
-              Thanh toán thành công!
+            
+            <h2 className="text-2xl font-black text-slate-800 mb-1 text-center">
+              {isWaitingVnpay ? "Đang chờ thanh toán..." : "Thanh toán thành công!"}
             </h2>
-            <p className="text-slate-500 text-sm mb-6 text-center">
+            
+            <div className="text-slate-500 text-sm mb-6 text-center w-full">
               Mã đơn hàng:{" "}
               <span className="font-bold text-slate-700">
-                {checkoutSuccessData.id}
+                #{String(checkoutSuccessData.id).replace("HD", "")}
               </span>
-            </p>
+              {isWaitingVnpay && (
+                <>
+                  <span className="block text-[11px] mt-1.5 text-blue-600 font-medium">
+                    Khách hàng đang quét mã QR trên thiết bị...
+                  </span>
+                  {checkoutSuccessData.vnpayUrl && (
+                    <button
+                      onClick={() => window.open(checkoutSuccessData.vnpayUrl, "_blank")}
+                      className="mt-3 px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg text-xs font-bold hover:bg-blue-100 flex items-center justify-center gap-1.5 mx-auto transition-all"
+                    >
+                      <CreditCard size={14} /> Mở trang VNPAY (Thủ công)
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
 
             <div className="w-full bg-slate-50 p-5 rounded-2xl mb-8 border border-slate-100">
               <div className="flex justify-between text-sm mb-3">
@@ -532,16 +635,14 @@ export const PosView = () => {
               <div className="flex justify-between text-sm mb-3">
                 <span className="text-slate-500">Hình thức:</span>
                 <span className="font-bold text-slate-700">
-                  {checkoutSuccessData.isDelivery
-                    ? "Giao hàng"
-                    : "Lấy tại quầy"}
+                  {checkoutSuccessData.isDelivery ? "Giao hàng" : "Lấy tại quầy"}
                 </span>
               </div>
               <div className="flex justify-between text-sm mb-3">
                 <span className="text-slate-500">Thanh toán:</span>
-                <span className="font-bold text-slate-700">
-                  {checkoutSuccessData.paymentMethodId === 2
-                    ? "VNPAY"
+                <span className={`font-bold ${isWaitingVnpay ? "text-blue-600" : "text-slate-700"}`}>
+                  {checkoutSuccessData.paymentMethodId === 2 
+                    ? (isWaitingVnpay ? "VNPAY (Chờ xử lý)" : "VNPAY (Đã trả)") 
                     : "Tiền mặt"}
                 </span>
               </div>
@@ -558,78 +659,130 @@ export const PosView = () => {
                 onClick={() => window.print()}
                 className="flex-1 flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-200"
               >
-                <Printer size={18} /> In hóa đơn
+                <Printer size={18} /> {isWaitingVnpay ? "In tạm tính" : "In hóa đơn"}
               </button>
+
               <button
-                onClick={() => setCheckoutSuccessData(null)}
-                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3.5 rounded-xl font-bold transition-all"
+                onClick={() => {
+                  if (isWaitingVnpay) {
+                    setCheckoutSuccessData((prev: any) => ({ ...prev, isVnpaySuccess: true }));
+                    toast.success("Đã xác nhận thanh toán thủ công!");
+                  } else {
+                    setCheckoutSuccessData(null);
+                  }
+                }}
+                // Đổi thành màu Xanh lá cho dễ bấm
+                className="flex-1 py-3.5 rounded-xl font-bold transition-all bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-200"
               >
-                Đóng
+                {isWaitingVnpay ? "Đã nhận tiền" : "Đóng"}
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* HÓA ĐƠN IN */}
       {receiptOrder && (
-        <div
-          id="pos-receipt"
-          className="hidden print:block text-black font-mono text-sm"
-        >
+        <div id="pos-receipt" className="hidden print:block bg-white text-black">
           <div className="text-center mb-4">
-            <h2 className="font-bold text-xl uppercase">BALLHUB SPORT</h2>
-            <p className="text-xs">Mã HĐ: {receiptOrder.id}</p>
-            <p className="text-xs">
-              Ngày:{" "}
-              {receiptOrder.displayDate || new Date().toLocaleString("vi-VN")}
-            </p>
-            <p className="text-xs">
-              Khách hàng: {receiptOrder.customerName || "Khách lẻ"}
-            </p>
-            <p className="text-xs">
-              PTTT:{" "}
-              {(receiptOrder.paymentMethodId || 1) === 2 ? "VNPAY" : "Tiền mặt"}
-            </p>
-            <div className="border-b border-dashed border-black my-2"></div>
+            <h1 className="font-black text-2xl uppercase mb-1">BALLHUB SPORT</h1>
+            <p className="text-sm font-bold">Hotline: 0886.301.661</p>
+            <p className="text-xs">Đ/c: 58 Trúc Khê, Đống Đa, Hà Nội</p>
           </div>
-          <table className="w-full text-xs mb-2">
+          <div className="border-b-2 border-dashed border-black mb-3"></div>
+          <div className="text-center mb-4">
+            <h2 className="font-bold text-lg uppercase">
+              {(receiptOrder.paymentMethodId || 1) === 2 && !receiptOrder.isVnpaySuccess 
+                ? "Phiếu Tạm Tính" 
+                : "Hóa Đơn Bán Hàng"}
+            </h2>
+          </div>
+          <div className="text-sm space-y-1 mb-3">
+            <div className="flex justify-between">
+              <span>Mã HĐ:</span>
+              <span className="font-bold">#{String(receiptOrder.id).replace("HD", "")}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Ngày:</span>
+              <span>{receiptOrder.displayDate || new Date().toLocaleString("vi-VN")}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Thu ngân:</span>
+              <span>Admin</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Khách hàng:</span>
+              <span className="font-bold truncate max-w-[120px] text-right">
+                {receiptOrder.customerName || "Khách lẻ"}
+              </span>
+            </div>
+          </div>
+          <div className="border-b-2 border-dashed border-black mb-3"></div>
+          <table className="w-full text-sm mb-3">
+            <thead>
+              <tr className="border-b border-black text-left">
+                <th className="py-1 font-bold w-[50%]">SẢN PHẨM</th>
+                <th className="py-1 font-bold text-center w-[20%]">SL</th>
+                <th className="py-1 font-bold text-right w-[30%]">TỔNG</th>
+              </tr>
+            </thead>
             <tbody>
               {receiptOrder.items.map((item: any, idx: number) => (
-                <tr
-                  key={idx}
-                  className="border-b border-dotted border-gray-400"
-                >
-                  <td className="py-2">{item.productName}</td>
-                  <td className="py-2 text-center">{item.quantity}</td>
-                  <td className="py-2 text-right">
-                    {formatPrice(
-                      (item.discountPrice || item.price) * item.quantity,
-                    )}
+                <tr key={idx} className="border-b border-dotted border-gray-400">
+                  <td className="py-2 pr-1">
+                    <div className="font-bold leading-tight mb-1">{item.productName}</div>
+                    <div className="text-xs text-gray-700">Màu: {item.colorName} | Sz: {item.sizeName}</div>
+                    <div className="text-xs text-gray-700">{formatPrice(item.discountPrice || item.price)}</div>
+                  </td>
+                  <td className="py-2 text-center align-top font-bold text-base">
+                    {item.quantity}
+                  </td>
+                  <td className="py-2 text-right align-top font-bold">
+                    {formatPrice((item.discountPrice || item.price) * item.quantity)}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div className="text-right font-bold pt-2 border-t border-black">
-            <p>Tổng: {formatPrice(receiptOrder.subTotal ?? subTotal)}</p>
+          <div className="border-b-2 border-dashed border-black mb-3"></div>
+          <div className="space-y-1.5 text-sm">
+            <div className="flex justify-between">
+              <span>Tổng tiền hàng:</span>
+              <span className="font-bold">{formatPrice(receiptOrder.subTotal ?? subTotal)}</span>
+            </div>
             {(receiptOrder.discountAmount ?? discountAmount) > 0 && (
-              <p>
-                Giảm giá: -
-                {formatPrice(receiptOrder.discountAmount ?? discountAmount)}
-              </p>
+              <div className="flex justify-between">
+                <span>Giảm giá:</span>
+                <span className="font-bold">- {formatPrice(receiptOrder.discountAmount ?? discountAmount)}</span>
+              </div>
             )}
             {(receiptOrder.shippingFee ?? shippingFee) > 0 && (
-              <p>
-                Phí ship: {formatPrice(receiptOrder.shippingFee ?? shippingFee)}
-              </p>
+              <div className="flex justify-between">
+                <span>Phí vận chuyển:</span>
+                <span className="font-bold">{formatPrice(receiptOrder.shippingFee ?? shippingFee)}</span>
+              </div>
             )}
-            <p className="text-lg mt-1">
-              CẦN TRẢ: {formatPrice(receiptOrder.finalTotal ?? finalTotal)}
+            <div className="flex justify-between items-center mt-2 pt-2 border-t-2 border-black">
+              <span className="font-black text-base uppercase">Cần thanh toán:</span>
+              <span className="font-black text-xl">{formatPrice(receiptOrder.finalTotal ?? finalTotal)}</span>
+            </div>
+          </div>
+          <div className="mt-3 text-right text-xs italic font-bold">
+            {(receiptOrder.paymentMethodId || 1) === 2 
+              ? (receiptOrder.isVnpaySuccess ? "(Đã thanh toán bằng VNPAY)" : "(Đơn hàng chờ thanh toán VNPAY)") 
+              : "(Đã thanh toán bằng Tiền mặt)"}
+          </div>
+          <div className="border-b-2 border-dashed border-black my-4"></div>
+          <div className="text-center text-sm font-bold">
+            <p>CẢM ƠN VÀ HẸN GẶP LẠI!</p>
+            <p className="text-xs font-normal mt-2 italic px-2">
+              (Hỗ trợ đổi Size trong 3 ngày nếu còn nguyên tem mác và hóa đơn)
             </p>
           </div>
         </div>
       )}
 
+      {/* GIAO DIỆN QUẢN LÝ ĐƠN HÀNG */}
       <div className="flex flex-col h-[calc(100vh-80px)] print:hidden gap-4">
         <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar">
           {orders.map((order) => (
@@ -643,7 +796,7 @@ export const PosView = () => {
               }`}
             >
               <span className="whitespace-nowrap flex-1">
-                Đơn hàng {order.id.replace("HD", "")}
+                Đơn hàng {String(order.id).replace("HD", "")}
               </span>
               <button
                 onClick={(e) => {
@@ -737,7 +890,7 @@ export const PosView = () => {
                               onClick={() =>
                                 updateItemQuantity(
                                   item.variantId,
-                                  item.quantity - 1,
+                                  item.quantity - 1
                                 )
                               }
                               className="w-8 h-8 hover:bg-white rounded-lg transition-all text-slate-600"
@@ -751,7 +904,7 @@ export const PosView = () => {
                               onClick={() =>
                                 updateItemQuantity(
                                   item.variantId,
-                                  item.quantity + 1,
+                                  item.quantity + 1
                                 )
                               }
                               className="w-8 h-8 hover:bg-white rounded-lg transition-all text-slate-600"
@@ -768,8 +921,7 @@ export const PosView = () => {
                         <div className="col-span-2 text-right pr-4">
                           <p className="font-bold text-emerald-600">
                             {formatPrice(
-                              (item.discountPrice || item.price) *
-                                item.quantity,
+                              (item.discountPrice || item.price) * item.quantity
                             )}
                           </p>
                         </div>
@@ -957,7 +1109,7 @@ export const PosView = () => {
                             updateActiveOrderDetails({ shippingFee: 0 });
                             fetch(
                               `https://online-gateway.ghn.vn/shiip/public-api/master-data/district?province_id=${provId}`,
-                              { headers: { token: GHN_TOKEN } },
+                              { headers: { token: GHN_TOKEN } }
                             )
                               .then((res) => res.json())
                               .then((data) => setDistricts(data.data || []));
@@ -982,7 +1134,7 @@ export const PosView = () => {
                               updateActiveOrderDetails({ shippingFee: 0 });
                               fetch(
                                 `https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id=${distId}`,
-                                { headers: { token: GHN_TOKEN } },
+                                { headers: { token: GHN_TOKEN } }
                               )
                                 .then((res) => res.json())
                                 .then((data) => setWards(data.data || []));
@@ -1005,7 +1157,7 @@ export const PosView = () => {
                               if (selectedDist) {
                                 calculateGHNShippingFee(
                                   Number(selectedDist),
-                                  wardCode,
+                                  wardCode
                                 );
                               }
                             }}
@@ -1090,87 +1242,104 @@ export const PosView = () => {
                     </div>
                   </div>
 
+                  {/* VOUCHER UI MỚI (TAG THAY THẾ INPUT) */}
                   <div className="bg-slate-50 rounded-xl p-3">
-                    <p className="text-xs font-bold text-slate-600 mb-2 flex items-center gap-1">
-                      <Tag size={14} /> Mã giảm giá
-                    </p>
-                    <div className="flex gap-2 mb-3">
-                      <input
-                        type="text"
-                        placeholder="Nhập mã..."
-                        className="flex-1 border px-3 py-2 rounded-lg text-sm font-bold uppercase outline-none focus:border-emerald-500"
-                        value={promoInput}
-                        onChange={(e) => setPromoInput(e.target.value)}
-                        onKeyPress={(e) =>
-                          e.key === "Enter" && handleApplyVoucherInput()
-                        }
-                      />
-                      <button
-                        onClick={handleApplyVoucherInput}
-                        className="bg-slate-800 text-white px-4 rounded-lg font-bold hover:bg-slate-700"
-                      >
-                        Áp dụng
-                      </button>
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-xs font-bold text-slate-600 flex items-center gap-1">
+                        <Tag size={14} className="text-emerald-500" /> Mã giảm giá
+                      </p>
+                      {!activeOrder.appliedVoucher && availableVouchers.length > 0 && (
+                        <span className="text-[10px] text-orange-500 font-medium flex items-center gap-1 animate-pulse">
+                          <Sparkles size={12} /> Có mã cho bạn!
+                        </span>
+                      )}
                     </div>
 
-                    {availableVouchers.length > 0 && (
-                      <div className="flex flex-col gap-2 max-h-[120px] overflow-y-auto custom-scrollbar pt-2 border-t border-slate-200">
-                        {availableVouchers.map((v) => {
-                          const isEligible = subTotal >= v.minOrderAmount;
-                          return (
-                            <div
-                              key={v.promotionId}
-                              onClick={() =>
-                                isEligible && handleSelectVoucher(v)
-                              }
-                              className={`p-2 border rounded-lg flex justify-between items-center transition-all ${isEligible ? "bg-white border-emerald-200 hover:border-emerald-500 cursor-pointer shadow-sm" : "bg-slate-100 border-slate-200 opacity-60 cursor-not-allowed"}`}
-                            >
-                              <div>
-                                <p
-                                  className={`text-xs font-bold ${isEligible ? "text-emerald-700" : "text-slate-500"}`}
-                                >
-                                  {v.promoCode}
-                                </p>
-                                <p className="text-[10px] text-slate-500">
-                                  Đơn từ {formatPrice(v.minOrderAmount)}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p
-                                  className={`text-xs font-bold ${isEligible ? "text-emerald-600" : "text-slate-500"}`}
-                                >
-                                  -{v.discountPercent}%
-                                </p>
-                                {v.maxDiscountAmount && (
-                                  <p className="text-[9px] text-slate-400">
-                                    Tối đa {formatPrice(v.maxDiscountAmount)}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {activeOrder.appliedVoucher && (
-                      <div className="mt-3 flex items-center justify-between bg-emerald-100 px-3 py-2 rounded-lg border border-emerald-200">
-                        <span className="text-xs font-bold text-emerald-800 flex items-center gap-1">
-                          <CheckCircle2 size={14} />{" "}
-                          {activeOrder.appliedVoucher.promoCode} (-
-                          {formatPrice(discountAmount)})
-                        </span>
+                    {activeOrder.appliedVoucher ? (
+                      <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 animate-in zoom-in-95 duration-200 shadow-sm">
+                        <div className="flex items-center gap-2.5">
+                          <div className="bg-emerald-600 text-white rounded-lg p-1.5 shadow-sm">
+                            <Tag size={14} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-emerald-700 uppercase flex items-center gap-1">
+                              {activeOrder.appliedVoucher.promoCode}
+                            </p>
+                            <p className="text-[10px] text-emerald-600 font-medium mt-0.5">
+                              Đã giảm {formatPrice(discountAmount)}
+                            </p>
+                          </div>
+                        </div>
                         <button
-                          onClick={() =>
+                          onClick={() => {
                             updateActiveOrderDetails({
                               appliedVoucher: null,
                               discountAmount: 0,
-                            })
-                          }
-                          className="text-slate-400 hover:text-red-500"
+                            });
+                            setPromoInput("");
+                          }}
+                          className="text-emerald-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-full transition-all"
+                          title="Gỡ bỏ mã này"
                         >
-                          <X size={16} />
+                          <XCircle size={16} />
                         </button>
+                      </div>
+                    ) : (
+                      <div className="animate-in fade-in duration-200">
+                        <div className="flex gap-2 mb-3">
+                          <input
+                            type="text"
+                            placeholder="Nhập mã..."
+                            className="flex-1 border px-3 py-2 rounded-lg text-sm font-bold uppercase outline-none focus:border-emerald-500 focus:ring-2 ring-emerald-50 transition-all"
+                            value={promoInput}
+                            onChange={(e) => setPromoInput(e.target.value)}
+                            onKeyPress={(e) => e.key === "Enter" && handleApplyVoucherInput()}
+                          />
+                          <button
+                            onClick={handleApplyVoucherInput}
+                            className="bg-slate-800 text-white px-4 rounded-lg font-bold hover:bg-slate-700 transition-all"
+                          >
+                            Áp dụng
+                          </button>
+                        </div>
+
+                        {availableVouchers.length > 0 && (
+                          <div className="flex flex-col gap-2 max-h-[140px] overflow-y-auto custom-scrollbar pt-2 border-t border-slate-200">
+                            {availableVouchers.map((v) => {
+                              const isEligible = subTotal >= v.minOrderAmount;
+                              return (
+                                <div
+                                  key={v.promotionId}
+                                  onClick={() => isEligible && handleSelectVoucher(v)}
+                                  className={`p-2 border rounded-lg flex justify-between items-center transition-all ${
+                                    isEligible
+                                      ? "bg-white border-emerald-200 hover:border-emerald-500 cursor-pointer shadow-sm hover:bg-emerald-50/50"
+                                      : "bg-slate-100 border-slate-200 opacity-60 cursor-not-allowed"
+                                  }`}
+                                >
+                                  <div>
+                                    <p className={`text-xs font-bold flex items-center gap-1.5 ${isEligible ? "text-emerald-700" : "text-slate-500"}`}>
+                                      {v.promoCode}
+                                      {v.discountPercent && (
+                                        <span className="font-bold text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
+                                          -{v.discountPercent}%
+                                        </span>
+                                      )}
+                                    </p>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                      Đơn từ {formatPrice(v.minOrderAmount)}
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className={`text-xs font-bold ${isEligible ? "text-emerald-600" : "text-slate-500"}`}>
+                                      -{formatPrice(calculateDiscount(v, subTotal))}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
