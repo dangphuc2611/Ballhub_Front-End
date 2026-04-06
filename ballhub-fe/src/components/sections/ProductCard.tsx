@@ -92,6 +92,7 @@ export function ProductCard({ product, variant, onFavoriteToggle }: ProductCardP
             src={getFullImageUrl(product.mainImage || product.image || "")}
             alt={product.productName || product.name || "Sản phẩm"}
             fill
+            priority // ✅ THÊM ĐÚNG CHỮ NÀY LÀ HẾT BÁO VÀNG LCP
             className="object-contain p-8 mix-blend-multiply transition-transform duration-700 group-hover:scale-110"
             unoptimized
           />
