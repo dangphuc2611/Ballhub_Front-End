@@ -47,5 +47,4 @@ export const menuItems: MenuItem[] = [
   { label: "Trang chủ", href: "/" },
   { label: "Sản phẩm", href: "/products" },
   { label: "Khuyến mãi", href: "/promotions" },
-  { label: "Liên hệ", href: "/contact" },
 ];
