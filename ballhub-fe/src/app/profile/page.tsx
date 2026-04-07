@@ -84,14 +84,16 @@ export default function AccountPage() {
     fetchMyOrders();
   }, []);
 
+  // ✅ ĐÃ SỬA: Bổ sung đầy đủ RETURNED và thêm viền (border) cho đẹp
   const getStatusDisplay = (status: string) => {
     switch (status?.toUpperCase()) {
-      case "PENDING": return { label: "Chờ xử lý", classes: "bg-orange-100 text-orange-600" };
-      case "CONFIRMED": return { label: "Đã xác nhận", classes: "bg-blue-100 text-blue-600" };
-      case "SHIPPING": return { label: "Đang giao", classes: "bg-indigo-100 text-indigo-600" };
-      case "DELIVERED": return { label: "Đã giao", classes: "bg-green-100 text-green-600" };
-      case "CANCELLED": return { label: "Đã hủy", classes: "bg-red-100 text-red-600" };
-      default: return { label: status || "Không rõ", classes: "bg-gray-100 text-gray-600" };
+      case "PENDING": return { label: "Chờ xử lý", classes: "bg-orange-100 text-orange-600 border border-orange-200" };
+      case "CONFIRMED": return { label: "Đã xác nhận", classes: "bg-blue-100 text-blue-600 border border-blue-200" };
+      case "SHIPPING": return { label: "Đang giao", classes: "bg-indigo-100 text-indigo-600 border border-indigo-200" };
+      case "DELIVERED": return { label: "Đã giao", classes: "bg-green-100 text-green-600 border border-green-200" };
+      case "CANCELLED": return { label: "Đã hủy", classes: "bg-gray-100 text-gray-600 border border-gray-200" };
+      case "RETURNED": return { label: "Đã trả hàng", classes: "bg-red-100 text-red-600 border border-red-200" };
+      default: return { label: status || "Không rõ", classes: "bg-gray-100 text-gray-600 border border-gray-200" };
     }
   };
 
@@ -137,7 +139,6 @@ export default function AccountPage() {
             </div>
 
             <div className="pt-3 border-t">
-              {/* ✅ Gọi handleLogoutClick thay vì hàm logout trực tiếp */}
               <div onClick={handleLogoutClick} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-red-50 text-red-500 cursor-pointer text-sm font-bold transition-colors">
                 <LogOut size={16} /> Đăng xuất
               </div>

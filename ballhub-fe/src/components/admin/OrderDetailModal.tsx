@@ -21,6 +21,12 @@ const STATUS_OPTIONS = [
   { id: 6, name: "RETURNED", label: "Trả hàng/Hoàn tiền" },
 ];
 
+// ✅ HÀM DỊCH TỰ ĐỘNG TỪ TIẾNG ANH SANG TIẾNG VIỆT
+const getStatusLabel = (statusName: string) => {
+  const status = STATUS_OPTIONS.find((s) => s.name === statusName);
+  return status ? status.label : statusName;
+};
+
 export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailModalProps) => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -259,8 +265,9 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
                   <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
                     <div>
                       <span className="block text-slate-400 text-xs mb-1 font-medium">Trạng thái hiện tại</span>
-                      <div className="inline-flex items-center px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold font-mono shadow-inner">
-                        {orderDetail.statusName}
+                      <div className="inline-flex items-center px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold shadow-inner">
+                        {/* ✅ ĐÃ SỬA THÀNH TIẾNG VIỆT */}
+                        {getStatusLabel(orderDetail.statusName)}
                       </div>
                     </div>
 
@@ -271,9 +278,10 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
                         onChange={(e) => setSelectedStatusId(Number(e.target.value))}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 transition-all font-medium text-slate-700"
                       >
+                        {/* ✅ CHỈ HIỆN NHÃN TIẾNG VIỆT TRONG DROPDOWN */}
                         {STATUS_OPTIONS.map((st) => (
                           <option key={st.id} value={st.id}>
-                            {st.name} ({st.label})
+                            {st.label}
                           </option>
                         ))}
                       </select>
@@ -311,7 +319,8 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
                             index === 0 ? "bg-emerald-500" : "bg-slate-300"
                           }`}
                         ></div>
-                        <p className="font-bold text-slate-700 text-sm">{h.statusName}</p>
+                        {/* ✅ ĐÃ SỬA THÀNH TIẾNG VIỆT */}
+                        <p className="font-bold text-slate-700 text-sm">{getStatusLabel(h.statusName)}</p>
                         <p className="text-xs text-slate-400 font-medium">
                           {new Date(h.changedAt).toLocaleString("vi-VN")}
                         </p>

@@ -2,7 +2,6 @@
 
 import { Eye, RotateCw } from "lucide-react";
 import { useState } from "react";
-import { StatusTag } from "./StatusTag";
 
 type Props = {
   orders?: any[];
@@ -13,6 +12,26 @@ type Props = {
   onPageChange?: (page: number) => void;
   onView?: (orderId: number) => void;
   onRefresh?: () => void;
+};
+
+// ✅ TỪ ĐIỂN DỊCH + BẢNG MÀU ĐỒNG BỘ VỚI USER PROFILE
+const getStatusConfig = (statusName: string) => {
+  switch (statusName?.toUpperCase()) {
+    case "PENDING":
+      return { label: "Chờ xử lý", classes: "bg-orange-100 text-orange-600 border-orange-200" };
+    case "CONFIRMED":
+      return { label: "Đã xác nhận", classes: "bg-blue-100 text-blue-600 border-blue-200" };
+    case "SHIPPING":
+      return { label: "Đang giao", classes: "bg-indigo-100 text-indigo-600 border-indigo-200" };
+    case "DELIVERED":
+      return { label: "Đã giao", classes: "bg-green-100 text-green-600 border-green-200" };
+    case "CANCELLED":
+      return { label: "Đã hủy", classes: "bg-gray-100 text-gray-600 border-gray-200" };
+    case "RETURNED":
+      return { label: "Đã trả hàng", classes: "bg-red-100 text-red-600 border-red-200" };
+    default:
+      return { label: statusName || "Không rõ", classes: "bg-gray-100 text-gray-600 border-gray-200" };
+  }
 };
 
 export const OrderTable = ({
@@ -81,12 +100,12 @@ export const OrderTable = ({
           <tbody className="divide-y divide-slate-50">
             {orders && orders.length > 0 ? (
               orders.map((o, index) => {
-                // KIỂM TRA ĐƠN TẠI QUẦY HOẶC ONLINE (Dựa vào việc có địa chỉ ship hay không)
                 const isPosOrder = !o.deliveryAddress || o.deliveryAddress === "";
-                
-                // ✅ LOGIC MỚI: Cực kỳ tối giản, lấy thẳng biến userFullName từ Backend
                 const displayCustomerName = o.userFullName || o.fullName || o.customerName || "Khách lẻ";
                 const displayPhone = o.phone || o.user?.phone || (isPosOrder ? "Tại quầy" : "---");
+                
+                // Lấy thông tin màu sắc và nhãn đã đồng bộ
+                const statusConfig = getStatusConfig(o.statusName);
 
                 return (
                 <tr
@@ -121,7 +140,10 @@ export const OrderTable = ({
                   </td>
 
                   <td>
-                    <StatusTag label={o.statusName} color={o.color} />
+                    {/* ✅ HIỂN THỊ MÀU SẮC Y HỆT TRANG PROFILE */}
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase border ${statusConfig.classes}`}>
+                      {statusConfig.label}
+                    </span>
                   </td>
                   <td className="text-right">
                     <button

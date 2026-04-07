@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
-import { User as UserIcon, Package, Heart, LogOut, Loader2, MapPin, Plus, Trash2, CheckCircle2 } from "lucide-react";
+import { User as UserIcon, Package, Heart, LogOut, Loader2, MapPin, Plus, Trash2, CheckCircle2, KeyRound } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -120,6 +120,7 @@ export default function AddressPage() {
     { name: "Sổ địa chỉ", icon: <MapPin size={16} />, href: "/profile/address" },
     { name: "Đơn hàng của tôi", icon: <Package size={16} />, href: "/profile/orders" },
     { name: "Sản phẩm yêu thích", icon: <Heart size={16} />, href: "/profile/favorites" },
+    { name: "Đổi mật khẩu", icon: <KeyRound size={16} />, href: "/profile/change-password" },
   ];
 
   return (

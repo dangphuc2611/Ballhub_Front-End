@@ -89,13 +89,23 @@ export default function OrderDetailPage() {
     }
   };
 
-  const getStatusClasses = (status: string | undefined) => {
+  // ✅ ĐÃ SỬA: Gom chung cả Màu sắc lẫn Nhãn tiếng Việt
+  const getStatusDisplay = (status: string | undefined) => {
     switch (status?.toUpperCase()) {
-      case "PENDING": return "bg-orange-100 text-orange-600";
-      case "DELIVERED": return "bg-green-100 text-green-600";
-      case "CANCELLED": return "bg-gray-100 text-gray-600";
-      case "RETURNED": return "bg-red-100 text-red-600";
-      default: return "bg-blue-100 text-blue-600";
+      case "PENDING":
+        return { label: "Chờ xử lý", classes: "bg-orange-100 text-orange-600" };
+      case "CONFIRMED":
+        return { label: "Đã xác nhận", classes: "bg-blue-100 text-blue-600" };
+      case "SHIPPING":
+        return { label: "Đang giao", classes: "bg-indigo-100 text-indigo-600" };
+      case "DELIVERED":
+        return { label: "Đã giao", classes: "bg-green-100 text-green-600" };
+      case "CANCELLED":
+        return { label: "Đã hủy", classes: "bg-gray-100 text-gray-600" };
+      case "RETURNED":
+        return { label: "Đã trả hàng", classes: "bg-red-100 text-red-600" };
+      default:
+        return { label: status || "Không rõ", classes: "bg-gray-100 text-gray-600" };
     }
   };
 
@@ -125,8 +135,11 @@ export default function OrderDetailPage() {
 
   const displayShippingFee = order.shippingFee !== undefined ? order.shippingFee : calculateShippingFee(order.deliveryAddress, order.subTotal);
   
-  // Logic tính tổng tiền để luôn khớp với con số 711,000đ
+  // Logic tính tổng tiền để luôn khớp với con số
   const displayTotalAmount = (order.subTotal - (order.discountAmount || 0) > 0 ? order.subTotal - (order.discountAmount || 0) : 0) + displayShippingFee;
+  
+  // Gọi hàm lấy cấu hình trạng thái
+  const statusConfig = getStatusDisplay(order.statusName);
 
   return (
     <div className="bg-[#f8f9fa] min-h-screen flex flex-col font-sans">
@@ -148,8 +161,9 @@ export default function OrderDetailPage() {
                   <p className="text-gray-400 text-xs font-bold mt-1 uppercase tracking-widest">Mã: #BH-{order.orderId}</p>
                 </div>
                 <div className="text-right">
-                  <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${getStatusClasses(order.statusName)}`}>
-                    {order.statusName || "Đang xử lý"}
+                  {/* ✅ HIỂN THỊ LABEL VÀ CLASS TỪ statusConfig */}
+                  <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${statusConfig.classes}`}>
+                    {statusConfig.label}
                   </span>
                 </div>
               </div>
@@ -205,7 +219,7 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
-            {/* ✅ NÚT HỦY ĐƠN HÀNG DÙNG MODAL CUSTOM */}
+            {/* NÚT HỦY ĐƠN HÀNG DÙNG MODAL CUSTOM */}
             {(order.statusName?.toUpperCase() === 'PENDING' || order.statusName?.toUpperCase() === 'CONFIRMED') && (
               <button
                 onClick={handleCancelOrderClick}

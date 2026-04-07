@@ -209,7 +209,7 @@ export const UserTable = ({
                     ) : (
                       <ShieldAlert size={12} />
                     )}
-                    {user.role}
+                    {user.role === "ADMIN" ? "Quản trị viên" : "Khách hàng"}
                   </button>
                 </td>
                 <td className="py-4">

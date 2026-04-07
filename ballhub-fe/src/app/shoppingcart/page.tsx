@@ -42,9 +42,12 @@ export default function CartPage() {
   const [totalAmount, setTotalAmount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  
+  // ✅ STATE MỚI: Lưu giá trị người dùng đang gõ tay
+  const [localQuantities, setLocalQuantities] = useState<Record<number, string>>({});
+  
   const router = useRouter();
 
-  // ✅ STATE CHO CUSTOM MODAL XÓA SẢN PHẨM
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [itemToRemove, setItemToRemove] = useState<{id: number, name: string} | null>(null);
 
@@ -77,43 +80,50 @@ export default function CartPage() {
     return numPrice.toLocaleString("vi-VN") + "đ";
   };
 
-  const updateQty = async (
-    cartItemId: number,
-    currentQty: number,
-    delta: number,
-    maxStock: number
-  ) => {
-    const newQty = currentQty + delta;
-    if (newQty < 1) return;
-    if (newQty > maxStock) {
+  // ✅ HÀM MỚI: Xử lý gom chung cả click +/- và gõ tay
+  const handleUpdateQuantity = async (cartItemId: number, targetQty: number, maxStock: number) => {
+    let finalQty = targetQty;
+    
+    // Ràng buộc số lượng hợp lệ (không được gõ chữ, không được < 1)
+    if (isNaN(finalQty) || finalQty < 1) finalQty = 1;
+    
+    // Ràng buộc số lượng tồn kho
+    if (finalQty > maxStock) {
+      finalQty = maxStock;
       toast.error(`Kho chỉ còn ${maxStock} sản phẩm`);
-      return;
+    }
+
+    const item = cartItems.find(i => i.cartItemId === cartItemId);
+    
+    // Nếu số lượng gõ vào bằng đúng số cũ -> Không gọi API, chỉ xóa state local
+    if (!item || item.quantity === finalQty) {
+       setLocalQuantities(prev => { const next = {...prev}; delete next[cartItemId]; return next; });
+       return;
     }
 
     setUpdatingId(cartItemId);
     try {
-      await api.put(`/cart/items/${cartItemId}`, { quantity: newQty });
+      await api.put(`/cart/items/${cartItemId}`, { quantity: finalQty });
       await fetchCart();
       window.dispatchEvent(new Event("cartUpdated"));
     } catch {
       toast.error("Không thể cập nhật số lượng");
     } finally {
       setUpdatingId(null);
+      // Xóa state gõ tạm sau khi update xong
+      setLocalQuantities(prev => { const next = {...prev}; delete next[cartItemId]; return next; });
     }
   };
 
-  // ✅ HÀM NÀY GIỜ CHỈ MỞ POPUP, KHÔNG XÓA NGAY
   const handleRemoveClick = (id: number, name: string) => {
     setItemToRemove({ id, name });
     setShowRemoveModal(true);
   };
 
-  // ✅ HÀM THỰC HIỆN XÓA THẬT SỰ (Khi bấm "Đồng ý" trên Popup)
   const confirmRemoveItem = () => {
     if (!itemToRemove) return;
-    
     const id = itemToRemove.id;
-    setShowRemoveModal(false); // Đóng popup ngay
+    setShowRemoveModal(false);
 
     toast.promise(api.delete(`/cart/items/${id}`), {
       loading: "Đang xóa...",
@@ -125,8 +135,6 @@ export default function CartPage() {
       error: "Lỗi khi xóa",
     });
   };
-
-
 
   if (loading)
     return (
@@ -213,25 +221,49 @@ export default function CartPage() {
                             <td className="p-5 text-center font-medium text-sm">{formatPrice(item.finalPrice)}</td>
                             <td className="p-5">
                               <div className="flex justify-center">
-                                <div className="flex items-center border rounded-lg bg-white">
+                                {/* ✅ KHUNG NHẬP SỐ LƯỢNG MỚI */}
+                                <div className="flex items-center border rounded-lg bg-white overflow-hidden">
                                   <button
-                                    onClick={() => updateQty(item.cartItemId, item.quantity, -1, maxStock)}
+                                    onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity - 1, maxStock)}
                                     disabled={updatingId === item.cartItemId || item.quantity <= 1}
-                                    className={`w-7 h-7 flex items-center justify-center transition-colors border-r
+                                    className={`w-8 h-8 flex items-center justify-center transition-colors border-r
                                       ${item.quantity <= 1 ? "opacity-40 cursor-not-allowed" : "hover:bg-gray-50"}`}
                                   >
-                                    <Minus size={10} />
+                                    <Minus size={12} />
                                   </button>
-                                  <span className="w-8 text-center text-xs font-bold">
-                                    {updatingId === item.cartItemId ? ".." : item.quantity}
-                                  </span>
+                                  
+                                  <input
+                                    type="text" // Dùng text để chặn được các ký tự lạ
+                                    value={updatingId === item.cartItemId ? "..." : (localQuantities[item.cartItemId] ?? item.quantity)}
+                                    onChange={(e) => {
+                                      // Chỉ cho phép nhập số
+                                      const val = e.target.value.replace(/[^0-9]/g, "");
+                                      setLocalQuantities({ ...localQuantities, [item.cartItemId]: val });
+                                    }}
+                                    onBlur={(e) => {
+                                      // Gửi API khi click chuột ra chỗ khác
+                                      const parsed = parseInt(e.target.value, 10);
+                                      handleUpdateQuantity(item.cartItemId, parsed, maxStock);
+                                    }}
+                                    onKeyDown={(e) => {
+                                      // Gửi API khi ấn nút Enter
+                                      if (e.key === "Enter") {
+                                        e.currentTarget.blur();
+                                      }
+                                    }}
+                                    disabled={updatingId === item.cartItemId}
+                                    className={`w-12 text-center text-xs font-bold outline-none transition-colors 
+                                      ${updatingId === item.cartItemId ? 'text-gray-300' : 'text-gray-900'} 
+                                      focus:bg-green-50`}
+                                  />
+
                                   <button
-                                    onClick={() => updateQty(item.cartItemId, item.quantity, 1, maxStock)}
+                                    onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity + 1, maxStock)}
                                     disabled={updatingId === item.cartItemId || isMaxQty}
-                                    className={`w-7 h-7 flex items-center justify-center transition-colors border-l
+                                    className={`w-8 h-8 flex items-center justify-center transition-colors border-l
                                       ${isMaxQty ? "opacity-40 cursor-not-allowed" : "hover:bg-gray-50"}`}
                                   >
-                                    <Plus size={10} />
+                                    <Plus size={12} />
                                   </button>
                                 </div>
                               </div>
