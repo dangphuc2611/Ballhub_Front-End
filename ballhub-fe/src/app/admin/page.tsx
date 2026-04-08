@@ -18,8 +18,9 @@ import {
   Palette,
   Briefcase,
   MessageSquare,
-  Store, 
+  Store,
   Layers,
+  FileText,
 } from "lucide-react";
 
 import { NavItem } from "@/components/admin/NavItem";
@@ -40,6 +41,7 @@ import { BrandModal } from "@/components/admin/BrandModal";
 import { ReviewTable } from "@/components/admin/ReviewTable";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { PosView } from "@/components/admin/PosView";
+import { InvoiceView } from "@/components/admin/InvoiceView";
 import { GlobalVariantTable } from "@/components/admin/GlobalVariantTable";
 import { VariantEditModal } from "@/components/admin/VariantEditModal";
 import { VariantCreateModal } from "@/components/admin/VariantCreateModal";
@@ -543,6 +545,12 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab("Bán tại quầy")}
             />
             <NavItem
+              icon={<FileText size={18} />}
+              label="Hóa đơn"
+              active={activeTab === "Hóa đơn"}
+              onClick={() => setActiveTab("Hóa đơn")}
+            />
+            <NavItem
               icon={<Users size={18} />}
               label="Người dùng"
               active={activeTab === "Người dùng"}
@@ -599,7 +607,9 @@ export default function AdminDashboard() {
             <h2 className="text-2xl font-black text-slate-800 tracking-tight">
               {activeTab === "Bán tại quầy"
                 ? "Máy tính tiền (POS)"
-                : "Dashboard Thống kê"}
+                : activeTab === "Hóa đơn"
+                  ? "Hóa đơn — xem trước & in"
+                  : "Dashboard Thống kê"}
             </h2>
             <p className="text-xs text-slate-400 font-medium">
               Chào mừng trở lại, {user.fullName}
@@ -701,7 +711,26 @@ export default function AdminDashboard() {
 
           {activeTab === "Bán tại quầy" && (
             <div className="col-span-12">
-              <PosView />
+              <PosView
+                onPosCodOrderCreated={(id) => {
+                  setActiveTab("Đơn hàng");
+                  setOrderPage(0);
+                  setOrderRefreshTrigger((p) => p + 1);
+                  setSelectedOrderId(id);
+                }}
+                onPosVnpayPaymentSuccess={(id) => {
+                  setActiveTab("Đơn hàng");
+                  setOrderPage(0);
+                  setOrderRefreshTrigger((p) => p + 1);
+                  setSelectedOrderId(id);
+                }}
+              />
+            </div>
+          )}
+
+          {activeTab === "Hóa đơn" && (
+            <div className="col-span-12">
+              <InvoiceView />
             </div>
           )}
 

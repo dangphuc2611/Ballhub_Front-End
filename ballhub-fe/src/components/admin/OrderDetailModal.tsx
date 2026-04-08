@@ -39,6 +39,11 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
   const [selectedStatusId, setSelectedStatusId] = useState<number>(1);
   const [note, setNote] = useState<string>("");
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [posCodPaid, setPosCodPaid] = useState(false);
+  const [posCodDelivered, setPosCodDelivered] = useState(false);
+  const [savingCodFlags, setSavingCodFlags] = useState(false);
+  const [posVnpayDelivered, setPosVnpayDelivered] = useState(false);
+  const [savingVnpayDel, setSavingVnpayDel] = useState(false);
 
   useEffect(() => {
     const fetchOrderDetail = async () => {
@@ -56,6 +61,9 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
         if (currentStatus) {
           setSelectedStatusId(currentStatus.id);
         }
+        setPosCodPaid(!!data.posCodPaid);
+        setPosCodDelivered(!!data.posCodDelivered);
+        setPosVnpayDelivered(!!data.posVnpayDelivered);
       } catch (error: any) {
         console.error("Fetch order detail error:", error);
         setMessage({
@@ -118,6 +126,78 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setConfirmOpen(true);
+  };
+
+  const isPosCodOrder =
+    orderDetail?.isPosOrder === true && orderDetail?.paymentMethodId === 1;
+
+  const posCodLocked =
+    orderDetail?.posCodPaid === true && orderDetail?.posCodDelivered === true;
+
+  const isPosVnpayOrder =
+    orderDetail?.isPosOrder === true && orderDetail?.paymentMethodId === 2;
+
+  const posVnpayDeliveredLocked = orderDetail?.posVnpayDelivered === true;
+
+  const handleSaveVnpayDelivered = async () => {
+    setSavingVnpayDel(true);
+    setMessage(null);
+    try {
+      const token = localStorage.getItem("refreshToken");
+      await axios.put(
+        `http://localhost:8080/api/orders/admin/${orderId}/pos-vnpay-delivered`,
+        {},
+        {
+          params: { delivered: posVnpayDelivered },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const res = await axios.get(`http://localhost:8080/api/orders/admin/${orderId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = res.data.data ?? res.data;
+      setOrderDetail(data);
+      setPosVnpayDelivered(!!data.posVnpayDelivered);
+      setMessage({ type: "success", text: "Đã cập nhật giao hàng (POS VNPAY)." });
+      onRefresh();
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message || error.message || "Cập nhật thất bại";
+      setMessage({ type: "error", text: errorMessage });
+    } finally {
+      setSavingVnpayDel(false);
+    }
+  };
+
+  const handleSaveCodFlags = async () => {
+    setSavingCodFlags(true);
+    setMessage(null);
+    try {
+      const token = localStorage.getItem("refreshToken");
+      await axios.put(
+        `http://localhost:8080/api/orders/admin/${orderId}/pos-cod-flags`,
+        {},
+        {
+          params: { codPaid: posCodPaid, codDelivered: posCodDelivered },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const res = await axios.get(`http://localhost:8080/api/orders/admin/${orderId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = res.data.data ?? res.data;
+      setOrderDetail(data);
+      setPosCodPaid(!!data.posCodPaid);
+      setPosCodDelivered(!!data.posCodDelivered);
+      setMessage({ type: "success", text: "Đã cập nhật thu COD / giao hàng." });
+      onRefresh();
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message || error.message || "Cập nhật thất bại";
+      setMessage({ type: "error", text: errorMessage });
+    } finally {
+      setSavingCodFlags(false);
+    }
   };
 
   const formatPrice = (price: number) => {
@@ -262,6 +342,138 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
                   <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider relative z-10">
                     Cập nhật trạng thái
                   </h3>
+
+                  {isPosCodOrder && (
+                    <div className="mb-5 p-4 rounded-xl bg-amber-50 border border-amber-100 space-y-3">
+                      <p className="text-xs font-bold text-amber-900 uppercase tracking-wide">
+                        POS — thu tiền COD và giao hàng
+                      </p>
+                      <p className="text-[11px] text-amber-800/90 leading-snug">
+                        Đánh dấu khi đã thu tiền mặt và khi đã giao cho khách (tại quầy hoặc ship). Khi đủ cả
+                        hai và bấm Lưu, đơn chuyển sang trạng thái Đã giao hàng và không thể bỏ tick sau đó.
+                      </p>
+                      {posCodLocked && (
+                        <p className="text-[11px] font-semibold text-emerald-800 bg-emerald-100/80 border border-emerald-200 rounded-lg px-3 py-2">
+                          Đã hoàn tất thu tiền và giao hàng — không thể chỉnh lại các ô bên dưới.
+                        </p>
+                      )}
+                      <label
+                        className={`flex items-center gap-2 text-sm font-medium text-slate-700 ${posCodLocked ? "cursor-not-allowed opacity-80" : "cursor-pointer"}`}
+                      >
+                        <input
+                          type="checkbox"
+                          disabled={posCodLocked}
+                          className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 disabled:opacity-60"
+                          checked={posCodPaid}
+                          onChange={(e) => setPosCodPaid(e.target.checked)}
+                        />
+                        Đã thu tiền (COD)
+                      </label>
+                      <label
+                        className={`flex items-center gap-2 text-sm font-medium text-slate-700 ${posCodLocked ? "cursor-not-allowed opacity-80" : "cursor-pointer"}`}
+                      >
+                        <input
+                          type="checkbox"
+                          disabled={posCodLocked}
+                          className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 disabled:opacity-60"
+                          checked={posCodDelivered}
+                          onChange={(e) => setPosCodDelivered(e.target.checked)}
+                        />
+                        Đã giao hàng
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleSaveCodFlags}
+                        disabled={savingCodFlags || posCodLocked}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 text-white rounded-xl font-bold text-sm hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {savingCodFlags ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Save size={16} />
+                        )}
+                        {posCodLocked ? "Đã khóa" : "Lưu COD / giao hàng"}
+                      </button>
+                    </div>
+                  )}
+
+                  {isPosVnpayOrder && (
+                    <div className="mb-5 p-4 rounded-xl bg-sky-50 border border-sky-100 space-y-3">
+                      <p className="text-xs font-bold text-sky-900 uppercase tracking-wide">
+                        POS — VNPAY: thanh toán và giao hàng
+                      </p>
+                      <p className="text-[11px] text-sky-900/90 leading-snug">
+                        Đã thanh toán chỉ bật khi cổng VNPAY trả mã thành công. Hủy thanh toán trên cổng sẽ
+                        không bật. Khi đã trả tiền, tick{" "}
+                        <span className="font-semibold">Đã giao hàng</span> sau khi đưa hàng cho khách.
+                      </p>
+                      <label className="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-default opacity-90">
+                        <input
+                          type="checkbox"
+                          disabled
+                          className="rounded border-slate-300 text-sky-600 opacity-80"
+                          checked={orderDetail?.vnpayPaid === true}
+                        />
+                        Đã thanh toán (VNPAY)
+                      </label>
+                      {!orderDetail?.vnpayPaid && (
+                        <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                          Chưa ghi nhận thanh toán — hoàn tất trên trang VNPAY hoặc đơn sẽ ở trạng thái chờ.
+                        </p>
+                      )}
+                      <label
+                        className={`flex items-center gap-2 text-sm font-medium text-slate-700 ${orderDetail?.vnpayPaid && !posVnpayDeliveredLocked ? "cursor-pointer" : "cursor-not-allowed opacity-80"}`}
+                      >
+                        <input
+                          type="checkbox"
+                          disabled={!orderDetail?.vnpayPaid || posVnpayDeliveredLocked}
+                          className="rounded border-slate-300 text-sky-600 focus:ring-sky-500 disabled:opacity-60"
+                          checked={posVnpayDelivered}
+                          onChange={(e) => setPosVnpayDelivered(e.target.checked)}
+                        />
+                        Đã giao hàng
+                      </label>
+                      {posVnpayDeliveredLocked && (
+                        <p className="text-[11px] font-semibold text-emerald-800 bg-emerald-100/80 border border-emerald-200 rounded-lg px-3 py-2">
+                          Đã giao — không thể bỏ tick.
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleSaveVnpayDelivered}
+                        disabled={savingVnpayDel || posVnpayDeliveredLocked || !orderDetail?.vnpayPaid}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-sky-600 text-white rounded-xl font-bold text-sm hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {savingVnpayDel ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Save size={16} />
+                        )}
+                        {posVnpayDeliveredLocked ? "Đã khóa" : "Lưu giao hàng"}
+                      </button>
+                    </div>
+                  )}
+
+                  {!orderDetail?.isPosOrder && orderDetail?.paymentMethodId === 2 && (
+                    <div className="mb-5 p-4 rounded-xl bg-indigo-50 border border-indigo-100 space-y-2">
+                      <p className="text-xs font-bold text-indigo-900 uppercase tracking-wide">
+                        Thanh toán VNPAY (đơn online)
+                      </p>
+                      <label className="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-default">
+                        <input
+                          type="checkbox"
+                          disabled
+                          className="rounded border-slate-300"
+                          checked={orderDetail?.vnpayPaid === true}
+                        />
+                        Đã thanh toán qua VNPAY
+                      </label>
+                      <p className="text-[11px] text-indigo-900/80">
+                        Giao hàng theo trạng thái đơn bên dưới (Đang giao → Đã giao).
+                      </p>
+                    </div>
+                  )}
+
                   <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
                     <div>
                       <span className="block text-slate-400 text-xs mb-1 font-medium">Trạng thái hiện tại</span>
