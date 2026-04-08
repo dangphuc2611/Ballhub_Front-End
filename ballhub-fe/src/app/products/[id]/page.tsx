@@ -84,7 +84,8 @@ export default function ProductDetailPage() {
 
   /* ================= LOGIC GIỎ HÀNG ================= */
   const checkAuth = () => {
-    const token = localStorage.getItem("accessToken");
+    // ✅ ĐÃ SỬA: Đổi accessToken thành refreshToken
+    const token = localStorage.getItem("refreshToken");
     if (!token) {
       toast.error("Vui lòng đăng nhập để mua sắm");
       router.push("/login");

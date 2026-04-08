@@ -262,7 +262,8 @@ export const QuickAddProduct = () => {
     if (!createdProductId || urls.length === 0) return;
 
     try {
-      const token = localStorage.getItem("accessToken");
+      // ✅ ĐÃ SỬA: Đổi accessToken thành refreshToken
+      const token = localStorage.getItem("refreshToken");
       await fetch(`${BACKEND}/api/admin/products/${createdProductId}/images`, {
         method: "POST",
         headers: {

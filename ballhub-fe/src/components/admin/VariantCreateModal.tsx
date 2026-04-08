@@ -18,7 +18,7 @@ interface VariantCreateModalProps {
 
 const BACKEND = "http://localhost:8080";
 const getToken = () =>
-  typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+  typeof window !== "undefined" ? localStorage.getItem("refreshToken") : null;
 
 export const VariantCreateModal = ({
   onClose,

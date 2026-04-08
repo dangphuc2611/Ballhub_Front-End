@@ -10,7 +10,8 @@ const api = axios.create({
 /* ===== 1. Request Interceptor: Gắn Access Token ===== */
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("accessToken");
+    // ✅ ĐÃ SỬA: Đổi accessToken thành refreshToken cho toàn hệ thống
+    const token = localStorage.getItem("refreshToken");
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }

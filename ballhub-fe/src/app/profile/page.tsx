@@ -56,7 +56,8 @@ export default function AccountPage() {
 
   useEffect(() => {
     const fetchMyOrders = async () => {
-      const token = localStorage.getItem("accessToken");
+      // ✅ ĐÃ SỬA: Đổi accessToken thành refreshToken
+      const token = localStorage.getItem("refreshToken");
       if (!token) {
         setLoadingOrders(false);
         return;

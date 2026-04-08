@@ -19,7 +19,7 @@ import { ProductVariantManager } from "./ProductVariantManager";
 
 const BACKEND = "http://localhost:8080";
 const getToken = () =>
-  typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+  typeof window !== "undefined" ? localStorage.getItem("refreshToken") : null;
 
 type Variant = {
   variantId: number;

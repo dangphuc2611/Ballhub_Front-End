@@ -45,9 +45,10 @@ export function useFormOptions(): FormOptionsResult {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // ✅ ĐÃ SỬA: Đổi accessToken thành refreshToken
     const token =
       typeof window !== "undefined"
-        ? localStorage.getItem("accessToken")
+        ? localStorage.getItem("refreshToken")
         : null;
 
     const load = async () => {

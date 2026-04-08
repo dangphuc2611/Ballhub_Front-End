@@ -46,7 +46,8 @@ export function Header({ showSearch = true }: HeaderProps) {
     const fetchCartCount = async () => {
       if (!user) { setCartCount(0); return; }
       try {
-        const token = localStorage.getItem("accessToken");
+        // ✅ ĐÃ SỬA: Đổi accessToken thành refreshToken
+        const token = localStorage.getItem("refreshToken");
         if (!token) return;
         const res = await fetch(`${BASE_URL}/api/cart`, { headers: { Authorization: `Bearer ${token}` } });
         const json = await res.json();

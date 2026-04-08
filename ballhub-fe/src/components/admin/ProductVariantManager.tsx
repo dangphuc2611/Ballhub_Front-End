@@ -18,8 +18,13 @@ import { toast } from "sonner";
 import { SelectOption } from "@/lib/useFormOptions";
 
 const BACKEND = "http://localhost:8080";
-const getToken = () =>
-  typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+
+const getToken = () => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("refreshToken");
+  }
+  return null;
+};
 
 interface Variant {
   variantId: number;
@@ -94,6 +99,7 @@ export const ProductVariantManager = ({
             price: editing.data.price,
             stockQuantity: editing.data.stockQuantity,
             sku: editing.data.sku,
+            status: true, // Mặc định tạo mới là hiện
           },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -104,7 +110,7 @@ export const ProductVariantManager = ({
           {
             price: editing.data.price,
             stockQuantity: editing.data.stockQuantity,
-            status: editing.data.status,
+            status: editing.data.status !== false, // Ép kiểu an toàn
           },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -140,19 +146,20 @@ export const ProductVariantManager = ({
     setLoading(v.variantId);
     try {
       const token = getToken();
+      const currentStatus = v.status !== false; // Mặc định là true nếu null
       await axios.put(
         `${BACKEND}/api/admin/variants/${v.variantId}`,
         {
           price: v.price,
           stockQuantity: v.stockQuantity,
-          status: !v.status,
+          status: !currentStatus, // Đảo ngược trạng thái hiện tại
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success(`${v.status ? "Ẩn" : "Hiện"} biến thể thành công`);
+      toast.success(`${currentStatus ? "Đã ẩn" : "Đã hiện"} biến thể thành công`);
       onRefresh();
     } catch (error: any) {
-      toast.error("Lỗi cập nhật trạng thái");
+      toast.error("Lỗi cập nhật trạng thái, vui lòng thử lại!");
     } finally {
       setLoading(null);
     }
@@ -193,7 +200,7 @@ export const ProductVariantManager = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {/* Row for adding NEW */}
+            {/* Hàng tạo mới biến thể */}
             {editing?.id === "new" && (
               <tr className="bg-emerald-50/30 animate-in fade-in slide-in-from-top-2 duration-300">
                 <td className="px-5 py-4 text-center">
@@ -305,133 +312,139 @@ export const ProductVariantManager = ({
               </tr>
             )}
 
-            {variants.map((v, idx) => (
-              <tr
-                key={v.variantId}
-                className={`hover:bg-slate-50/50 transition-colors group ${!v.status ? "opacity-60 bg-slate-50/30" : ""}`}
-              >
-                <td className="px-5 py-4 text-xs font-bold text-slate-300">{idx + 1}</td>
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-1.5">
-                    <span className="bg-slate-100 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tight">
-                      {v.sizeName}
-                    </span>
-                    <span className="text-slate-200">/</span>
-                    <span className="bg-slate-100 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tight">
-                      {v.colorName}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-5 py-4">
-                  {editing?.id === v.variantId ? (
-                    <input
-                      type="number"
-                      value={editing.data.price}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          data: { ...editing.data, price: parseFloat(e.target.value) },
-                        })
-                      }
-                      className="w-full text-xs border border-emerald-200 bg-white rounded-lg px-2 py-1 focus:ring-2 focus:ring-emerald-100 outline-none font-bold"
-                    />
-                  ) : (
-                    <span className="text-sm font-bold text-slate-800">{v.price?.toLocaleString()}đ</span>
-                  )}
-                </td>
-                <td className="px-5 py-4">
-                  {editing?.id === v.variantId ? (
-                    <input
-                      type="number"
-                      value={editing.data.stockQuantity}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          data: { ...editing.data, stockQuantity: parseInt(e.target.value) },
-                        })
-                      }
-                      className="w-20 text-xs border border-emerald-200 bg-white rounded-lg px-2 py-1 focus:ring-2 focus:ring-emerald-100 outline-none"
-                    />
-                  ) : (
-                    <span
-                      className={`text-xs font-black ${v.stockQuantity === 0 ? "text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full" : "text-slate-600"}`}
-                    >
-                      {v.stockQuantity}
-                    </span>
-                  )}
-                </td>
-                <td className="px-5 py-4">
-                  <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 group-hover:bg-white">{v.sku}</span>
-                </td>
-                <td className="px-5 py-4 text-center">
-                  <button
-                    onClick={() => handleToggleStatus(v)}
-                    disabled={loading === v.variantId}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black transition-all active:scale-90 ${
-                      v.status
-                        ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                        : "bg-slate-200 text-slate-500 hover:bg-slate-300"
-                    }`}
-                  >
-                    {loading === v.variantId ? (
-                      <Loader2 size={10} className="animate-spin" />
-                    ) : v.status ? (
-                      <Eye size={10} />
-                    ) : (
-                      <EyeOff size={10} />
-                    )}
-                    {v.status ? "HIỆN" : "ẨN"}
-                  </button>
-                </td>
-                <td className="px-5 py-4 text-right">
-                  <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            {variants.map((v, idx) => {
+              // ✅ FIX LOGIC TRẠNG THÁI Ở ĐÂY: Nếu không bằng false thì mặc định là đang HIỆN
+              const isVisible = v.status !== false;
+
+              return (
+                <tr
+                  key={v.variantId}
+                  className={`hover:bg-slate-50/50 transition-colors group ${!isVisible ? "opacity-60 bg-slate-50/30" : ""}`}
+                >
+                  <td className="px-5 py-4 text-xs font-bold text-slate-300">{idx + 1}</td>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-1.5">
+                      <span className="bg-slate-100 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tight">
+                        {v.sizeName}
+                      </span>
+                      <span className="text-slate-200">/</span>
+                      <span className="bg-slate-100 text-slate-700 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tight">
+                        {v.colorName}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
                     {editing?.id === v.variantId ? (
-                      <>
-                        <button
-                          onClick={handleSave}
-                          disabled={loading === v.variantId}
-                          className="p-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 shadow-sm"
-                        >
-                          {loading === v.variantId ? (
-                            <Loader2 size={12} className="animate-spin" />
-                          ) : (
-                            <Check size={12} />
-                          )}
-                        </button>
-                        <button
-                          onClick={handleCancel}
-                          className="p-1.5 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200"
-                        >
-                          <X size={12} />
-                        </button>
-                      </>
+                      <input
+                        type="number"
+                        value={editing.data.price}
+                        onChange={(e) =>
+                          setEditing({
+                            ...editing,
+                            data: { ...editing.data, price: parseFloat(e.target.value) },
+                          })
+                        }
+                        className="w-full text-xs border border-emerald-200 bg-white rounded-lg px-2 py-1 focus:ring-2 focus:ring-emerald-100 outline-none font-bold"
+                      />
                     ) : (
-                      <>
-                        <button
-                          onClick={() => handleStartEdit(v)}
-                          className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                          title="Sửa"
-                        >
-                          <Edit2 size={12} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(v.variantId)}
-                          disabled={loading === v.variantId}
-                          className="p-1.5 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-100 transition-colors"
-                          title="Xóa"
-                        >
-                          {loading === v.variantId ? (
-                            <Loader2 size={12} className="animate-spin" />
-                          ) : (
-                            <Trash2 size={12} />
-                          )}
-                        </button>
-                      </>
+                      <span className="text-sm font-bold text-slate-800">{v.price?.toLocaleString()}đ</span>
                     )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-5 py-4">
+                    {editing?.id === v.variantId ? (
+                      <input
+                        type="number"
+                        value={editing.data.stockQuantity}
+                        onChange={(e) =>
+                          setEditing({
+                            ...editing,
+                            data: { ...editing.data, stockQuantity: parseInt(e.target.value) },
+                          })
+                        }
+                        className="w-20 text-xs border border-emerald-200 bg-white rounded-lg px-2 py-1 focus:ring-2 focus:ring-emerald-100 outline-none"
+                      />
+                    ) : (
+                      <span
+                        className={`text-xs font-black ${v.stockQuantity === 0 ? "text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full" : "text-slate-600"}`}
+                      >
+                        {v.stockQuantity}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 group-hover:bg-white">{v.sku}</span>
+                  </td>
+                  <td className="px-5 py-4 text-center">
+                    {/* ✅ GIAO DIỆN NÚT TRẠNG THÁI HIỆN/ẨN ĐÃ ĐƯỢC LÀM RÕ RÀNG */}
+                    <button
+                      onClick={() => handleToggleStatus(v)}
+                      disabled={loading === v.variantId}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black transition-all active:scale-90 ${
+                        isVisible
+                          ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                          : "bg-rose-50 text-rose-500 hover:bg-rose-100"
+                      }`}
+                    >
+                      {loading === v.variantId ? (
+                        <Loader2 size={10} className="animate-spin" />
+                      ) : isVisible ? (
+                        <Eye size={10} />
+                      ) : (
+                        <EyeOff size={10} />
+                      )}
+                      {isVisible ? "HIỆN" : "ẨN"}
+                    </button>
+                  </td>
+                  <td className="px-5 py-4 text-right">
+                    <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {editing?.id === v.variantId ? (
+                        <>
+                          <button
+                            onClick={handleSave}
+                            disabled={loading === v.variantId}
+                            className="p-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 shadow-sm"
+                          >
+                            {loading === v.variantId ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                              <Check size={12} />
+                            )}
+                          </button>
+                          <button
+                            onClick={handleCancel}
+                            className="p-1.5 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200"
+                          >
+                            <X size={12} />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleStartEdit(v)}
+                            className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                            title="Sửa"
+                          >
+                            <Edit2 size={12} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(v.variantId)}
+                            disabled={loading === v.variantId}
+                            className="p-1.5 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-100 transition-colors"
+                            title="Xóa"
+                          >
+                            {loading === v.variantId ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={12} />
+                            )}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
