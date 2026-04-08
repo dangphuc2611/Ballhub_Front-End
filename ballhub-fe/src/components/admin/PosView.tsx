@@ -25,20 +25,8 @@ import { usePosStore, PosVoucher } from "@/lib/usePosStore";
 import { PosVariantModal } from "@/components/admin/PosVariantModal";
 import { PosCustomerModal } from "@/components/admin/PosCustomerModal";
 import { PosAddressModal } from "@/components/admin/PosAddressModal";
-import {
-  ThermalReceiptBody,
-  ThermalReceiptPrintStyles,
-  mapPosCartToThermal,
-} from "@/components/admin/ThermalReceipt";
 
-type PosViewProps = {
-  /** Sau khi tạo đơn POS + tiền mặt (COD): chuyển sang tab Đơn hàng & mở chi tiết */
-  onPosCodOrderCreated?: (orderId: number) => void;
-  /** Sau khi VNPAY báo thành công (server VnpayPaid = true): tab Đơn hàng + modal chi tiết */
-  onPosVnpayPaymentSuccess?: (orderId: number) => void;
-};
-
-export const PosView = ({ onPosCodOrderCreated, onPosVnpayPaymentSuccess }: PosViewProps) => {
+export const PosView = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
@@ -512,24 +500,17 @@ export const PosView = ({ onPosCodOrderCreated, onPosVnpayPaymentSuccess }: PosV
         }
       }
 
-      if (selectedMethod === 1) {
-        toast.success(
-          `Đã tạo đơn #${finalOrderId}. Mở chi tiết để đánh dấu đã thu COD / đã giao hàng.`
-        );
-        onPosCodOrderCreated?.(finalOrderId);
-      } else {
-        setCheckoutSuccessData({
-          ...activeOrder,
-          id: finalOrderId,
-          subTotal,
-          discountAmount,
-          shippingFee,
-          finalTotal,
-          isVnpaySuccess: false,
-          vnpayUrl: finalVnpayUrl,
-          displayDate: new Date().toLocaleString("vi-VN"),
-        });
-      }
+      setCheckoutSuccessData({
+        ...activeOrder,
+        id: finalOrderId, 
+        subTotal,
+        discountAmount,
+        shippingFee,
+        finalTotal,
+        isVnpaySuccess: false, 
+        vnpayUrl: finalVnpayUrl,
+        displayDate: new Date().toLocaleString("vi-VN"),
+      });
 
       const currentOrdersCount = usePosStore.getState().orders.length;
       removeOrder(activeOrder.id);
@@ -558,17 +539,16 @@ export const PosView = ({ onPosCodOrderCreated, onPosVnpayPaymentSuccess }: PosV
       interval = setInterval(async () => {
         try {
           const token = localStorage.getItem("refreshToken");
-          const orderId = checkoutSuccessData.id;
-          const res = await fetch(`http://localhost:8080/api/orders/admin/${orderId}`, {
-            headers: { Authorization: `Bearer ${token}` },
+          const res = await fetch(`http://localhost:8080/api/orders/${checkoutSuccessData.id}`, {
+            headers: { Authorization: `Bearer ${token}` }
           });
-          if (!res.ok) return;
           const result = await res.json();
-          const d = result?.data ?? result;
-          if (d.vnpayPaid === true) {
+          
+          const status = result?.data?.statusName || result?.statusName;
+          
+          if (status && status !== "PENDING") {
             setCheckoutSuccessData((prev: any) => ({ ...prev, isVnpaySuccess: true }));
-            toast.success("✅ VNPAY đã thanh toán thành công!");
-            onPosVnpayPaymentSuccess?.(orderId);
+            toast.success("✅ VNPAY đã báo nhận tiền thành công!");
             clearInterval(interval);
           }
         } catch (err) {
@@ -584,12 +564,27 @@ export const PosView = ({ onPosCodOrderCreated, onPosVnpayPaymentSuccess }: PosV
   
   const isWaitingVnpay = checkoutSuccessData?.paymentMethodId === 2 && !checkoutSuccessData?.isVnpaySuccess;
 
-  const posReceiptData =
-    receiptOrder?.items?.length > 0 ? mapPosCartToThermal(receiptOrder) : null;
-
   return (
     <>
-      <ThermalReceiptPrintStyles targetId="pos-receipt" />
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #pos-receipt { 
+            visibility: visible;
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            max-width: 80mm; 
+            margin: 0; 
+            padding: 10px 15px; 
+            color: #000;
+            font-family: 'Courier New', Courier, monospace; 
+          }
+          #pos-receipt * { visibility: visible; }
+          @page { margin: 0; }
+        }
+      `}</style>
 
       {/* POPUP THANH TOÁN */}
       {checkoutSuccessData && (
@@ -686,13 +681,105 @@ export const PosView = ({ onPosCodOrderCreated, onPosVnpayPaymentSuccess }: PosV
         </div>
       )}
 
-      {/* HÓA ĐƠN IN (layout dùng chung với tab Hóa đơn) */}
-      {posReceiptData && (
-        <ThermalReceiptBody
-          id="pos-receipt"
-          data={posReceiptData}
-          className="hidden print:block"
-        />
+      {/* HÓA ĐƠN IN */}
+      {receiptOrder && (
+        <div id="pos-receipt" className="hidden print:block bg-white text-black">
+          <div className="text-center mb-4">
+            <h1 className="font-black text-2xl uppercase mb-1">BALLHUB SPORT</h1>
+            <p className="text-sm font-bold">Hotline: 0886.301.661</p>
+            <p className="text-xs">Đ/c: 58 Trúc Khê, Đống Đa, Hà Nội</p>
+          </div>
+          <div className="border-b-2 border-dashed border-black mb-3"></div>
+          <div className="text-center mb-4">
+            <h2 className="font-bold text-lg uppercase">
+              {(receiptOrder.paymentMethodId || 1) === 2 && !receiptOrder.isVnpaySuccess 
+                ? "Phiếu Tạm Tính" 
+                : "Hóa Đơn Bán Hàng"}
+            </h2>
+          </div>
+          <div className="text-sm space-y-1 mb-3">
+            <div className="flex justify-between">
+              <span>Mã HĐ:</span>
+              <span className="font-bold">#{String(receiptOrder.id).replace("HD", "")}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Ngày:</span>
+              <span>{receiptOrder.displayDate || new Date().toLocaleString("vi-VN")}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Thu ngân:</span>
+              <span>Admin</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Khách hàng:</span>
+              <span className="font-bold truncate max-w-[120px] text-right">
+                {receiptOrder.customerName || "Khách lẻ"}
+              </span>
+            </div>
+          </div>
+          <div className="border-b-2 border-dashed border-black mb-3"></div>
+          <table className="w-full text-sm mb-3">
+            <thead>
+              <tr className="border-b border-black text-left">
+                <th className="py-1 font-bold w-[50%]">SẢN PHẨM</th>
+                <th className="py-1 font-bold text-center w-[20%]">SL</th>
+                <th className="py-1 font-bold text-right w-[30%]">TỔNG</th>
+              </tr>
+            </thead>
+            <tbody>
+              {receiptOrder.items.map((item: any, idx: number) => (
+                <tr key={idx} className="border-b border-dotted border-gray-400">
+                  <td className="py-2 pr-1">
+                    <div className="font-bold leading-tight mb-1">{item.productName}</div>
+                    <div className="text-xs text-gray-700">Màu: {item.colorName} | Sz: {item.sizeName}</div>
+                    <div className="text-xs text-gray-700">{formatPrice(item.discountPrice || item.price)}</div>
+                  </td>
+                  <td className="py-2 text-center align-top font-bold text-base">
+                    {item.quantity}
+                  </td>
+                  <td className="py-2 text-right align-top font-bold">
+                    {formatPrice((item.discountPrice || item.price) * item.quantity)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="border-b-2 border-dashed border-black mb-3"></div>
+          <div className="space-y-1.5 text-sm">
+            <div className="flex justify-between">
+              <span>Tổng tiền hàng:</span>
+              <span className="font-bold">{formatPrice(receiptOrder.subTotal ?? subTotal)}</span>
+            </div>
+            {(receiptOrder.discountAmount ?? discountAmount) > 0 && (
+              <div className="flex justify-between">
+                <span>Giảm giá:</span>
+                <span className="font-bold">- {formatPrice(receiptOrder.discountAmount ?? discountAmount)}</span>
+              </div>
+            )}
+            {(receiptOrder.shippingFee ?? shippingFee) > 0 && (
+              <div className="flex justify-between">
+                <span>Phí vận chuyển:</span>
+                <span className="font-bold">{formatPrice(receiptOrder.shippingFee ?? shippingFee)}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center mt-2 pt-2 border-t-2 border-black">
+              <span className="font-black text-base uppercase">Cần thanh toán:</span>
+              <span className="font-black text-xl">{formatPrice(receiptOrder.finalTotal ?? finalTotal)}</span>
+            </div>
+          </div>
+          <div className="mt-3 text-right text-xs italic font-bold">
+            {(receiptOrder.paymentMethodId || 1) === 2 
+              ? (receiptOrder.isVnpaySuccess ? "(Đã thanh toán bằng VNPAY)" : "(Đơn hàng chờ thanh toán VNPAY)") 
+              : "(Đã thanh toán bằng Tiền mặt)"}
+          </div>
+          <div className="border-b-2 border-dashed border-black my-4"></div>
+          <div className="text-center text-sm font-bold">
+            <p>CẢM ƠN VÀ HẸN GẶP LẠI!</p>
+            <p className="text-xs font-normal mt-2 italic px-2">
+              (Hỗ trợ đổi Size trong 3 ngày nếu còn nguyên tem mác và hóa đơn)
+            </p>
+          </div>
+        </div>
       )}
 
       {/* GIAO DIỆN QUẢN LÝ ĐƠN HÀNG */}

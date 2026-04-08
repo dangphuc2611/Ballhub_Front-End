@@ -100,10 +100,7 @@ export const OrderTable = ({
           <tbody className="divide-y divide-slate-50">
             {orders && orders.length > 0 ? (
               orders.map((o, index) => {
-                const isPosOrder =
-                  o.isPosOrder === true || !o.deliveryAddress || o.deliveryAddress === "";
-                const isPosCodRow = o.isPosOrder === true && o.paymentMethodId === 1;
-                const isPosVnpayRow = o.isPosOrder === true && o.paymentMethodId === 2;
+                const isPosOrder = !o.deliveryAddress || o.deliveryAddress === "";
                 const displayCustomerName = o.userFullName || o.fullName || o.customerName || "Khách lẻ";
                 const displayPhone = o.phone || o.user?.phone || (isPosOrder ? "Tại quầy" : "---");
                 
@@ -143,55 +140,10 @@ export const OrderTable = ({
                   </td>
 
                   <td>
-                    <div className="flex flex-col gap-1 items-start">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase border ${statusConfig.classes}`}>
-                        {statusConfig.label}
-                      </span>
-                      {isPosCodRow && (
-                        <div className="flex flex-wrap gap-1">
-                          <span
-                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
-                              o.posCodPaid
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : "bg-slate-50 text-slate-500 border-slate-200"
-                            }`}
-                          >
-                            COD: {o.posCodPaid ? "Đã thu" : "Chưa thu"}
-                          </span>
-                          <span
-                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
-                              o.posCodDelivered
-                                ? "bg-blue-50 text-blue-700 border-blue-200"
-                                : "bg-slate-50 text-slate-500 border-slate-200"
-                            }`}
-                          >
-                            {o.posCodDelivered ? "Đã giao" : "Chưa giao"}
-                          </span>
-                        </div>
-                      )}
-                      {isPosVnpayRow && (
-                        <div className="flex flex-wrap gap-1">
-                          <span
-                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
-                              o.vnpayPaid
-                                ? "bg-sky-50 text-sky-800 border-sky-200"
-                                : "bg-slate-50 text-slate-500 border-slate-200"
-                            }`}
-                          >
-                            VNPAY: {o.vnpayPaid ? "Đã trả" : "Chưa trả"}
-                          </span>
-                          <span
-                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
-                              o.posVnpayDelivered
-                                ? "bg-blue-50 text-blue-700 border-blue-200"
-                                : "bg-slate-50 text-slate-500 border-slate-200"
-                            }`}
-                          >
-                            {o.posVnpayDelivered ? "Đã giao" : "Chưa giao"}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                    {/* ✅ HIỂN THỊ MÀU SẮC Y HỆT TRANG PROFILE */}
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase border ${statusConfig.classes}`}>
+                      {statusConfig.label}
+                    </span>
                   </td>
                   <td className="text-right">
                     <button
