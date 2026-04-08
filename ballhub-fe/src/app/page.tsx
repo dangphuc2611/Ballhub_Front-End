@@ -9,6 +9,7 @@ import { PromoBanner } from "@/components/sections/PromoBanner";
 import { Footer } from "@/components/sections/Footer";
 import { categories } from "@/data/categories";
 import type { Product } from "@/types/product";
+import ProtectedRoute from "@/components/login/ProtectedRoute";
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -77,51 +78,54 @@ export default function Home() {
   const newProducts = useMemo(() => products, [products]);
 
   return (
-    <main className="w-full min-h-screen bg-white">
-      <Header />
+    // ✅ BỌC TOÀN BỘ TRANG BẰNG ProtectedRoute (Chỉ cho phép CUSTOMER)
+    <ProtectedRoute allowedRoles={["CUSTOMER"]} allowGuest={true}>
+      <main className="w-full min-h-screen bg-white">
+        <Header />
 
-      <HeroBanner
-        title="BallHub – Quần Áo bóng đá chính hãng"
-        description="Ưu đãi lên đến 10% cho các mẫu quần áo."
-        primaryButtonText="Mua ngay"
-        secondaryButtonText="Xem khuyến mãi"
-        primaryButtonHref="/products"
-        secondaryButtonHref="/promotions"
-      />
+        <HeroBanner
+          title="BallHub – Quần Áo bóng đá chính hãng"
+          description="Ưu đãi lên đến 10% cho các mẫu quần áo."
+          primaryButtonText="Mua ngay"
+          secondaryButtonText="Xem khuyến mãi"
+          primaryButtonHref="/products"
+          secondaryButtonHref="/promotions"
+        />
 
-      <CategoryGrid categories={categories} />
+        <CategoryGrid categories={categories} />
 
-      {/* ================= PRODUCTS ================= */}
-      {loading ? (
-        <div className="w-full min-h-[40vh] flex items-center justify-center text-xl font-semibold">
-          Đang tải sản phẩm...
-        </div>
-      ) : products.length === 0 ? (
-        <div className="max-w-6xl mx-auto px-4 pb-16">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center text-gray-600">
-            Không tìm thấy sản phẩm nào.
+        {/* ================= PRODUCTS ================= */}
+        {loading ? (
+          <div className="w-full min-h-[40vh] flex items-center justify-center text-xl font-semibold">
+            Đang tải sản phẩm...
           </div>
-        </div>
-      ) : (
-        <>
-          <ProductSection
-            title="Sản phẩm mới"
-            products={newProducts}
-            viewAllHref="/products?sort=newest"
-          />
+        ) : products.length === 0 ? (
+          <div className="max-w-6xl mx-auto px-4 pb-16">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center text-gray-600">
+              Không tìm thấy sản phẩm nào.
+            </div>
+          </div>
+        ) : (
+          <>
+            <ProductSection
+              title="Sản phẩm mới"
+              products={newProducts}
+              viewAllHref="/products?sort=newest"
+            />
 
-          <PromoBanner
-            badge="Ưu Đãi Có Hạn"
-            title="ƯU ĐÃI HẤP DẪN"
-            description="Áp dụng đến hết 30/3/2025"
-            discount="10%"
-            buttonText="Xem thêm"
-            buttonHref="/promotions"
-          />
-        </>
-      )}
+            <PromoBanner
+              badge="Ưu Đãi Có Hạn"
+              title="ƯU ĐÃI HẤP DẪN"
+              description="Áp dụng đến hết 30/3/2025"
+              discount="10%"
+              buttonText="Xem thêm"
+              buttonHref="/promotions"
+            />
+          </>
+        )}
 
-      <Footer />
-    </main>
+        <Footer />
+      </main>
+    </ProtectedRoute>
   );
 }

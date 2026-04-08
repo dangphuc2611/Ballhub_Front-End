@@ -10,9 +10,11 @@ type Mode = "login" | "register";
 export default function AuthForm({
   onSuccess,
   initialMode = "login",
+  blockedRole, // ✅ Thêm prop chặn quyền
 }: {
   onSuccess?: (user: any) => void;
   initialMode?: Mode;
+  blockedRole?: "ADMIN" | "CUSTOMER"; // Cấm Admin login ở web Khách, hoặc cấm Khách login ở web Admin
 }) {
   const { login } = useAuth();
   const [mode, setMode] = useState<Mode>(initialMode);
@@ -50,6 +52,14 @@ export default function AuthForm({
       if (res.data && res.data.success) {
         const authData = res.data.data;
         if (mode === "login") {
+          
+          // ✅ BẢO VỆ: Kiểm tra quyền trước khi cho phép lưu token
+          if (blockedRole && authData.user.role === blockedRole) {
+            const roleName = blockedRole === "ADMIN" ? "Quản trị viên" : "Khách hàng";
+            setError(`Tài khoản ${roleName} không được phép đăng nhập tại đây!`);
+            return; // Dừng lại luôn, không gọi login()
+          }
+
           login(authData); 
           onSuccess?.(authData.user);
         } else {
@@ -78,7 +88,7 @@ export default function AuthForm({
       <input name="email" type="email" placeholder="Email" className="w-full border p-3 rounded-lg outline-none transition focus:ring-2 focus:ring-green-400" onChange={handleChange} required />
       <input name="password" type="password" placeholder="Mật khẩu" className="w-full border p-3 rounded-lg outline-none transition focus:ring-2 focus:ring-green-400" onChange={handleChange} required />
 
-      {error && <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">{error}</div>}
+      {error && <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg font-medium">{error}</div>}
 
       <button type="submit" disabled={loading} className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition flex items-center justify-center gap-3 disabled:opacity-50 font-semibold">
         {loading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}

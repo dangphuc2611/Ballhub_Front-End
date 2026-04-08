@@ -7,7 +7,7 @@ import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
 import { useAuth } from "@/app/context/AuthContext";
 import { useEffect, Suspense, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ShieldCheck } from "lucide-react";
 import { useGoogleLogin } from "@react-oauth/google";
 import api from "@/lib/axios";
 import { toast } from "sonner";
@@ -17,12 +17,21 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const { user, loading: authLoading, login } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   
   const isRegistered = searchParams.get("status") === "registered";
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
     if (!authLoading && user) {
-      router.replace("/");
+      if (user.role === "ADMIN") {
+        router.replace("/admin");
+      } else {
+        router.replace("/");
+      }
     }
   }, [user, authLoading, router]);
 
@@ -35,6 +44,12 @@ function LoginContent() {
         });
 
         if (res.data && res.data.success) {
+          // ✅ BẢO VỆ: Kiểm tra quyền trước khi đăng nhập Google
+          if (res.data.data.user.role === "ADMIN") {
+            toast.error("Tài khoản Quản trị viên không được phép đăng nhập ở đây!");
+            return; // Đuổi luôn, không cho gọi hàm login()
+          }
+
           login(res.data.data);
           toast.success("Đăng nhập Google thành công!");
           router.push("/");
@@ -48,8 +63,7 @@ function LoginContent() {
     onError: () => toast.error("Không thể kết nối với Google"),
   });
 
-  // ✅ FIX HYDRATION: Đồng bộ thẻ div ngoài cùng cho trạng thái Loading
-  if (authLoading || user) return (
+  if (!isMounted || authLoading || user) return (
     <div className="min-h-[calc(100vh-128px)] flex items-center justify-center bg-gray-50 px-4 py-12">
       <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
     </div>
@@ -73,9 +87,12 @@ function LoginContent() {
         </div>
         <h1 className="text-2xl font-bold text-center mb-6 text-gray-900">Đăng nhập BallHub</h1>
 
+        {/* ✅ BẢO VỆ MẠNH: Truyền lệnh cấm ADMIN vào form */}
         <AuthForm 
           initialMode="login" 
-          onSuccess={() => {
+          blockedRole="ADMIN" 
+          onSuccess={(loggedUser) => {
+            if (!loggedUser) return;
             const redirect = searchParams.get("redirect") || "/";
             router.push(redirect);
           }} 
@@ -96,7 +113,6 @@ function LoginContent() {
           </div>
         </div>
 
-        {/* NÚT GOOGLE FULL CHIỀU RỘNG */}
         <button 
           onClick={() => handleGoogleLogin()}
           disabled={isProcessing}
@@ -116,6 +132,16 @@ function LoginContent() {
             Đăng ký ngay
           </Link>
         </p>
+
+        <div className="mt-8 pt-6 border-t border-gray-100 flex justify-center">
+          <Link 
+            href="/admin-login" 
+            className="flex items-center gap-1.5 text-[11px] font-black tracking-widest text-gray-400 hover:text-green-600 transition-colors uppercase"
+          >
+            <ShieldCheck size={14} /> Cổng Quản Lý
+          </Link>
+        </div>
+
       </div>
     </div>
   );

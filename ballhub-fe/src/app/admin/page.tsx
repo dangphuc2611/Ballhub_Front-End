@@ -19,8 +19,6 @@ import {
   Briefcase,
   MessageSquare,
   Store,
-  Layers,
-  FileText,
 } from "lucide-react";
 
 import { NavItem } from "@/components/admin/NavItem";
@@ -41,12 +39,6 @@ import { BrandModal } from "@/components/admin/BrandModal";
 import { ReviewTable } from "@/components/admin/ReviewTable";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { PosView } from "@/components/admin/PosView";
-import { InvoiceView } from "@/components/admin/InvoiceView";
-import { GlobalVariantTable } from "@/components/admin/GlobalVariantTable";
-import { VariantEditModal } from "@/components/admin/VariantEditModal";
-import { VariantCreateModal } from "@/components/admin/VariantCreateModal";
-import { toast } from "sonner";
-import axios from "axios";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("Tổng quan");
@@ -104,14 +96,6 @@ export default function AdminDashboard() {
   const [reviewPage, setReviewPage] = useState<number>(0);
   const [reviewPageInfo, setReviewPageInfo] = useState<any>(null);
   const [reviewRefreshTrigger, setReviewRefreshTrigger] = useState(0);
-
-  // ── Global Variant state ────────────────────────────────────────────────
-  const [globalVariants, setGlobalVariants] = useState<any[]>([]);
-  const [variantPage, setVariantPage] = useState<number>(0);
-  const [variantPageInfo, setVariantPageInfo] = useState<any>(null);
-  const [variantRefreshTrigger, setVariantRefreshTrigger] = useState(0);
-  const [editingVariant, setEditingVariant] = useState<any>(null);
-  const [showVariantCreate, setShowVariantCreate] = useState(false);
 
   // ── Global Confirm state ───────────────────────────────────────────────
   const [confirmConfig, setConfirmConfig] = useState<{
@@ -402,83 +386,19 @@ export default function AdminDashboard() {
             {
               method: "DELETE",
               headers: { Authorization: `Bearer ${token}` },
-            });
-            const result = await res.json();
-            if (result.status === "error") {
-              alert(result.message);
-            } else {
-              setReviewRefreshTrigger((p) => p + 1);
-              setConfirmConfig(p => ({ ...p, open: false }));
-            }
-          } catch (err) {
-            console.error("Delete review error:", err);
+            },
+          );
+          const result = await res.json();
+          if (result.status === "error") {
+            alert(result.message);
+          } else {
+            setReviewRefreshTrigger((p) => p + 1);
+            setConfirmConfig((p) => ({ ...p, open: false }));
           }
-        }
-    );
-  };
-
-  useEffect(() => {
-    const fetchAllVariants = async () => {
-      try {
-        const token = localStorage.getItem("refreshToken");
-        const res = await fetch(
-          `http://localhost:8080/api/admin/variants?page=${variantPage}&size=10`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const result = await res.json();
-        const payload = result?.data ?? result;
-        setGlobalVariants(payload?.content ?? []);
-        setVariantPageInfo({
-          pageNumber: payload?.pageNumber ?? 0,
-          pageSize: payload?.pageSize ?? 10,
-          totalElements: payload?.totalElements ?? 0,
-          totalPages: payload?.totalPages ?? 1,
-        });
-      } catch (err) {
-        console.error("Fetch all variants error:", err);
-      }
-    };
-    fetchAllVariants();
-  }, [variantPage, variantRefreshTrigger]);
-
-  const handleToggleVariantStatus = async (v: any) => {
-    try {
-      const token = localStorage.getItem("accessToken");
-      await axios.put(
-        `http://localhost:8080/api/admin/variants/${v.variantId}`,
-        {
-          price: v.price,
-          stockQuantity: v.stockQuantity,
-          status: !v.status,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success(`${v.status ? "Ẩn" : "Hiện"} biến thể thành công`);
-      setVariantRefreshTrigger((p) => p + 1);
-    } catch (err) {
-      toast.error("Lỗi cập nhật trạng thái");
-    }
-  };
-
-  const handleHardDeleteVariant = (id: number) => {
-    askConfirm(
-      "Xóa Vĩnh Viễn Biến Thể?",
-      "Thao tác này sẽ xóa hoàn toàn biến thể khỏi hệ thống. Bạn có chắc chắn?",
-      async () => {
-        try {
-          const token = localStorage.getItem("refreshToken");
-          // Assuming hard delete logic or soft delete as requested
-          await fetch(`http://localhost:8080/api/admin/variants/${id}`, {
-            method: "DELETE",
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setVariantRefreshTrigger((p) => p + 1);
-          setConfirmConfig(p => ({ ...p, open: false }));
-          toast.success("Xóa biến thể thành công");
         } catch (err) {
-          toast.error("Lỗi xóa biến thể");
+          console.error("Delete review error:", err);
         }
-      }
+      },
     );
   };
 
@@ -527,12 +447,6 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab("Sản phẩm")}
             />
             <NavItem
-              icon={<Layers size={18} />}
-              label="Biến thể"
-              active={activeTab === "Biến thể"}
-              onClick={() => setActiveTab("Biến thể")}
-            />
-            <NavItem
               icon={<ShoppingCart size={18} />}
               label="Đơn hàng"
               active={activeTab === "Đơn hàng"}
@@ -543,12 +457,6 @@ export default function AdminDashboard() {
               label="Bán tại quầy"
               active={activeTab === "Bán tại quầy"}
               onClick={() => setActiveTab("Bán tại quầy")}
-            />
-            <NavItem
-              icon={<FileText size={18} />}
-              label="Hóa đơn"
-              active={activeTab === "Hóa đơn"}
-              onClick={() => setActiveTab("Hóa đơn")}
             />
             <NavItem
               icon={<Users size={18} />}
@@ -607,9 +515,7 @@ export default function AdminDashboard() {
             <h2 className="text-2xl font-black text-slate-800 tracking-tight">
               {activeTab === "Bán tại quầy"
                 ? "Máy tính tiền (POS)"
-                : activeTab === "Hóa đơn"
-                  ? "Hóa đơn — xem trước & in"
-                  : "Dashboard Thống kê"}
+                : "Dashboard Thống kê"}
             </h2>
             <p className="text-xs text-slate-400 font-medium">
               Chào mừng trở lại, {user.fullName}
@@ -711,26 +617,7 @@ export default function AdminDashboard() {
 
           {activeTab === "Bán tại quầy" && (
             <div className="col-span-12">
-              <PosView
-                onPosCodOrderCreated={(id) => {
-                  setActiveTab("Đơn hàng");
-                  setOrderPage(0);
-                  setOrderRefreshTrigger((p) => p + 1);
-                  setSelectedOrderId(id);
-                }}
-                onPosVnpayPaymentSuccess={(id) => {
-                  setActiveTab("Đơn hàng");
-                  setOrderPage(0);
-                  setOrderRefreshTrigger((p) => p + 1);
-                  setSelectedOrderId(id);
-                }}
-              />
-            </div>
-          )}
-
-          {activeTab === "Hóa đơn" && (
-            <div className="col-span-12">
-              <InvoiceView />
+              <PosView />
             </div>
           )}
 
@@ -814,23 +701,6 @@ export default function AdminDashboard() {
               />
             </div>
           )}
-
-          {activeTab === "Biến thể" && (
-            <div className="col-span-12">
-              <GlobalVariantTable
-                variants={globalVariants}
-                page={variantPage}
-                totalPages={variantPageInfo?.totalPages ?? 1}
-                totalElements={variantPageInfo?.totalElements}
-                pageSize={variantPageInfo?.pageSize}
-                onPageChange={(p: number) => setVariantPage(p)}
-                onEdit={(v) => setEditingVariant(v)}
-                onToggleStatus={handleToggleVariantStatus}
-                onDelete={handleHardDeleteVariant}
-                onAddNew={() => setShowVariantCreate(true)}
-              />
-            </div>
-          )}
         </div>
       </main>
 
@@ -887,21 +757,6 @@ export default function AdminDashboard() {
         onClose={() => setConfirmConfig((p) => ({ ...p, open: false }))}
         onConfirm={confirmConfig.onConfirm}
       />
-
-      {editingVariant && (
-        <VariantEditModal
-          variant={editingVariant}
-          onClose={() => setEditingVariant(null)}
-          onSuccess={() => setVariantRefreshTrigger((p) => p + 1)}
-        />
-      )}
-
-      {showVariantCreate && (
-        <VariantCreateModal
-          onClose={() => setShowVariantCreate(false)}
-          onSuccess={() => setVariantRefreshTrigger((p) => p + 1)}
-        />
-      )}
     </div>
   );
 }

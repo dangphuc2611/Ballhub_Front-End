@@ -35,6 +35,9 @@ export const PosView = () => {
 
   const [checkoutSuccessData, setCheckoutSuccessData] = useState<any>(null);
 
+  // QUẢN LÝ TIỀN KHÁCH ĐƯA
+  const [customerCash, setCustomerCash] = useState<number | "">("");
+
   const {
     orders,
     activeOrderId,
@@ -313,6 +316,13 @@ export const PosView = () => {
   const totalItems = activeOrder?.items.reduce((sum, item) => sum + item.quantity, 0) || 0;
   const formatPrice = (price: number) => price.toLocaleString("vi-VN") + "đ";
 
+  // TÍNH TIỀN THỪA
+  const changeAmount = (customerCash as number) - finalTotal;
+
+  useEffect(() => {
+    setCustomerCash("");
+  }, [activeOrderId, activeOrder?.paymentMethodId]);
+
   const handleApplyVoucherInput = () => {
     if (!promoInput.trim()) {
       toast.warning("Vui lòng nhập mã khuyến mãi!");
@@ -373,7 +383,14 @@ export const PosView = () => {
 
     const selectedMethod = activeOrder.paymentMethodId || 1;
 
-    // ✅ BÍ QUYẾT LÁCH POP-UP BLOCKER: Mở tab trắng ngay lập tức
+    // CHẶN THANH TOÁN NẾU LÀ TIỀN MẶT VÀ KHÁCH ĐƯA THIẾU TIỀN
+    if (selectedMethod === 1) {
+      if (customerCash === "" || customerCash < finalTotal) {
+        toast.error("Số tiền khách đưa không đủ để thanh toán!");
+        return;
+      }
+    }
+
     let vnpayTab: Window | null = null;
     if (selectedMethod === 2) {
       vnpayTab = window.open("about:blank", "_blank");
@@ -421,6 +438,11 @@ export const PosView = () => {
         if (deliveryNote) finalNote += ` - Ghi chú: ${deliveryNote}`;
       }
 
+      // ✅ NHÉT TIỀN KHÁCH ĐƯA VÀO GHI CHÚ ĐỂ LƯU VÀO DATABASE
+      if (selectedMethod === 1 && customerCash !== "") {
+        finalNote += `|CASH:${customerCash}`;
+      }
+
       const orderPayload = {
         addressId: activeOrder.addressId || null,
         customerId: activeOrder.customerId || null,
@@ -445,13 +467,11 @@ export const PosView = () => {
 
       const resData = await orderRes.json();
       
-      // ✅ BẮT LỖI TẠI TRẬN: Dù backend có trả 200 OK nhưng nếu success = false thì cũng chặn
       if (!orderRes.ok || resData.success === false) {
         if (vnpayTab) vnpayTab.close();
         throw new Error(resData.message || "Lỗi tạo đơn hàng. Vui lòng kiểm tra lại Backend!");
       }
 
-      // ✅ LẤY ID THẬT TỪ BACKEND (Đã thêm resData?.data?.order?.orderId để lấy được ID: 83 như trong Console)
       const realOrderId = 
         resData?.data?.order?.orderId || 
         resData?.data?.orderId || 
@@ -460,22 +480,19 @@ export const PosView = () => {
         resData?.orderId || 
         resData?.id;
       
-      // CHẶN ĐỨNG "CÚ LỪA HD1": Nếu không lấy được số ID thật, tuyệt đối không cho qua
       if (!realOrderId) {
         console.error("Dữ liệu trả về từ Backend không có ID:", resData);
         if (vnpayTab) vnpayTab.close();
         throw new Error("Không lấy được mã đơn hàng từ hệ thống. Hủy tiến trình!");
       }
 
-      const finalOrderId = realOrderId; // Dùng ID thật, KHÔNG dùng activeOrder.id (HD1)
+      const finalOrderId = realOrderId; 
       let finalVnpayUrl = "";
 
-      // XỬ LÝ VNPAY
       if (selectedMethod === 2) {
         if (realOrderId) {
           toast.success("Đang tạo link thanh toán VNPAY...");
           try {
-            // Đã thêm lại tham số &isPos=true
             const vnpayRes = await fetch(
               `http://localhost:8080/api/payment/create-vnpay?amount=${Math.floor(finalTotal)}&orderId=${realOrderId}&isPos=true`,
               {
@@ -500,6 +517,7 @@ export const PosView = () => {
         }
       }
 
+      // ✅ ĐÃ CẬP NHẬT: LƯU TIỀN KHÁCH ĐƯA VÀ TIỀN THỪA ĐỂ HIỆN LÊN POPUP/HÓA ĐƠN
       setCheckoutSuccessData({
         ...activeOrder,
         id: finalOrderId, 
@@ -510,6 +528,8 @@ export const PosView = () => {
         isVnpaySuccess: false, 
         vnpayUrl: finalVnpayUrl,
         displayDate: new Date().toLocaleString("vi-VN"),
+        customerCash: selectedMethod === 1 ? Number(customerCash) : finalTotal,
+        changeAmount: selectedMethod === 1 ? changeAmount : 0,
       });
 
       const currentOrdersCount = usePosStore.getState().orders.length;
@@ -524,13 +544,10 @@ export const PosView = () => {
     }
   };
 
-  // LOGIC AUTO-POLLING CHUẨN XÁC
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
     if (checkoutSuccessData && checkoutSuccessData.paymentMethodId === 2 && !checkoutSuccessData.isVnpaySuccess) {
-      
-      // ✅ CHỐNG LỖI BACKEND: Không bao giờ được phép gửi chữ "HD" xuống API GET
       if (String(checkoutSuccessData.id).includes("HD")) {
           console.warn("Chặn Polling vì ID không hợp lệ: " + checkoutSuccessData.id);
           return;
@@ -552,7 +569,6 @@ export const PosView = () => {
             clearInterval(interval);
           }
         } catch (err) {
-          // Bỏ qua lỗi mạng
         }
       }, 3000); 
     }
@@ -561,7 +577,6 @@ export const PosView = () => {
   }, [checkoutSuccessData]);
 
   const receiptOrder = checkoutSuccessData || activeOrder;
-  
   const isWaitingVnpay = checkoutSuccessData?.paymentMethodId === 2 && !checkoutSuccessData?.isVnpaySuccess;
 
   return (
@@ -586,7 +601,7 @@ export const PosView = () => {
         }
       `}</style>
 
-      {/* POPUP THANH TOÁN */}
+      {/* POPUP THANH TOÁN THÀNH CÔNG */}
       {checkoutSuccessData && (
         <div className="fixed inset-0 bg-slate-900/60 z-[9999] flex items-center justify-center print:hidden">
           <div className="bg-white rounded-3xl w-[420px] p-8 flex flex-col items-center shadow-2xl animate-in zoom-in duration-200">
@@ -646,12 +661,30 @@ export const PosView = () => {
                     : "Tiền mặt"}
                 </span>
               </div>
-              <div className="flex justify-between text-sm pt-3 border-t border-slate-200">
-                <span className="text-slate-500 font-bold">Thực thu:</span>
+              
+              {/* ✅ HIỂN THỊ CHI TIẾT TIỀN THỪA TRONG POPUP */}
+              <div className="flex justify-between text-sm pt-3 border-t border-slate-200 mt-2">
+                <span className="text-slate-500 font-bold">Cần thanh toán:</span>
                 <span className="font-black text-emerald-600 text-lg">
                   {formatPrice(checkoutSuccessData.finalTotal)}
                 </span>
               </div>
+              {(checkoutSuccessData.paymentMethodId || 1) === 1 && (
+                <>
+                  <div className="flex justify-between text-sm mt-2">
+                    <span className="text-slate-500 font-medium">Khách đưa:</span>
+                    <span className="font-bold text-slate-700">
+                      {formatPrice(checkoutSuccessData.customerCash)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm mt-2">
+                    <span className="text-slate-500 font-medium">Tiền thừa trả khách:</span>
+                    <span className="font-bold text-rose-500">
+                      {formatPrice(checkoutSuccessData.changeAmount)}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="flex gap-3 w-full">
@@ -671,7 +704,6 @@ export const PosView = () => {
                     setCheckoutSuccessData(null);
                   }
                 }}
-                // Đổi thành màu Xanh lá cho dễ bấm
                 className="flex-1 py-3.5 rounded-xl font-bold transition-all bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-200"
               >
                 {isWaitingVnpay ? "Đã nhận tiền" : "Đóng"}
@@ -762,10 +794,25 @@ export const PosView = () => {
                 <span className="font-bold">{formatPrice(receiptOrder.shippingFee ?? shippingFee)}</span>
               </div>
             )}
+            
+            {/* ✅ HIỂN THỊ CHI TIẾT TIỀN THỪA TRONG HÓA ĐƠN IN */}
             <div className="flex justify-between items-center mt-2 pt-2 border-t-2 border-black">
               <span className="font-black text-base uppercase">Cần thanh toán:</span>
               <span className="font-black text-xl">{formatPrice(receiptOrder.finalTotal ?? finalTotal)}</span>
             </div>
+            {(receiptOrder.paymentMethodId || 1) === 1 && receiptOrder.customerCash !== undefined && (
+              <>
+                <div className="flex justify-between mt-1">
+                  <span>Tiền khách đưa:</span>
+                  <span className="font-bold">{formatPrice(receiptOrder.customerCash)}</span>
+                </div>
+                <div className="flex justify-between mt-1">
+                  <span>Tiền thừa trả khách:</span>
+                  <span className="font-bold">{formatPrice(receiptOrder.changeAmount)}</span>
+                </div>
+              </>
+            )}
+
           </div>
           <div className="mt-3 text-right text-xs italic font-bold">
             {(receiptOrder.paymentMethodId || 1) === 2 
@@ -1375,33 +1422,55 @@ export const PosView = () => {
                       {formatPrice(finalTotal)}
                     </span>
                   </div>
+
+                  {/* Ô NHẬP TIỀN KHÁCH ĐƯA (CHỈ HIỆN KHI CHỌN TIỀN MẶT) */}
+                  {(!activeOrder.paymentMethodId || activeOrder.paymentMethodId === 1) && (
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-2">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-slate-600">Khách đưa (VNĐ):</span>
+                        <input 
+                          type="number"
+                          placeholder="0"
+                          value={customerCash}
+                          onChange={(e) => setCustomerCash(e.target.value === "" ? "" : Number(e.target.value))}
+                          className="w-32 bg-white border border-slate-300 px-3 py-1.5 rounded-lg text-sm font-black text-right outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      
+                      {customerCash !== "" && (
+                        <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                          <span className="text-xs font-bold text-slate-600">Tiền thừa trả khách:</span>
+                          <span className={`font-black text-sm ${changeAmount < 0 ? 'text-red-500' : 'text-blue-600'}`}>
+                            {changeAmount < 0 ? `Thiếu ${formatPrice(Math.abs(changeAmount))}` : formatPrice(changeAmount)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                 </div>
 
-                <div className="mt-auto pt-2 flex gap-3">
-                  <button
-                    onClick={() => window.print()}
-                    disabled={!activeOrder || activeOrder.items.length === 0}
-                    className="flex flex-col items-center justify-center gap-1 w-24 bg-white border-2 border-slate-200 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-50 disabled:opacity-50 transition-all"
-                  >
-                    <Printer size={20} />{" "}
-                    <span className="text-[10px] uppercase">In tạm</span>
-                  </button>
+                <div className="mt-auto pt-2">
                   <button
                     onClick={handleCheckout}
                     disabled={
                       !activeOrder ||
                       activeOrder.items.length === 0 ||
-                      isProcessing
+                      isProcessing ||
+                      // KHÓA NÚT NẾU TIỀN KHÁCH ĐƯA THIẾU
+                      ((!activeOrder.paymentMethodId || activeOrder.paymentMethodId === 1) && (customerCash === "" || changeAmount < 0))
                     }
-                    className="flex-1 flex items-center justify-center gap-2 bg-emerald-500 text-white font-bold py-3 rounded-xl hover:bg-emerald-600 shadow-lg disabled:opacity-50 transition-all"
+                    className="w-full flex items-center justify-center gap-2 bg-emerald-500 text-white font-bold py-3.5 rounded-xl hover:bg-emerald-600 shadow-lg disabled:opacity-50 transition-all"
                   >
                     {isProcessing ? (
-                      <span className="animate-spin text-xl">↻</span>
+                      <Loader2 className="animate-spin" size={22} />
                     ) : (
                       <CreditCard size={22} />
                     )}
                     <span className="uppercase tracking-wider text-sm">
-                      Thanh toán
+                      {(!activeOrder.paymentMethodId || activeOrder.paymentMethodId === 1) && (customerCash === "" || changeAmount < 0) 
+                        ? "YÊU CẦU NHẬP ĐỦ TIỀN" 
+                        : "THANH TOÁN"}
                     </span>
                   </button>
                 </div>
