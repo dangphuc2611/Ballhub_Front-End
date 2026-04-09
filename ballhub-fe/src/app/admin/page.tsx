@@ -188,13 +188,19 @@ export default function AdminDashboard() {
     const fetchVouchers = async () => {
       try {
         const token = localStorage.getItem("refreshToken");
-        const res = await fetch(`http://localhost:8080/api/promotions/admin/all?page=${voucherPage}&size=10`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`http://localhost:8080/api/promotions/admin/all?page=${voucherPage}&size=100`, { headers: { Authorization: `Bearer ${token}` } });
         const result = await res.json();
         const payload = result?.data ?? result;
-        setVouchers(payload?.content ?? []);
+        
+        // 🚀 BỔ SUNG LỌC: Chỉ lấy những Promotion có promoCode (khác null và khác rỗng)
+        const validVouchers = (payload?.content ?? []).filter((v: any) => v.promoCode && v.promoCode.trim() !== "");
+
+        setVouchers(validVouchers);
         setVoucherPageInfo({
-          pageNumber: payload?.pageNumber ?? 0, pageSize: payload?.pageSize ?? 10,
-          totalElements: payload?.totalElements ?? 0, totalPages: payload?.totalPages ?? 1,
+          pageNumber: payload?.pageNumber ?? 0, 
+          pageSize: payload?.pageSize ?? 10,
+          totalElements: validVouchers.length, // Lấy theo độ dài mảng đã lọc
+          totalPages: payload?.totalPages ?? 1,
         });
       } catch (err) {}
     };
@@ -337,7 +343,7 @@ export default function AdminDashboard() {
         const result = await res.json();
         const payload = result?.data ?? result;
         setGlobalVariants(payload?.content ?? []);
-        setVariantPageInfo({ pageNumber: payload?.pageNumber ?? 0, totalPages: payload?.totalPages ?? 1 });
+        setVariantPageInfo({ pageNumber: payload?.pageNumber ?? 0, totalPages: payload?.totalPages ?? 1,totalElements: payload?.totalElements ?? 0, pageSize: payload?.pageSize ?? 10});
       } catch (err) {}
     }; fetchAllVariants();
   }, [variantPage, variantRefreshTrigger]);

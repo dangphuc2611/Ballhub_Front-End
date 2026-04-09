@@ -100,9 +100,16 @@ export const OrderTable = ({
           <tbody className="divide-y divide-slate-50">
             {orders && orders.length > 0 ? (
               orders.map((o, index) => {
-                const isPosOrder = !o.deliveryAddress || o.deliveryAddress === "";
+                console.log("Dữ liệu 1 đơn hàng:", o);
+                // ✅ SỬA LOGIC Ở ĐÂY: Dựa vào trường isPos từ Backend (thay vì dựa vào địa chỉ)
+                // Lưu ý: Hãy đảm bảo Backend của bạn có trả về trường o.isPos (true/false) hoặc o.orderType nhé!
+                const isPosOrder = o.isPos === true;
+                
+                // Kiểm tra xem đơn có phải giao đi không
+                const isDelivery = o.shippingFee > 0 || (o.deliveryAddress && o.deliveryAddress.trim() !== "");
+
                 const displayCustomerName = o.userFullName || o.fullName || o.customerName || "Khách lẻ";
-                const displayPhone = o.phone || o.user?.phone || (isPosOrder ? "Tại quầy" : "---");
+                const displayPhone = o.phone || o.user?.phone || (isPosOrder && !isDelivery ? "Tại quầy" : "---");
                 
                 // Lấy thông tin màu sắc và nhãn đã đồng bộ
                 const statusConfig = getStatusConfig(o.statusName);
@@ -117,12 +124,31 @@ export const OrderTable = ({
                   </td>
                   <td className="py-4 font-bold text-emerald-600">HD{o.orderId}</td>
                   
+                  {/* ✅ UPDATE GIAO DIỆN CỘT "LOẠI ĐƠN" */}
                   <td>
-                    {isPosOrder ? (
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">TẠI QUẦY</span>
-                    ) : (
-                        <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">ONLINE</span>
-                    )}
+                    {(() => {
+                      if (isPosOrder) {
+                        if (isDelivery) {
+                          return (
+                            <span className="bg-orange-50 text-orange-600 border border-orange-200 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center justify-center max-w-[110px] text-center">
+                              POS - GIAO HÀNG
+                            </span>
+                          );
+                        } else {
+                          return (
+                            <span className="bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center justify-center max-w-[110px] text-center">
+                              POS - CẦM VỀ
+                            </span>
+                          );
+                        }
+                      } else {
+                        return (
+                          <span className="bg-blue-50 text-blue-600 border border-blue-200 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center justify-center max-w-[110px] text-center">
+                            WEB - GIAO HÀNG
+                          </span>
+                        );
+                      }
+                    })()}
                   </td>
                   
                   <td className="py-4">

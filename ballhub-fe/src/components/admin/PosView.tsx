@@ -76,7 +76,7 @@ export const PosView = () => {
       "https://online-gateway.ghn.vn/shiip/public-api/master-data/province",
       {
         headers: { token: GHN_TOKEN },
-      }
+      },
     )
       .then((res) => res.json())
       .then((data) => {
@@ -105,7 +105,7 @@ export const PosView = () => {
     const currentSubTotal =
       currentOrder?.items.reduce(
         (sum, item) => sum + (item.discountPrice || item.price) * item.quantity,
-        0
+        0,
       ) || 0;
     if (currentSubTotal >= 1000000) {
       updateActiveOrderDetails({ shippingFee: 0 });
@@ -125,7 +125,7 @@ export const PosView = () => {
             to_ward_code: wardCode,
             weight: 500,
           }),
-        }
+        },
       );
       const result = await response.json();
       if (result.code === 200)
@@ -138,7 +138,7 @@ export const PosView = () => {
 
   const calculateShippingFeeFromString = async (
     addressStr: string,
-    totalAmount: number
+    totalAmount: number,
   ) => {
     if (!addressStr || addressStr.trim() === "") return 0;
     if (totalAmount >= 1000000) return 0;
@@ -154,13 +154,13 @@ export const PosView = () => {
       const matchedProv = provinces.find(
         (p) =>
           provName.includes(p.ProvinceName.toLowerCase()) ||
-          p.ProvinceName.toLowerCase().includes(provName)
+          p.ProvinceName.toLowerCase().includes(provName),
       );
       if (!matchedProv) return 30000;
 
       const distRes = await fetch(
         `https://online-gateway.ghn.vn/shiip/public-api/master-data/district?province_id=${matchedProv.ProvinceID}`,
-        { headers: { token: GHN_TOKEN } }
+        { headers: { token: GHN_TOKEN } },
       );
       const distData = await distRes.json();
       if (distData.code !== 200) return 30000;
@@ -170,7 +170,7 @@ export const PosView = () => {
         return (
           distName.includes(dName) ||
           dName.includes(
-            distName.replace(/(quận|huyện|thị xã|thành phố)\s+/g, "")
+            distName.replace(/(quận|huyện|thị xã|thành phố)\s+/g, ""),
           )
         );
       });
@@ -178,7 +178,7 @@ export const PosView = () => {
 
       const wardRes = await fetch(
         `https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id=${matchedDist.DistrictID}`,
-        { headers: { token: GHN_TOKEN } }
+        { headers: { token: GHN_TOKEN } },
       );
       const wardData = await wardRes.json();
       let matchedWardCode = "";
@@ -205,7 +205,7 @@ export const PosView = () => {
             to_ward_code: matchedWardCode,
             weight: 500,
           }),
-        }
+        },
       );
 
       const feeResult = await feeRes.json();
@@ -229,7 +229,7 @@ export const PosView = () => {
     const updateFeeFromBook = async () => {
       const currentSubTotal = activeOrder.items.reduce(
         (sum, item) => sum + (item.discountPrice || item.price) * item.quantity,
-        0
+        0,
       );
       if (currentSubTotal >= 1000000) {
         updateActiveOrderDetails({ shippingFee: 0 });
@@ -237,7 +237,7 @@ export const PosView = () => {
       }
       const fee = await calculateShippingFeeFromString(
         activeOrder.deliveryAddress,
-        currentSubTotal
+        currentSubTotal,
       );
       updateActiveOrderDetails({ shippingFee: fee });
     };
@@ -267,7 +267,7 @@ export const PosView = () => {
   const subTotal =
     activeOrder?.items.reduce(
       (sum, item) => sum + (item.discountPrice || item.price) * item.quantity,
-      0
+      0,
     ) || 0;
   const isFreeshipEligible = subTotal >= 1000000;
 
@@ -304,16 +304,26 @@ export const PosView = () => {
   };
 
   useEffect(() => {
-    if (activeOrder?.appliedVoucher && subTotal < activeOrder.appliedVoucher.minOrderAmount) {
+    if (
+      activeOrder?.appliedVoucher &&
+      subTotal < activeOrder.appliedVoucher.minOrderAmount
+    ) {
       updateActiveOrderDetails({ appliedVoucher: null, discountAmount: 0 });
-      toast.error(`Mã ${activeOrder.appliedVoucher.promoCode} đã bị gỡ do đơn không đủ điều kiện!`);
+      toast.error(
+        `Mã ${activeOrder.appliedVoucher.promoCode} đã bị gỡ do đơn không đủ điều kiện!`,
+      );
     }
   }, [subTotal, activeOrder?.appliedVoucher]);
 
-  const discountAmount = activeOrder?.appliedVoucher ? calculateDiscount(activeOrder.appliedVoucher, subTotal) : 0;
-  const shippingFee = activeOrder?.isDelivery ? activeOrder?.shippingFee || 0 : 0;
+  const discountAmount = activeOrder?.appliedVoucher
+    ? calculateDiscount(activeOrder.appliedVoucher, subTotal)
+    : 0;
+  const shippingFee = activeOrder?.isDelivery
+    ? activeOrder?.shippingFee || 0
+    : 0;
   const finalTotal = Math.max(0, subTotal - discountAmount) + shippingFee;
-  const totalItems = activeOrder?.items.reduce((sum, item) => sum + item.quantity, 0) || 0;
+  const totalItems =
+    activeOrder?.items.reduce((sum, item) => sum + item.quantity, 0) || 0;
   const formatPrice = (price: number) => price.toLocaleString("vi-VN") + "đ";
 
   // TÍNH TIỀN THỪA
@@ -329,7 +339,7 @@ export const PosView = () => {
       return;
     }
     const voucher = availableVouchers.find(
-      (v) => v.promoCode.toUpperCase() === promoInput.toUpperCase()
+      (v) => v.promoCode.toUpperCase() === promoInput.toUpperCase(),
     );
     if (!voucher) {
       toast.error("Mã giảm giá không hợp lệ!");
@@ -339,7 +349,10 @@ export const PosView = () => {
       toast.error(`Đơn hàng chưa đủ ${formatPrice(voucher.minOrderAmount)}`);
       return;
     }
-    updateActiveOrderDetails({ appliedVoucher: voucher, discountAmount: calculateDiscount(voucher, subTotal) });
+    updateActiveOrderDetails({
+      appliedVoucher: voucher,
+      discountAmount: calculateDiscount(voucher, subTotal),
+    });
     toast.success(`Đã áp dụng mã ${voucher.promoCode}`);
     setPromoInput("");
   };
@@ -349,7 +362,10 @@ export const PosView = () => {
       toast.error(`Đơn hàng chưa đủ ${formatPrice(voucher.minOrderAmount)}`);
       return;
     }
-    updateActiveOrderDetails({ appliedVoucher: voucher, discountAmount: calculateDiscount(voucher, subTotal) });
+    updateActiveOrderDetails({
+      appliedVoucher: voucher,
+      discountAmount: calculateDiscount(voucher, subTotal),
+    });
     toast.success(`Đã áp dụng mã ${voucher.promoCode}`);
   };
 
@@ -396,11 +412,13 @@ export const PosView = () => {
       vnpayTab = window.open("about:blank", "_blank");
       if (vnpayTab) {
         vnpayTab.document.write(
-          "<h2 style='font-family:sans-serif; text-align:center; margin-top:100px; color:#333;'>Đang kết nối đến cổng thanh toán VNPAY... Vui lòng chờ vài giây.</h2>"
+          "<h2 style='font-family:sans-serif; text-align:center; margin-top:100px; color:#333;'>Đang kết nối đến cổng thanh toán VNPAY... Vui lòng chờ vài giây.</h2>",
         );
         vnpayTab.document.close();
       } else {
-        toast.warning("Trình duyệt đã chặn Pop-up. Nút mở VNPAY thủ công sẽ xuất hiện trên màn hình.");
+        toast.warning(
+          "Trình duyệt đã chặn Pop-up. Nút mở VNPAY thủ công sẽ xuất hiện trên màn hình.",
+        );
       }
     }
 
@@ -433,12 +451,18 @@ export const PosView = () => {
           ? activeOrder.customerPhone
           : "Trống";
       let finalNote = `POS_CUSTOMER|${customerName}|${customerPhone}`;
+
+      // 1. Chốt luôn phần tử thứ 4 là Địa chỉ
       if (activeOrder.isDelivery && activeOrder.deliveryAddress) {
-        finalNote += `|Giao đến: ${activeOrder.deliveryAddress}`;
-        if (deliveryNote) finalNote += ` - Ghi chú: ${deliveryNote}`;
+        let addrString = `Giao đến: ${activeOrder.deliveryAddress}`;
+        if (deliveryNote) addrString += ` - Ghi chú: ${deliveryNote}`;
+        finalNote += `|${addrString}`;
+      } else {
+        // Nếu mua tại quầy, ép cứng phần tử thứ 4 là chữ "Nhận tại cửa hàng (POS)"
+        finalNote += `|Nhận tại cửa hàng (POS)`;
       }
 
-      // ✅ NHÉT TIỀN KHÁCH ĐƯA VÀO GHI CHÚ ĐỂ LƯU VÀO DATABASE
+      // 2. Đẩy phần tiền mặt sang phần tử thứ 5
       if (selectedMethod === 1 && customerCash !== "") {
         finalNote += `|CASH:${customerCash}`;
       }
@@ -446,7 +470,7 @@ export const PosView = () => {
       const orderPayload = {
         addressId: activeOrder.addressId || null,
         customerId: activeOrder.customerId || null,
-        paymentMethodId: activeOrder.paymentMethodId || 1, 
+        paymentMethodId: activeOrder.paymentMethodId || 1,
         note: finalNote,
         promoCode: activeOrder.appliedVoucher?.promoCode || null,
         shippingFee: shippingFee,
@@ -466,27 +490,31 @@ export const PosView = () => {
       });
 
       const resData = await orderRes.json();
-      
+
       if (!orderRes.ok || resData.success === false) {
         if (vnpayTab) vnpayTab.close();
-        throw new Error(resData.message || "Lỗi tạo đơn hàng. Vui lòng kiểm tra lại Backend!");
+        throw new Error(
+          resData.message || "Lỗi tạo đơn hàng. Vui lòng kiểm tra lại Backend!",
+        );
       }
 
-      const realOrderId = 
-        resData?.data?.order?.orderId || 
-        resData?.data?.orderId || 
-        resData?.data?.id || 
-        resData?.data?.order?.id || 
-        resData?.orderId || 
+      const realOrderId =
+        resData?.data?.order?.orderId ||
+        resData?.data?.orderId ||
+        resData?.data?.id ||
+        resData?.data?.order?.id ||
+        resData?.orderId ||
         resData?.id;
-      
+
       if (!realOrderId) {
         console.error("Dữ liệu trả về từ Backend không có ID:", resData);
         if (vnpayTab) vnpayTab.close();
-        throw new Error("Không lấy được mã đơn hàng từ hệ thống. Hủy tiến trình!");
+        throw new Error(
+          "Không lấy được mã đơn hàng từ hệ thống. Hủy tiến trình!",
+        );
       }
 
-      const finalOrderId = realOrderId; 
+      const finalOrderId = realOrderId;
       let finalVnpayUrl = "";
 
       if (selectedMethod === 2) {
@@ -497,7 +525,7 @@ export const PosView = () => {
               `http://localhost:8080/api/payment/create-vnpay?amount=${Math.floor(finalTotal)}&orderId=${realOrderId}&isPos=true`,
               {
                 headers: { Authorization: `Bearer ${token}` },
-              }
+              },
             );
             const vnpayData = await vnpayRes.json();
             if (vnpayData && vnpayData.data) {
@@ -520,12 +548,12 @@ export const PosView = () => {
       // ✅ ĐÃ CẬP NHẬT: LƯU TIỀN KHÁCH ĐƯA VÀ TIỀN THỪA ĐỂ HIỆN LÊN POPUP/HÓA ĐƠN
       setCheckoutSuccessData({
         ...activeOrder,
-        id: finalOrderId, 
+        id: finalOrderId,
         subTotal,
         discountAmount,
         shippingFee,
         finalTotal,
-        isVnpaySuccess: false, 
+        isVnpaySuccess: false,
         vnpayUrl: finalVnpayUrl,
         displayDate: new Date().toLocaleString("vi-VN"),
         customerCash: selectedMethod === 1 ? Number(customerCash) : finalTotal,
@@ -547,37 +575,50 @@ export const PosView = () => {
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
-    if (checkoutSuccessData && checkoutSuccessData.paymentMethodId === 2 && !checkoutSuccessData.isVnpaySuccess) {
+    if (
+      checkoutSuccessData &&
+      checkoutSuccessData.paymentMethodId === 2 &&
+      !checkoutSuccessData.isVnpaySuccess
+    ) {
       if (String(checkoutSuccessData.id).includes("HD")) {
-          console.warn("Chặn Polling vì ID không hợp lệ: " + checkoutSuccessData.id);
-          return;
+        console.warn(
+          "Chặn Polling vì ID không hợp lệ: " + checkoutSuccessData.id,
+        );
+        return;
       }
 
       interval = setInterval(async () => {
         try {
           const token = localStorage.getItem("refreshToken");
-          const res = await fetch(`http://localhost:8080/api/orders/${checkoutSuccessData.id}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const res = await fetch(
+            `http://localhost:8080/api/orders/${checkoutSuccessData.id}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
           const result = await res.json();
-          
+
           const status = result?.data?.statusName || result?.statusName;
-          
+
           if (status && status !== "PENDING") {
-            setCheckoutSuccessData((prev: any) => ({ ...prev, isVnpaySuccess: true }));
+            setCheckoutSuccessData((prev: any) => ({
+              ...prev,
+              isVnpaySuccess: true,
+            }));
             toast.success("✅ VNPAY đã báo nhận tiền thành công!");
             clearInterval(interval);
           }
-        } catch (err) {
-        }
-      }, 3000); 
+        } catch (err) {}
+      }, 3000);
     }
 
     return () => clearInterval(interval);
   }, [checkoutSuccessData]);
 
   const receiptOrder = checkoutSuccessData || activeOrder;
-  const isWaitingVnpay = checkoutSuccessData?.paymentMethodId === 2 && !checkoutSuccessData?.isVnpaySuccess;
+  const isWaitingVnpay =
+    checkoutSuccessData?.paymentMethodId === 2 &&
+    !checkoutSuccessData?.isVnpaySuccess;
 
   return (
     <>
@@ -605,19 +646,22 @@ export const PosView = () => {
       {checkoutSuccessData && (
         <div className="fixed inset-0 bg-slate-900/60 z-[9999] flex items-center justify-center print:hidden">
           <div className="bg-white rounded-3xl w-[420px] p-8 flex flex-col items-center shadow-2xl animate-in zoom-in duration-200">
-            
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-5 shadow-inner ${isWaitingVnpay ? 'bg-blue-100' : 'bg-emerald-100'}`}>
+            <div
+              className={`w-20 h-20 rounded-full flex items-center justify-center mb-5 shadow-inner ${isWaitingVnpay ? "bg-blue-100" : "bg-emerald-100"}`}
+            >
               {isWaitingVnpay ? (
                 <Loader2 size={40} className="text-blue-500 animate-spin" />
               ) : (
                 <CheckCircle2 size={40} className="text-emerald-500" />
               )}
             </div>
-            
+
             <h2 className="text-2xl font-black text-slate-800 mb-1 text-center">
-              {isWaitingVnpay ? "Đang chờ thanh toán..." : "Thanh toán thành công!"}
+              {isWaitingVnpay
+                ? "Đang chờ thanh toán..."
+                : "Thanh toán thành công!"}
             </h2>
-            
+
             <div className="text-slate-500 text-sm mb-6 text-center w-full">
               Mã đơn hàng:{" "}
               <span className="font-bold text-slate-700">
@@ -630,7 +674,9 @@ export const PosView = () => {
                   </span>
                   {checkoutSuccessData.vnpayUrl && (
                     <button
-                      onClick={() => window.open(checkoutSuccessData.vnpayUrl, "_blank")}
+                      onClick={() =>
+                        window.open(checkoutSuccessData.vnpayUrl, "_blank")
+                      }
                       className="mt-3 px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg text-xs font-bold hover:bg-blue-100 flex items-center justify-center gap-1.5 mx-auto transition-all"
                     >
                       <CreditCard size={14} /> Mở trang VNPAY (Thủ công)
@@ -650,21 +696,29 @@ export const PosView = () => {
               <div className="flex justify-between text-sm mb-3">
                 <span className="text-slate-500">Hình thức:</span>
                 <span className="font-bold text-slate-700">
-                  {checkoutSuccessData.isDelivery ? "Giao hàng" : "Lấy tại quầy"}
+                  {checkoutSuccessData.isDelivery
+                    ? "Giao hàng"
+                    : "Lấy tại quầy"}
                 </span>
               </div>
               <div className="flex justify-between text-sm mb-3">
                 <span className="text-slate-500">Thanh toán:</span>
-                <span className={`font-bold ${isWaitingVnpay ? "text-blue-600" : "text-slate-700"}`}>
-                  {checkoutSuccessData.paymentMethodId === 2 
-                    ? (isWaitingVnpay ? "VNPAY (Chờ xử lý)" : "VNPAY (Đã trả)") 
+                <span
+                  className={`font-bold ${isWaitingVnpay ? "text-blue-600" : "text-slate-700"}`}
+                >
+                  {checkoutSuccessData.paymentMethodId === 2
+                    ? isWaitingVnpay
+                      ? "VNPAY (Chờ xử lý)"
+                      : "VNPAY (Đã trả)"
                     : "Tiền mặt"}
                 </span>
               </div>
-              
+
               {/* ✅ HIỂN THỊ CHI TIẾT TIỀN THỪA TRONG POPUP */}
               <div className="flex justify-between text-sm pt-3 border-t border-slate-200 mt-2">
-                <span className="text-slate-500 font-bold">Cần thanh toán:</span>
+                <span className="text-slate-500 font-bold">
+                  Cần thanh toán:
+                </span>
                 <span className="font-black text-emerald-600 text-lg">
                   {formatPrice(checkoutSuccessData.finalTotal)}
                 </span>
@@ -672,13 +726,17 @@ export const PosView = () => {
               {(checkoutSuccessData.paymentMethodId || 1) === 1 && (
                 <>
                   <div className="flex justify-between text-sm mt-2">
-                    <span className="text-slate-500 font-medium">Khách đưa:</span>
+                    <span className="text-slate-500 font-medium">
+                      Khách đưa:
+                    </span>
                     <span className="font-bold text-slate-700">
                       {formatPrice(checkoutSuccessData.customerCash)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm mt-2">
-                    <span className="text-slate-500 font-medium">Tiền thừa trả khách:</span>
+                    <span className="text-slate-500 font-medium">
+                      Tiền thừa trả khách:
+                    </span>
                     <span className="font-bold text-rose-500">
                       {formatPrice(checkoutSuccessData.changeAmount)}
                     </span>
@@ -692,13 +750,17 @@ export const PosView = () => {
                 onClick={() => window.print()}
                 className="flex-1 flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-200"
               >
-                <Printer size={18} /> {isWaitingVnpay ? "In tạm tính" : "In hóa đơn"}
+                <Printer size={18} />{" "}
+                {isWaitingVnpay ? "In tạm tính" : "In hóa đơn"}
               </button>
 
               <button
                 onClick={() => {
                   if (isWaitingVnpay) {
-                    setCheckoutSuccessData((prev: any) => ({ ...prev, isVnpaySuccess: true }));
+                    setCheckoutSuccessData((prev: any) => ({
+                      ...prev,
+                      isVnpaySuccess: true,
+                    }));
                     toast.success("Đã xác nhận thanh toán thủ công!");
                   } else {
                     setCheckoutSuccessData(null);
@@ -715,28 +777,38 @@ export const PosView = () => {
 
       {/* HÓA ĐƠN IN */}
       {receiptOrder && (
-        <div id="pos-receipt" className="hidden print:block bg-white text-black">
+        <div
+          id="pos-receipt"
+          className="hidden print:block bg-white text-black"
+        >
           <div className="text-center mb-4">
-            <h1 className="font-black text-2xl uppercase mb-1">BALLHUB SPORT</h1>
+            <h1 className="font-black text-2xl uppercase mb-1">
+              BALLHUB SPORT
+            </h1>
             <p className="text-sm font-bold">Hotline: 0886.301.661</p>
             <p className="text-xs">Đ/c: 58 Trúc Khê, Đống Đa, Hà Nội</p>
           </div>
           <div className="border-b-2 border-dashed border-black mb-3"></div>
           <div className="text-center mb-4">
             <h2 className="font-bold text-lg uppercase">
-              {(receiptOrder.paymentMethodId || 1) === 2 && !receiptOrder.isVnpaySuccess 
-                ? "Phiếu Tạm Tính" 
+              {(receiptOrder.paymentMethodId || 1) === 2 &&
+              !receiptOrder.isVnpaySuccess
+                ? "Phiếu Tạm Tính"
                 : "Hóa Đơn Bán Hàng"}
             </h2>
           </div>
           <div className="text-sm space-y-1 mb-3">
             <div className="flex justify-between">
               <span>Mã HĐ:</span>
-              <span className="font-bold">#{String(receiptOrder.id).replace("HD", "")}</span>
+              <span className="font-bold">
+                #{String(receiptOrder.id).replace("HD", "")}
+              </span>
             </div>
             <div className="flex justify-between">
               <span>Ngày:</span>
-              <span>{receiptOrder.displayDate || new Date().toLocaleString("vi-VN")}</span>
+              <span>
+                {receiptOrder.displayDate || new Date().toLocaleString("vi-VN")}
+              </span>
             </div>
             <div className="flex justify-between">
               <span>Thu ngân:</span>
@@ -760,17 +832,28 @@ export const PosView = () => {
             </thead>
             <tbody>
               {receiptOrder.items.map((item: any, idx: number) => (
-                <tr key={idx} className="border-b border-dotted border-gray-400">
+                <tr
+                  key={idx}
+                  className="border-b border-dotted border-gray-400"
+                >
                   <td className="py-2 pr-1">
-                    <div className="font-bold leading-tight mb-1">{item.productName}</div>
-                    <div className="text-xs text-gray-700">Màu: {item.colorName} | Sz: {item.sizeName}</div>
-                    <div className="text-xs text-gray-700">{formatPrice(item.discountPrice || item.price)}</div>
+                    <div className="font-bold leading-tight mb-1">
+                      {item.productName}
+                    </div>
+                    <div className="text-xs text-gray-700">
+                      Màu: {item.colorName} | Sz: {item.sizeName}
+                    </div>
+                    <div className="text-xs text-gray-700">
+                      {formatPrice(item.discountPrice || item.price)}
+                    </div>
                   </td>
                   <td className="py-2 text-center align-top font-bold text-base">
                     {item.quantity}
                   </td>
                   <td className="py-2 text-right align-top font-bold">
-                    {formatPrice((item.discountPrice || item.price) * item.quantity)}
+                    {formatPrice(
+                      (item.discountPrice || item.price) * item.quantity,
+                    )}
                   </td>
                 </tr>
               ))}
@@ -780,43 +863,59 @@ export const PosView = () => {
           <div className="space-y-1.5 text-sm">
             <div className="flex justify-between">
               <span>Tổng tiền hàng:</span>
-              <span className="font-bold">{formatPrice(receiptOrder.subTotal ?? subTotal)}</span>
+              <span className="font-bold">
+                {formatPrice(receiptOrder.subTotal ?? subTotal)}
+              </span>
             </div>
             {(receiptOrder.discountAmount ?? discountAmount) > 0 && (
               <div className="flex justify-between">
                 <span>Giảm giá:</span>
-                <span className="font-bold">- {formatPrice(receiptOrder.discountAmount ?? discountAmount)}</span>
+                <span className="font-bold">
+                  - {formatPrice(receiptOrder.discountAmount ?? discountAmount)}
+                </span>
               </div>
             )}
             {(receiptOrder.shippingFee ?? shippingFee) > 0 && (
               <div className="flex justify-between">
                 <span>Phí vận chuyển:</span>
-                <span className="font-bold">{formatPrice(receiptOrder.shippingFee ?? shippingFee)}</span>
+                <span className="font-bold">
+                  {formatPrice(receiptOrder.shippingFee ?? shippingFee)}
+                </span>
               </div>
             )}
-            
+
             {/* ✅ HIỂN THỊ CHI TIẾT TIỀN THỪA TRONG HÓA ĐƠN IN */}
             <div className="flex justify-between items-center mt-2 pt-2 border-t-2 border-black">
-              <span className="font-black text-base uppercase">Cần thanh toán:</span>
-              <span className="font-black text-xl">{formatPrice(receiptOrder.finalTotal ?? finalTotal)}</span>
+              <span className="font-black text-base uppercase">
+                Cần thanh toán:
+              </span>
+              <span className="font-black text-xl">
+                {formatPrice(receiptOrder.finalTotal ?? finalTotal)}
+              </span>
             </div>
-            {(receiptOrder.paymentMethodId || 1) === 1 && receiptOrder.customerCash !== undefined && (
-              <>
-                <div className="flex justify-between mt-1">
-                  <span>Tiền khách đưa:</span>
-                  <span className="font-bold">{formatPrice(receiptOrder.customerCash)}</span>
-                </div>
-                <div className="flex justify-between mt-1">
-                  <span>Tiền thừa trả khách:</span>
-                  <span className="font-bold">{formatPrice(receiptOrder.changeAmount)}</span>
-                </div>
-              </>
-            )}
-
+            {(receiptOrder.paymentMethodId || 1) === 1 &&
+              receiptOrder.customerCash !== undefined && (
+                <>
+                  <div className="flex justify-between mt-1">
+                    <span>Tiền khách đưa:</span>
+                    <span className="font-bold">
+                      {formatPrice(receiptOrder.customerCash)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span>Tiền thừa trả khách:</span>
+                    <span className="font-bold">
+                      {formatPrice(receiptOrder.changeAmount)}
+                    </span>
+                  </div>
+                </>
+              )}
           </div>
           <div className="mt-3 text-right text-xs italic font-bold">
-            {(receiptOrder.paymentMethodId || 1) === 2 
-              ? (receiptOrder.isVnpaySuccess ? "(Đã thanh toán bằng VNPAY)" : "(Đơn hàng chờ thanh toán VNPAY)") 
+            {(receiptOrder.paymentMethodId || 1) === 2
+              ? receiptOrder.isVnpaySuccess
+                ? "(Đã thanh toán bằng VNPAY)"
+                : "(Đơn hàng chờ thanh toán VNPAY)"
               : "(Đã thanh toán bằng Tiền mặt)"}
           </div>
           <div className="border-b-2 border-dashed border-black my-4"></div>
@@ -937,7 +1036,7 @@ export const PosView = () => {
                               onClick={() =>
                                 updateItemQuantity(
                                   item.variantId,
-                                  item.quantity - 1
+                                  item.quantity - 1,
                                 )
                               }
                               className="w-8 h-8 hover:bg-white rounded-lg transition-all text-slate-600"
@@ -951,7 +1050,7 @@ export const PosView = () => {
                               onClick={() =>
                                 updateItemQuantity(
                                   item.variantId,
-                                  item.quantity + 1
+                                  item.quantity + 1,
                                 )
                               }
                               className="w-8 h-8 hover:bg-white rounded-lg transition-all text-slate-600"
@@ -960,15 +1059,33 @@ export const PosView = () => {
                             </button>
                           </div>
                         </div>
+                        {/* ✅ CẬP NHẬT: Hiển thị giá của 1 sản phẩm */}
                         <div className="col-span-2 text-right">
-                          <p className="font-medium text-slate-600 text-sm">
-                            {formatPrice(item.discountPrice || item.price)}
-                          </p>
+                          {item.discountPrice &&
+                          item.discountPrice < item.price ? (
+                            <div className="flex flex-col items-end">
+                              {/* Hiện giá gốc gạch ngang */}
+                              <span className="text-slate-400 line-through text-[10px]">
+                                {formatPrice(item.price)}
+                              </span>
+                              {/* Hiện giá Sale màu cam nổi bật */}
+                              <span className="font-bold text-orange-500 text-sm">
+                                {formatPrice(item.discountPrice)}
+                              </span>
+                            </div>
+                          ) : (
+                            <p className="font-medium text-slate-600 text-sm">
+                              {formatPrice(item.price)}
+                            </p>
+                          )}
                         </div>
+
+                        {/* ✅ CẬP NHẬT: Hiển thị Tổng tiền (Giá * Số lượng) */}
                         <div className="col-span-2 text-right pr-4">
-                          <p className="font-bold text-emerald-600">
+                          <p className="font-black text-emerald-600 text-base">
                             {formatPrice(
-                              (item.discountPrice || item.price) * item.quantity
+                              (item.discountPrice || item.price) *
+                                item.quantity,
                             )}
                           </p>
                         </div>
@@ -1156,7 +1273,7 @@ export const PosView = () => {
                             updateActiveOrderDetails({ shippingFee: 0 });
                             fetch(
                               `https://online-gateway.ghn.vn/shiip/public-api/master-data/district?province_id=${provId}`,
-                              { headers: { token: GHN_TOKEN } }
+                              { headers: { token: GHN_TOKEN } },
                             )
                               .then((res) => res.json())
                               .then((data) => setDistricts(data.data || []));
@@ -1181,7 +1298,7 @@ export const PosView = () => {
                               updateActiveOrderDetails({ shippingFee: 0 });
                               fetch(
                                 `https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id=${distId}`,
-                                { headers: { token: GHN_TOKEN } }
+                                { headers: { token: GHN_TOKEN } },
                               )
                                 .then((res) => res.json())
                                 .then((data) => setWards(data.data || []));
@@ -1204,7 +1321,7 @@ export const PosView = () => {
                               if (selectedDist) {
                                 calculateGHNShippingFee(
                                   Number(selectedDist),
-                                  wardCode
+                                  wardCode,
                                 );
                               }
                             }}
@@ -1293,13 +1410,15 @@ export const PosView = () => {
                   <div className="bg-slate-50 rounded-xl p-3">
                     <div className="flex items-center justify-between mb-3">
                       <p className="text-xs font-bold text-slate-600 flex items-center gap-1">
-                        <Tag size={14} className="text-emerald-500" /> Mã giảm giá
+                        <Tag size={14} className="text-emerald-500" /> Mã giảm
+                        giá
                       </p>
-                      {!activeOrder.appliedVoucher && availableVouchers.length > 0 && (
-                        <span className="text-[10px] text-orange-500 font-medium flex items-center gap-1 animate-pulse">
-                          <Sparkles size={12} /> Có mã cho bạn!
-                        </span>
-                      )}
+                      {!activeOrder.appliedVoucher &&
+                        availableVouchers.length > 0 && (
+                          <span className="text-[10px] text-orange-500 font-medium flex items-center gap-1 animate-pulse">
+                            <Sparkles size={12} /> Có mã cho bạn!
+                          </span>
+                        )}
                     </div>
 
                     {activeOrder.appliedVoucher ? (
@@ -1340,7 +1459,9 @@ export const PosView = () => {
                             className="flex-1 border px-3 py-2 rounded-lg text-sm font-bold uppercase outline-none focus:border-emerald-500 focus:ring-2 ring-emerald-50 transition-all"
                             value={promoInput}
                             onChange={(e) => setPromoInput(e.target.value)}
-                            onKeyPress={(e) => e.key === "Enter" && handleApplyVoucherInput()}
+                            onKeyPress={(e) =>
+                              e.key === "Enter" && handleApplyVoucherInput()
+                            }
                           />
                           <button
                             onClick={handleApplyVoucherInput}
@@ -1357,7 +1478,9 @@ export const PosView = () => {
                               return (
                                 <div
                                   key={v.promotionId}
-                                  onClick={() => isEligible && handleSelectVoucher(v)}
+                                  onClick={() =>
+                                    isEligible && handleSelectVoucher(v)
+                                  }
                                   className={`p-2 border rounded-lg flex justify-between items-center transition-all ${
                                     isEligible
                                       ? "bg-white border-emerald-200 hover:border-emerald-500 cursor-pointer shadow-sm hover:bg-emerald-50/50"
@@ -1365,7 +1488,9 @@ export const PosView = () => {
                                   }`}
                                 >
                                   <div>
-                                    <p className={`text-xs font-bold flex items-center gap-1.5 ${isEligible ? "text-emerald-700" : "text-slate-500"}`}>
+                                    <p
+                                      className={`text-xs font-bold flex items-center gap-1.5 ${isEligible ? "text-emerald-700" : "text-slate-500"}`}
+                                    >
                                       {v.promoCode}
                                       {v.discountPercent && (
                                         <span className="font-bold text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
@@ -1378,8 +1503,13 @@ export const PosView = () => {
                                     </p>
                                   </div>
                                   <div className="text-right">
-                                    <p className={`text-xs font-bold ${isEligible ? "text-emerald-600" : "text-slate-500"}`}>
-                                      -{formatPrice(calculateDiscount(v, subTotal))}
+                                    <p
+                                      className={`text-xs font-bold ${isEligible ? "text-emerald-600" : "text-slate-500"}`}
+                                    >
+                                      -
+                                      {formatPrice(
+                                        calculateDiscount(v, subTotal),
+                                      )}
                                     </p>
                                   </div>
                                 </div>
@@ -1424,30 +1554,44 @@ export const PosView = () => {
                   </div>
 
                   {/* Ô NHẬP TIỀN KHÁCH ĐƯA (CHỈ HIỆN KHI CHỌN TIỀN MẶT) */}
-                  {(!activeOrder.paymentMethodId || activeOrder.paymentMethodId === 1) && (
+                  {(!activeOrder.paymentMethodId ||
+                    activeOrder.paymentMethodId === 1) && (
                     <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-2">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-bold text-slate-600">Khách đưa (VNĐ):</span>
-                        <input 
+                        <span className="text-xs font-bold text-slate-600">
+                          Khách đưa (VNĐ):
+                        </span>
+                        <input
                           type="number"
                           placeholder="0"
                           value={customerCash}
-                          onChange={(e) => setCustomerCash(e.target.value === "" ? "" : Number(e.target.value))}
+                          onChange={(e) =>
+                            setCustomerCash(
+                              e.target.value === ""
+                                ? ""
+                                : Number(e.target.value),
+                            )
+                          }
                           className="w-32 bg-white border border-slate-300 px-3 py-1.5 rounded-lg text-sm font-black text-right outline-none focus:border-emerald-500"
                         />
                       </div>
-                      
+
                       {customerCash !== "" && (
                         <div className="flex justify-between items-center pt-2 border-t border-slate-200">
-                          <span className="text-xs font-bold text-slate-600">Tiền thừa trả khách:</span>
-                          <span className={`font-black text-sm ${changeAmount < 0 ? 'text-red-500' : 'text-blue-600'}`}>
-                            {changeAmount < 0 ? `Thiếu ${formatPrice(Math.abs(changeAmount))}` : formatPrice(changeAmount)}
+                          <span className="text-xs font-bold text-slate-600">
+                            Tiền thừa trả khách:
+                          </span>
+                          <span
+                            className={`font-black text-sm ${changeAmount < 0 ? "text-red-500" : "text-blue-600"}`}
+                          >
+                            {changeAmount < 0
+                              ? `Thiếu ${formatPrice(Math.abs(changeAmount))}`
+                              : formatPrice(changeAmount)}
                           </span>
                         </div>
                       )}
                     </div>
                   )}
-
                 </div>
 
                 <div className="mt-auto pt-2">
@@ -1458,7 +1602,9 @@ export const PosView = () => {
                       activeOrder.items.length === 0 ||
                       isProcessing ||
                       // KHÓA NÚT NẾU TIỀN KHÁCH ĐƯA THIẾU
-                      ((!activeOrder.paymentMethodId || activeOrder.paymentMethodId === 1) && (customerCash === "" || changeAmount < 0))
+                      ((!activeOrder.paymentMethodId ||
+                        activeOrder.paymentMethodId === 1) &&
+                        (customerCash === "" || changeAmount < 0))
                     }
                     className="w-full flex items-center justify-center gap-2 bg-emerald-500 text-white font-bold py-3.5 rounded-xl hover:bg-emerald-600 shadow-lg disabled:opacity-50 transition-all"
                   >
@@ -1468,8 +1614,10 @@ export const PosView = () => {
                       <CreditCard size={22} />
                     )}
                     <span className="uppercase tracking-wider text-sm">
-                      {(!activeOrder.paymentMethodId || activeOrder.paymentMethodId === 1) && (customerCash === "" || changeAmount < 0) 
-                        ? "YÊU CẦU NHẬP ĐỦ TIỀN" 
+                      {(!activeOrder.paymentMethodId ||
+                        activeOrder.paymentMethodId === 1) &&
+                      (customerCash === "" || changeAmount < 0)
+                        ? "YÊU CẦU NHẬP ĐỦ TIỀN"
                         : "THANH TOÁN"}
                     </span>
                   </button>

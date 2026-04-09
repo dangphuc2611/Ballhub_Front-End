@@ -36,37 +36,51 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
   const [note, setNote] = useState<string>("");
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  // ==========================================
-  // ✅ LOGIC XỬ LÝ DỮ LIỆU THÔNG MINH
-  // ==========================================
+  // ==========================================================
+  // ✅ LOGIC XỬ LÝ DỮ LIỆU (CÓ FALLBACK CHO ĐƠN CŨ)
+  // ==========================================================
   
-  let finalCusName = orderDetail?.userFullName || "Khách lẻ";
-  let finalCusPhone = orderDetail?.userPhone || "---";
-  let extractedCashFromNote: number | null = null;
+  const isPosOrder = orderDetail?.isPos === true;
 
+  // 1. Khai báo biến cơ bản
+  let finalCusName = orderDetail?.userFullName || "Khách lẻ";
+  let finalCusPhone = orderDetail?.userPhone || (isPosOrder ? "Mua tại quầy" : "---");
+  let displayAddress = orderDetail?.deliveryAddress || (isPosOrder ? "Nhận tại cửa hàng (POS)" : "---");
+  let extractedCashFromNote = 0;
+
+  // 🚀 LOGIC PHỤC HỒI DỮ LIỆU TỪ NOTE (Dành cho các đơn hàng cũ)
   if (orderDetail?.statusHistory) {
-    const posNote = orderDetail.statusHistory.find((h: any) => h.note?.includes("POS"));
+    const posNote = orderDetail.statusHistory.find((h: any) => h.note?.includes("POS") || h.note?.includes("CASH:"));
     if (posNote) {
       const raw = posNote.note;
-      const nameParts = raw.split("|");
-      // Móc tên & SĐT từ chuỗi Note: POS|Tên|SĐT
-      if (nameParts.length >= 2 && !nameParts[1].includes("POS")) finalCusName = nameParts[1];
-      if (nameParts.length >= 3 && nameParts[2] !== "Trống") finalCusPhone = nameParts[2];
-      // Móc tiền nếu lỡ dính trong Note (đơn cũ)
+      const parts = raw.split("|");
+      
+      // Phục hồi Tên nếu DB mới chưa có
+      if (finalCusName === "Khách lẻ" && parts.length >= 2 && !parts[1].includes("POS")) {
+        finalCusName = parts[1];
+      }
+      // Phục hồi Số điện thoại
+      if ((finalCusPhone === "---" || finalCusPhone === "Mua tại quầy") && parts.length >= 3 && parts[2] !== "Trống") {
+        finalCusPhone = parts[2];
+      }
+      // Phục hồi Địa chỉ
+      if ((displayAddress === "---" || displayAddress === "Nhận tại cửa hàng (POS)") && parts.length >= 4 && !parts[3].includes("POS")) {
+        displayAddress = parts[3];
+      }
+      // 🎯 QUAN TRỌNG: Phục hồi Tiền mặt từ chuỗi CASH:xxxx
       const cashMatch = raw.match(/CASH:(\d+)/);
       if (cashMatch) extractedCashFromNote = Number(cashMatch[1]);
     }
   }
 
-  // Ưu tiên cột Database mới, nếu bằng 0 hoặc null thì mới lấy từ Note
-  const customerCash = orderDetail?.customerCash > 0 ? orderDetail.customerCash : (extractedCashFromNote || 0);
+  // 2. Tiền mặt & Tiền thừa: Ưu tiên cột DB, nếu đơn cũ thì lấy từ Note vừa móc được
+  const customerCash = orderDetail?.customerCash > 0 ? orderDetail.customerCash : extractedCashFromNote;
   const changeAmount = orderDetail?.changeAmount > 0 ? orderDetail.changeAmount : (customerCash > 0 ? customerCash - (orderDetail?.totalAmount || 0) : 0);
-  const displayAddress = orderDetail?.deliveryAddress || "Nhận tại cửa hàng (POS)";
 
-  // Xóa sạch các chuỗi kỹ thuật khi hiển thị ở mục Lịch sử
+  // 3. Làm sạch ghi chú lịch sử để không hiện mã kỹ thuật
   const cleanHistoryNote = (rawNote: string) => {
     if (!rawNote) return "";
-    if (rawNote.includes("POS") || rawNote.includes("CASH:")) {
+    if (rawNote.startsWith("POS|") || rawNote.includes("CASH:")) {
       return "Thanh toán thành công tại quầy (POS)";
     }
     return rawNote;
@@ -141,7 +155,14 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
           {/* HEADER MODAL */}
           <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-white">
             <div>
-              <h2 className="text-xl font-bold text-slate-800">Chi tiết đơn hàng #{orderDetail?.orderId}</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-bold text-slate-800">Chi tiết đơn hàng #{orderDetail?.orderId}</h2>
+                {isPosOrder ? (
+                  <span className="bg-orange-50 text-orange-600 border border-orange-200 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase">Tại quầy</span>
+                ) : (
+                  <span className="bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase">Online</span>
+                )}
+              </div>
               <p className="text-sm font-medium text-slate-500 mt-1">
                 Ngày đặt: {orderDetail?.orderDate ? new Date(orderDetail.orderDate).toLocaleString("vi-VN") : "N/A"}
               </p>
@@ -167,9 +188,7 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
             {orderDetail && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
-                {/* CỘT TRÁI: THÔNG TIN KHÁCH & SẢN PHẨM */}
                 <div className="md:col-span-2 space-y-6">
-                  
                   {/* BOX: KHÁCH HÀNG */}
                   <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
                     <div className="flex items-center gap-2 mb-4">
@@ -230,7 +249,6 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
                       ))}
                     </div>
 
-                    {/* BOX: TỔNG TIỀN */}
                     <div className="mt-4 pt-4 border-t border-slate-100 text-sm space-y-2.5">
                       <div className="flex justify-between text-slate-500 font-medium">
                         <span>Tạm tính</span>
@@ -251,7 +269,7 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
                         <span className="text-emerald-600 font-black text-2xl tracking-tight">{formatPrice(orderDetail.totalAmount)}</span>
                       </div>
 
-                      {/* ✅ BOX TIỀN KHÁCH ĐƯA / TIỀN THỪA (TỰ ĐỘNG LẤY TỪ GHI CHÚ NẾU DB TRỐNG) */}
+                      {/* ✅ BOX TIỀN KHÁCH ĐƯA / TIỀN THỪA (ĐÃ KHÔI PHỤC FALLBACK) */}
                       {customerCash > 0 && (
                         <div className="mt-6 p-5 bg-emerald-50 rounded-[20px] border border-emerald-100 shadow-inner animate-in slide-in-from-bottom-2 duration-300">
                           <div className="flex justify-between items-center mb-3">
@@ -271,9 +289,7 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
                   </div>
                 </div>
 
-                {/* CỘT PHẢI: TRẠNG THÁI & LỊCH SỬ */}
                 <div className="space-y-6">
-                  
                   {/* BOX: CẬP NHẬT TRẠNG THÁI */}
                   <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -mr-10 -mt-10 opacity-60 pointer-events-none"></div>
@@ -322,7 +338,6 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
                       ))}
                     </div>
                   </div>
-
                 </div>
               </div>
             )}
@@ -330,7 +345,7 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
         </div>
       </div>
 
-      {/* ✅ HÓA ĐƠN IN: CĂN GIỮA, CHUẨN KÍCH THƯỚC 80MM */}
+      {/* ✅ HÓA ĐƠN IN */}
       {orderDetail && (
         <div id="admin-order-receipt" className="hidden print:block bg-white text-black">
           <div className="text-center mb-4">
@@ -348,7 +363,7 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
             <div className="flex justify-between"><span>Thu ngân:</span><span>Admin</span></div>
             <div className="flex justify-between"><span>Khách hàng:</span><span className="font-bold">{finalCusName}</span></div>
             <div className="flex justify-between"><span>SĐT:</span><span className="font-bold">{finalCusPhone}</span></div>
-            {orderDetail.deliveryAddress && (
+            {(displayAddress !== "Nhận tại cửa hàng (POS)" && displayAddress !== "---") && (
               <div className="flex justify-between mt-1 pt-1 border-t border-dotted border-gray-400">
                 <span className="shrink-0 mr-2">Giao tới:</span>
                 <span className="font-bold text-right text-[11px]">{displayAddress}</span>
