@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
-import { User, Package, Heart, LogOut, Loader2, Eye, Info, UserIcon, MapPin, KeyRound} from "lucide-react";
+import { User, Package, Heart, LogOut, Loader2, Eye, Info, UserIcon, MapPin, KeyRound, Store, Globe } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/app/context/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
@@ -19,6 +19,7 @@ interface OrderInfo {
   deliveryAddress?: string; 
   subTotal?: number;
   shippingFee?: number;
+  isPos?: boolean; // ✅ Đã thêm
 }
 
 export default function OrdersPage() {
@@ -28,12 +29,10 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderInfo[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // ✅ State cho Custom Modal Đăng xuất
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   useEffect(() => {
     const fetchMyOrders = async () => {
-      // ✅ ĐÃ SỬA: Đổi accessToken thành refreshToken
       const token = localStorage.getItem("refreshToken");
       if (!token) {
         setLoading(false);
@@ -62,12 +61,10 @@ export default function OrdersPage() {
     fetchMyOrders();
   }, []);
 
-  // ✅ Hàm mở Modal xác nhận thay vì logout ngay
   const handleLogoutClick = () => {
     setShowLogoutConfirm(true);
   };
 
-  // ✅ Hàm thực hiện đăng xuất thật sự
   const confirmLogout = () => {
     logout();
     setShowLogoutConfirm(false);
@@ -108,7 +105,7 @@ export default function OrdersPage() {
     { name: "Đổi mật khẩu", icon: <KeyRound size={16} />, href: "/profile/change-password" },
   ];
 
-  if (!user && !loading) return <div className="text-center py-20 font-bold text-xl">Vui lòng đăng nhập để xem trang này!</div>;
+  if (!user && !loading) return <div className="text-center py-20 font-bold text-xl text-gray-800">Vui lòng đăng nhập để xem trang này!</div>;
 
   return (
     <div className="bg-[#f6f9f8] min-h-screen flex flex-col font-sans">
@@ -119,8 +116,7 @@ export default function OrdersPage() {
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* ================= SIDEBAR ================= */}
-          <aside className="bg-white rounded-2xl p-5 space-y-4 h-fit border border-gray-100 shadow-sm">
+          <aside className="bg-white rounded-2xl p-5 space-y-4 h-fit border border-gray-100 shadow-sm text-gray-800">
             <div className="flex items-center gap-3 pb-4 border-b">
               <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center overflow-hidden border border-green-200">
                 {user?.avatar ? (
@@ -159,7 +155,6 @@ export default function OrdersPage() {
             </div>
           </aside>
 
-          {/* ================= CONTENT: ĐƠN HÀNG ================= */}
           <section className="md:col-span-3">
             <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 min-h-[500px]">
               <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
@@ -167,7 +162,7 @@ export default function OrdersPage() {
                 Đơn hàng của tôi
               </h2>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto text-gray-800">
                 <div className="grid grid-cols-5 text-xs font-bold text-gray-400 border-b pb-3 mb-3 uppercase tracking-wider min-w-[600px]">
                   <div>Mã đơn</div>
                   <div>Ngày đặt</div>
@@ -198,13 +193,19 @@ export default function OrdersPage() {
                       year: "numeric"
                     });
 
-                    // ✅ SỬA LỖI GIÁ TIỀN: Lấy trực tiếp totalAmount từ Backend
-                    // Backend đã tính chuẩn: SubTotal - Discount + ShippingFee
                     const displayTotalAmount = o.totalAmount || 0;
 
                     return (
                       <div key={o.orderId} className="grid grid-cols-5 text-sm items-center py-4 border-b border-gray-50 last:border-none hover:bg-gray-50 transition-colors min-w-[600px] rounded-lg px-2">
-                        <div className="font-medium text-gray-900">#BH-{o.orderId}</div>
+                        <div className="flex flex-col gap-1">
+                           <span className="font-bold text-gray-900">#BH-{o.orderId}</span>
+                           {/* 🚀 THÊM NHÃN CHO USER DỄ HIỂU */}
+                           {o.isPos ? (
+                             <span className="w-fit flex items-center gap-1 text-[8px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200"><Store size={8}/> TẠI CỬA HÀNG</span>
+                           ) : (
+                             <span className="w-fit flex items-center gap-1 text-[8px] font-black bg-blue-50 text-blue-500 px-1.5 py-0.5 rounded border border-blue-100"><Globe size={8}/> ĐẶT ONLINE</span>
+                           )}
+                        </div>
                         <div className="text-gray-600">{formattedDate}</div>
                         <div className="font-bold text-green-600">
                           {displayTotalAmount.toLocaleString()}đ
@@ -234,14 +235,13 @@ export default function OrdersPage() {
       </main>
       <Footer />
 
-      {/* ✅ CUSTOM MODAL XÁC NHẬN ĐĂNG XUẤT */}
       {showLogoutConfirm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm transition-opacity">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200 text-center">
             <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <LogOut size={32} />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Đăng xuất?</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-2 text-gray-800">Đăng xuất?</h3>
             <p className="text-gray-500 text-sm mb-8 leading-relaxed">
               Bạn có chắc chắn muốn rời khỏi hệ thống <span className="font-bold text-gray-900">BallHub</span> không?
             </p>

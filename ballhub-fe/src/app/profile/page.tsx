@@ -5,7 +5,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
 import ProfileForm from "@/components/account/ProfileForm";
-import { User as UserIcon, Package, Heart, LogOut, Loader2, Eye, MapPin, KeyRound } from "lucide-react";
+import { User as UserIcon, Package, Heart, LogOut, Loader2, Eye, MapPin, KeyRound, Store, Globe } from "lucide-react"; // ✅ Đã thêm Store, Globe
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ interface OrderInfo {
   totalAmount: number;
   statusName: string;
   shippingFee?: number;
+  isPos?: boolean; // ✅ Đã thêm field này
 }
 
 export default function AccountPage() {
@@ -110,13 +111,13 @@ export default function AccountPage() {
     <div className="bg-[#f6f9f8] min-h-screen flex flex-col font-sans relative">
       <Header />
       <main className="max-w-7xl mx-auto px-4 py-10 w-full flex-1">
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="text-sm text-gray-500 mb-6 text-gray-800">
           Trang chủ <span className="mx-1">›</span> Tài khoản của tôi
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* SIDEBAR */}
-          <aside className="bg-white rounded-2xl p-5 space-y-4 h-fit border border-gray-100 shadow-sm">
+          <aside className="bg-white rounded-2xl p-5 space-y-4 h-fit border border-gray-100 shadow-sm text-gray-800">
             <div className="flex items-center gap-3 pb-4 border-b">
               <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center overflow-hidden border border-green-200">
                 {user?.avatar ? (
@@ -151,14 +152,14 @@ export default function AccountPage() {
             <ProfileForm />
 
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-gray-800">Đơn hàng gần đây</h3>
+              <div className="flex justify-between items-center mb-6 text-gray-800">
+                <h3 className="font-bold">Đơn hàng gần đây</h3>
                 <Link href="/profile/orders" className="text-sm text-green-600 font-semibold cursor-pointer hover:underline">
                   Xem tất cả
                 </Link>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto text-gray-800">
                 <div className="grid grid-cols-5 text-xs font-bold text-gray-400 border-b pb-3 mb-3 uppercase tracking-wider min-w-[600px]">
                   <div>Mã đơn</div>
                   <div>Ngày đặt</div>
@@ -180,7 +181,15 @@ export default function AccountPage() {
                     const statusConfig = getStatusDisplay(o.statusName);
                     return (
                       <div key={o.orderId} className="grid grid-cols-5 text-sm items-center py-4 border-b last:border-none hover:bg-gray-50 transition-colors min-w-[600px] px-2 rounded-lg">
-                        <div className="font-medium text-gray-900">#BH-{o.orderId}</div>
+                        <div className="flex flex-col gap-1">
+                           <span className="font-medium text-gray-900">#BH-{o.orderId}</span>
+                           {/* 🚀 THÊM BADGE PHÂN LOẠI CHO USER */}
+                           {o.isPos ? (
+                             <span className="w-fit flex items-center gap-1 text-[8px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200"><Store size={8}/> TẠI CỬA HÀNG</span>
+                           ) : (
+                             <span className="w-fit flex items-center gap-1 text-[8px] font-black bg-blue-50 text-blue-500 px-1.5 py-0.5 rounded border border-blue-100"><Globe size={8}/> ĐẶT ONLINE</span>
+                           )}
+                        </div>
                         <div className="text-gray-600">
                            {new Date(o.orderDate).toLocaleDateString("vi-VN")}
                         </div>

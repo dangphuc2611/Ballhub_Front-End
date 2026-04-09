@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
-import { ArrowLeft, MapPin, CreditCard, Clock, Loader2, AlertCircle, Trash2, Info } from "lucide-react";
+import { ArrowLeft, MapPin, CreditCard, Clock, Loader2, AlertCircle, Trash2, Info, Store, Globe } from "lucide-react";
 import api from "@/lib/axios";
 import { toast } from "sonner";
 import { useAuth } from "@/app/context/AuthContext";
@@ -35,6 +35,7 @@ interface OrderDetail {
   deliveryAddress: string;
   shippingFee?: number; 
   items: OrderItem[];
+  isPos?: boolean; // ✅ Đã thêm
 }
 
 export default function OrderDetailPage() {
@@ -46,7 +47,6 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   
-  // ✅ State cho Custom Modal Xác nhận hủy đơn
   const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
@@ -66,12 +66,10 @@ export default function OrderDetailPage() {
     fetchOrderDetail();
   }, [id]);
 
-  // ✅ Hàm mở Modal thay vì gọi confirm()
   const handleCancelOrderClick = () => {
     setShowCancelModal(true);
   };
 
-  // ✅ Hàm thực hiện hủy đơn thật sự sau khi bấm "Xác nhận hủy" trên Modal
   const confirmCancelOrder = async () => {
     setShowCancelModal(false);
     setCancelling(true);
@@ -89,7 +87,6 @@ export default function OrderDetailPage() {
     }
   };
 
-  // ✅ ĐÃ SỬA: Gom chung cả Màu sắc lẫn Nhãn tiếng Việt
   const getStatusDisplay = (status: string | undefined) => {
     switch (status?.toUpperCase()) {
       case "PENDING":
@@ -134,17 +131,14 @@ export default function OrderDetailPage() {
   if (!order) return <div className="text-center py-20 font-bold text-gray-500">⚠️ Đơn hàng không tồn tại</div>;
 
   const displayShippingFee = order.shippingFee !== undefined ? order.shippingFee : calculateShippingFee(order.deliveryAddress, order.subTotal);
-  
-  // Logic tính tổng tiền để luôn khớp với con số
   const displayTotalAmount = (order.subTotal - (order.discountAmount || 0) > 0 ? order.subTotal - (order.discountAmount || 0) : 0) + displayShippingFee;
-  
-  // Gọi hàm lấy cấu hình trạng thái
   const statusConfig = getStatusDisplay(order.statusName);
+  const isDeliveryOrder = displayShippingFee > 0;
 
   return (
     <div className="bg-[#f8f9fa] min-h-screen flex flex-col font-sans">
       <Header />
-      <main className="max-w-7xl mx-auto px-4 py-10 w-full flex-1">
+      <main className="max-w-7xl mx-auto px-4 py-10 w-full flex-1 text-gray-800">
         <button
           onClick={() => router.push('/profile/orders')}
           className="flex items-center gap-2 text-gray-500 hover:text-green-600 mb-6 transition-all font-bold text-sm"
@@ -157,11 +151,18 @@ export default function OrderDetailPage() {
             <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
               <div className="flex justify-between items-start mb-8 pb-6 border-b">
                 <div>
-                  <h1 className="text-2xl font-black text-gray-900 tracking-tight">Chi tiết đơn hàng</h1>
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-2xl font-black text-gray-900 tracking-tight">Chi tiết đơn hàng</h1>
+                    {/* 🚀 BADGE PHÂN LOẠI CHO USER CHI TIẾT */}
+                    {order.isPos ? (
+                      <span className="bg-slate-100 text-slate-500 border border-slate-200 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Store size={10}/> Mua tại cửa hàng</span>
+                    ) : (
+                      <span className="bg-blue-50 text-blue-500 border border-blue-200 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Globe size={10}/> Đặt hàng Online</span>
+                    )}
+                  </div>
                   <p className="text-gray-400 text-xs font-bold mt-1 uppercase tracking-widest">Mã: #BH-{order.orderId}</p>
                 </div>
                 <div className="text-right">
-                  {/* ✅ HIỂN THỊ LABEL VÀ CLASS TỪ statusConfig */}
                   <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${statusConfig.classes}`}>
                     {statusConfig.label}
                   </span>
@@ -219,7 +220,6 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
-            {/* NÚT HỦY ĐƠN HÀNG DÙNG MODAL CUSTOM */}
             {(order.statusName?.toUpperCase() === 'PENDING' || order.statusName?.toUpperCase() === 'CONFIRMED') && (
               <button
                 onClick={handleCancelOrderClick}
@@ -238,7 +238,6 @@ export default function OrderDetailPage() {
               </div>
             )}
 
-            {/* Thông báo nếu đơn đã hoàn trả */}
             {order.statusName?.toUpperCase() === 'RETURNED' && (
               <div className="w-full py-4 rounded-2xl bg-red-50 border-2 border-red-100 text-red-600 font-bold text-sm flex items-center justify-center gap-2">
                 <AlertCircle size={18} />
@@ -247,17 +246,24 @@ export default function OrderDetailPage() {
             )}
           </div>
 
-          {/* CỘT PHẢI: GIAO TỚI & THANH TOÁN */}
           <div className="space-y-6">
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center gap-2 mb-4 text-gray-900 font-bold">
                 <MapPin size={18} className="text-green-600" />
-                <h3 className="text-sm uppercase tracking-wider">Giao tới</h3>
+                <h3 className="text-sm uppercase tracking-wider">Thông tin nhận hàng</h3>
               </div>
               <div className="text-sm space-y-2">
                 <p className="font-black text-gray-900">{order.userFullName}</p>
                 <p className="text-gray-600 font-medium">{order.userPhone}</p>
-                <p className="text-gray-500 leading-relaxed italic">"{order.deliveryAddress}"</p>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 mt-2">
+                  <p className="text-xs text-gray-400 uppercase font-black mb-1">Địa chỉ giao tới:</p>
+                  <p className="text-gray-700 font-semibold italic">
+                    {order.isPos 
+                      ? (isDeliveryOrder ? `${order.deliveryAddress} (Giao từ cửa hàng)` : "Nhận trực tiếp tại shop (58 Trúc Khê)")
+                      : (order.deliveryAddress || "---")
+                    }
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -316,7 +322,6 @@ export default function OrderDetailPage() {
       </main>
       <Footer />
 
-      {/* ✅ CUSTOM MODAL XÁC NHẬN HỦY ĐƠN HÀNG */}
       {showCancelModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm transition-opacity">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200 text-center">
