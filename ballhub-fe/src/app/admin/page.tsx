@@ -12,7 +12,6 @@ import {
   Eye,
   Loader2,
   Search,
-  Bell,
   Users,
   Tag,
   Palette,
@@ -22,7 +21,7 @@ import {
   Layers,
   RefreshCw,
   Zap // ✅ Import icon tia chớp cho Khuyến mãi
-} from "lucide-react";
+} from "lucide-react"; // Đã bỏ import Bell
 
 import { NavItem } from "@/components/admin/NavItem";
 import { ProductTable } from "@/components/admin/ProductTable";
@@ -69,6 +68,9 @@ export default function AdminDashboard() {
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [userRefreshTrigger, setUserRefreshTrigger] = useState(0);
+
+  // 🚀 State cho Tìm kiếm nhanh đơn hàng
+  const [quickSearch, setQuickSearch] = useState("");
 
   // ── Voucher state 
   const [vouchers, setVouchers] = useState<any[]>([]);
@@ -125,13 +127,27 @@ export default function AdminDashboard() {
       case "Đơn hàng": setOrderRefreshTrigger(p => p + 1); break;
       case "Người dùng": setUserRefreshTrigger(p => p + 1); break;
       case "Voucher": setVoucherRefreshTrigger(p => p + 1); break;
-      case "Khuyến mãi": setPromotionRefreshTrigger(p => p + 1); break; // ✅ Refresh Khuyến mãi
+      case "Khuyến mãi": setPromotionRefreshTrigger(p => p + 1); break;
       case "Màu sắc": setColorRefreshTrigger(p => p + 1); break;
       case "Hãng quần áo": setBrandRefreshTrigger(p => p + 1); break;
       case "Đánh giá": setReviewRefreshTrigger(p => p + 1); break;
       case "Biến thể": setVariantRefreshTrigger(p => p + 1); break;
     }
     toast.success(`Đã làm mới dữ liệu: ${activeTab}`);
+  };
+
+  // 🚀 Logic Tìm kiếm nhanh (Quét Đơn Hàng)
+  const handleQuickSearchAction = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      const val = quickSearch.trim().replace(/^#?(BH-|HD)/i, ""); // Lọc bỏ text thừa
+      
+      if (/^\d+$/.test(val)) {
+        setSelectedOrderId(Number(val));
+        setQuickSearch(""); // Reset ô input sau khi bấm
+      } else {
+        toast.info("Vui lòng nhập Mã đơn hàng (ví dụ: 5 hoặc BH-5) để tra cứu nhanh.");
+      }
+    }
   };
 
   // FETCH SẢN PHẨM
@@ -207,7 +223,7 @@ export default function AdminDashboard() {
     fetchVouchers();
   }, [voucherPage, voucherRefreshTrigger]);
 
-  // ✅ FETCH KHUYẾN MÃI (FLASH SALE) Lọc các promotion không có PromoCode
+  // ✅ FETCH KHUYẾN MÃI (FLASH SALE)
   useEffect(() => {
     const fetchPromotions = async () => {
       try {
@@ -216,7 +232,7 @@ export default function AdminDashboard() {
         const result = await res.json();
         const payload = result?.data ?? result;
         
-        // Lọc ra những chương trình KHÔNG có promoCode (Tức là Flash Sale giảm thẳng)
+        // Lọc ra những chương trình KHÔNG có promoCode
         const flashSales = (payload?.content ?? []).filter((p: any) => !p.promoCode);
         
         setPromotions(flashSales);
@@ -259,7 +275,7 @@ export default function AdminDashboard() {
     );
   };
 
-  // FETCH COLORS, BRANDS, REVIEWS, VARIANTS (Giữ nguyên như cũ)
+  // FETCH COLORS, BRANDS, REVIEWS, VARIANTS
   useEffect(() => {
     const fetchColors = async () => {
       try {
@@ -400,7 +416,6 @@ export default function AdminDashboard() {
             <NavItem icon={<Users size={18} />} label="Người dùng" active={activeTab === "Người dùng"} onClick={() => setActiveTab("Người dùng")} />
             <NavItem icon={<Tag size={18} />} label="Voucher" active={activeTab === "Voucher"} onClick={() => setActiveTab("Voucher")} />
             
-            {/* ✅ MENU KHUYẾN MÃI MỚI */}
             <NavItem icon={<Zap size={18} />} label="Khuyến mãi" active={activeTab === "Khuyến mãi"} onClick={() => setActiveTab("Khuyến mãi")} />
             
             <NavItem icon={<Palette size={18} />} label="Màu sắc" active={activeTab === "Màu sắc"} onClick={() => setActiveTab("Màu sắc")} />
@@ -432,10 +447,15 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-4">
             <div className="relative group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" size={16} />
-              <input className="bg-white border border-slate-100 rounded-xl pl-10 pr-4 py-2 text-xs w-64 shadow-sm outline-none focus:ring-2 ring-emerald-100 transition-all" placeholder="Tìm kiếm nhanh..." />
+              <input 
+                className="bg-white border border-slate-100 rounded-xl pl-10 pr-4 py-2 text-xs w-64 shadow-sm outline-none focus:ring-2 ring-emerald-100 transition-all" 
+                placeholder="Tra mã đơn nhanh + Enter..." 
+                value={quickSearch}
+                onChange={(e) => setQuickSearch(e.target.value)}
+                onKeyDown={handleQuickSearchAction} // 🚀 Gắn sự kiện Enter
+              />
             </div>
             <button onClick={handleGlobalRefresh} className="p-2 bg-white rounded-xl text-emerald-500 border border-emerald-100 shadow-sm hover:bg-emerald-50 hover:rotate-180 transition-all duration-500" title="Làm mới dữ liệu"><RefreshCw size={18} /></button>
-            <button className="p-2 bg-white rounded-xl text-slate-400 border border-slate-100 shadow-sm relative"><Bell size={18} /><span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span></button>
             <button onClick={logout} className="flex items-center gap-2 bg-rose-50 text-rose-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-rose-100 transition-all active:scale-95"><LogOut size={16} /> Đăng xuất</button>
           </div>
         </header>
@@ -482,7 +502,6 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* ✅ TAB KHUYẾN MÃI HIỂN THỊ Ở ĐÂY */}
           {activeTab === "Khuyến mãi" && (
             <div className="col-span-12">
               <PromotionTable
@@ -507,7 +526,10 @@ export default function AdminDashboard() {
 
       {/* MODALS */}
       {editingProductId !== null && <ProductEditModal productId={editingProductId} onClose={() => setEditingProductId(null)} onRefresh={() => setRefreshTrigger((p) => p + 1)} />}
+      
+      {/* 🚀 POPUP ĐƠN HÀNG ĐƯỢC GỌI Ở ĐÂY KHI CÓ selectedOrderId */}
       {selectedOrderId !== null && <OrderDetailModal orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} onRefresh={() => setOrderRefreshTrigger((p) => p + 1)} />}
+      
       {voucherModal.open && <VoucherModal mode={voucherModal.mode} voucher={voucherModal.voucher} onClose={() => setVoucherModal({ open: false, mode: "create" })} onSuccess={() => setVoucherRefreshTrigger((p) => p + 1)} />}
       {colorModal.open && <ColorModal mode={colorModal.mode} open={colorModal.open} colorData={colorModal.colorData} onClose={() => setColorModal({ open: false, mode: "create" })} onRefresh={() => setColorRefreshTrigger((p) => p + 1)} />}
       {brandModal.open && <BrandModal mode={brandModal.mode} open={brandModal.open} brandData={brandModal.brandData} onClose={() => setBrandModal({ open: false, mode: "create" })} onRefresh={() => setBrandRefreshTrigger((p) => p + 1)} />}
