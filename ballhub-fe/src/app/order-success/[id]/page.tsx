@@ -56,7 +56,7 @@ export default function OrderSuccessPage() {
             {/* Mã đơn hàng */}
             <div className="bg-gray-50 w-full rounded-2xl p-5 border border-gray-100 flex justify-between items-center">
               <span className="text-gray-400 text-sm font-bold uppercase tracking-wider">Mã đơn hàng</span>
-              <span className="text-xl font-black text-gray-900">#BH-{orderId}</span>
+              <span className="text-xl font-black text-gray-900">HD{orderId}</span>
             </div>
 
             {/* Tổng thanh toán */}

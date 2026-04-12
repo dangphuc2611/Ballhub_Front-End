@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Loader2,
   ChevronRight,
+  Barcode // ✅ Import thêm icon Barcode cho mã SKU
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -84,7 +85,6 @@ export default function ProductDetailPage() {
 
   /* ================= LOGIC GIỎ HÀNG ================= */
   const checkAuth = () => {
-    // ✅ ĐÃ SỬA: Đổi accessToken thành refreshToken
     const token = localStorage.getItem("refreshToken");
     if (!token) {
       toast.error("Vui lòng đăng nhập để mua sắm");
@@ -98,14 +98,11 @@ export default function ProductDetailPage() {
     if (!matchedVariant) return toast.error("Vui lòng chọn đầy đủ thuộc tính!");
     if (!checkAuth()) return;
 
-    // Ép kiểu quantity thành số trước khi gọi API
     const finalQuantity = Number(quantity) || 1;
 
     setIsSubmitting(true);
     try {
       await addToCartApi(matchedVariant.variantId, finalQuantity);
-
-      // ✅ GỬI TÍN HIỆU CẬP NHẬT HEADER GIỎ HÀNG
       window.dispatchEvent(new Event("cartUpdated"));
 
       toast.success(
@@ -130,21 +127,16 @@ export default function ProductDetailPage() {
     }
   };
 
-
   const handleBuyNow = async () => {
     if (!matchedVariant) return toast.error("Vui lòng chọn đầy đủ thuộc tính!");
     if (!checkAuth()) return;
 
-    // Ép kiểu quantity thành số trước khi gọi API
     const finalQuantity = Number(quantity) || 1;
 
     setIsSubmitting(true);
     try {
       await addToCartApi(matchedVariant.variantId, finalQuantity);
-      
-      // ✅ GỬI TÍN HIỆU CẬP NHẬT HEADER TRƯỚC KHI CHUYỂN TRANG
       window.dispatchEvent(new Event("cartUpdated"));
-      
       router.push("/shoppingcart");
     } catch (error) {
       toast.error("Có lỗi xảy ra, vui lòng thử lại");
@@ -155,18 +147,13 @@ export default function ProductDetailPage() {
   /* ================= XỬ LÝ NHẬP SỐ LƯỢNG ================= */
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    
-    // 1. Cho phép xóa trắng ô input để gõ số mới
     if (val === "") {
       setQuantity("");
       return;
     }
-
-    // 2. Chỉ cho phép nhập số (Loại bỏ các ký tự chữ, e, -, +, ...)
     const num = parseInt(val.replace(/\D/g, ""), 10);
     if (isNaN(num)) return;
 
-    // 3. Kiểm tra số lượng tồn kho
     if (matchedVariant && num > matchedVariant.stockQuantity) {
       setQuantity(matchedVariant.stockQuantity);
       toast.warning(`Kho chỉ còn ${matchedVariant.stockQuantity} sản phẩm`);
@@ -176,7 +163,6 @@ export default function ProductDetailPage() {
   };
 
   const handleQuantityBlur = () => {
-    // 4. Nếu người dùng click ra ngoài mà bỏ trống ô, hoặc nhập số 0, thì tự động đưa về 1
     if (quantity === "" || Number(quantity) < 1) {
       setQuantity(1);
     }
@@ -195,24 +181,20 @@ export default function ProductDetailPage() {
   const stockBySizeId = useMemo(() => {
     const map = new Map<number, number>();
     if (!product) return map;
-
     product.variants.forEach((v) => {
       map.set(v.sizeId, (map.get(v.sizeId) ?? 0) + (v.stockQuantity ?? 0));
     });
-
     return map;
   }, [product]);
 
   const stockByColorIdForSelectedSize = useMemo(() => {
     const map = new Map<number, number>();
     if (!product || !selectedSizeId) return map;
-
     product.variants.forEach((v) => {
       if (v.sizeId === selectedSizeId) {
         map.set(v.colorId, (map.get(v.colorId) ?? 0) + (v.stockQuantity ?? 0));
       }
     });
-
     return map;
   }, [product, selectedSizeId]);
 
@@ -244,13 +226,11 @@ export default function ProductDetailPage() {
     <main className="bg-[#F6F7FB] min-h-screen">
       <Header />
 
-      {/* ✅ BREADCRUMB (có category) */}
       <div className="max-w-6xl mx-auto px-4 pt-6">
         <Breadcrumb
           items={[
             { label: "Trang chủ", href: "/" },
             { label: "Danh sách sản phẩm", href: "/products" },
-
             ...(product.categoryName
               ? [
                   {
@@ -261,7 +241,6 @@ export default function ProductDetailPage() {
                   },
                 ]
               : []),
-
             { label: product.productName },
           ]}
         />
@@ -315,9 +294,17 @@ export default function ProductDetailPage() {
           {/* PHẢI: INFO */}
           <div className="space-y-5">
               <div>
-                <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">
-                  {product.brandName}
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">
+                    {product.brandName}
+                  </p>
+                  
+                  {/* 🚀 BỔ SUNG PHẦN HIỂN THỊ SKU TẠI ĐÂY */}
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-md border border-gray-200">
+                    <Barcode size={14} className="text-gray-500" />
+                    <span>SKU: {matchedVariant?.sku || "Đang cập nhật..."}</span>
+                  </div>
+                </div>
 
                 {product.categoryName && (
                   <p className="text-xs text-gray-400 font-semibold mt-1 uppercase tracking-widest">
@@ -330,16 +317,14 @@ export default function ProductDetailPage() {
                 </h1>
               </div>
 
-              {/* ================= THAY THẾ KHU VỰC GIÁ Ở ĐÂY ================= */}
+              {/* ================= KHU VỰC GIÁ ================= */}
               <div className="flex items-end gap-3 mb-2">
-                {/* 1. Giá bán thực tế (Nhảy số theo Variant đã chọn) */}
                 <div className={`text-3xl font-extrabold ${(product.discountPercent || 0) > 0 ? "text-red-600" : "text-blue-600"}`}>
                   {matchedVariant 
                     ? (matchedVariant?.discountPrice || ((matchedVariant?.price || 0) * (100 - (product.discountPercent || 0)) / 100)).toLocaleString() 
                     : product.minPrice?.toLocaleString()}đ
                 </div>
 
-                {/* 2. Hiển thị Giá gốc gạch ngang và Nhãn đỏ */}
                 {(product.discountPercent || 0) > 0 ? (
                   <>
                     <div className="text-base text-gray-400 line-through pb-1 font-medium">
@@ -352,7 +337,6 @@ export default function ProductDetailPage() {
                     </div>
                   </>
                 ) : (
-                  /* Khoảng giá khi chưa chọn phân loại */
                   !matchedVariant && product.minPrice !== product.maxPrice && (
                     <div className="text-base text-gray-400 pb-1">
                       - {product.maxPrice?.toLocaleString()}đ
@@ -365,7 +349,6 @@ export default function ProductDetailPage() {
               {/* SIZE */}
               <div>
                 <h3 className="font-semibold text-gray-900 mb-3">Chọn Size</h3>
-
                 <div className="flex flex-wrap gap-2">
                   {ALL_SIZES.map((sizeName) => {
                     const dbSize = product.sizeOptions.find(
@@ -470,14 +453,13 @@ export default function ProductDetailPage() {
                         −
                       </button>
                       
-                      {/* ✅ Chuyển div thành thẻ input để gõ được */}
                       <input
                         type="text"
                         value={quantity}
                         onChange={handleQuantityChange}
                         onBlur={handleQuantityBlur}
                         className="w-12 h-10 text-center font-bold text-gray-900 outline-none border-x border-gray-200"
-                        maxLength={3} // Giới hạn gõ tối đa 3 chữ số (999)
+                        maxLength={3}
                       />
 
                       <button

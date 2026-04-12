@@ -17,20 +17,14 @@ type Props = {
 // ✅ TỪ ĐIỂN DỊCH + BẢNG MÀU ĐỒNG BỘ VỚI USER PROFILE
 const getStatusConfig = (statusName: string) => {
   switch (statusName?.toUpperCase()) {
-    case "PENDING":
-      return { label: "Chờ xử lý", classes: "bg-orange-100 text-orange-600 border-orange-200" };
-    case "CONFIRMED":
-      return { label: "Đã xác nhận", classes: "bg-blue-100 text-blue-600 border-blue-200" };
-    case "SHIPPING":
-      return { label: "Đang giao", classes: "bg-indigo-100 text-indigo-600 border-indigo-200" };
-    case "DELIVERED":
-      return { label: "Đã giao", classes: "bg-green-100 text-green-600 border-green-200" };
-    case "CANCELLED":
-      return { label: "Đã hủy", classes: "bg-gray-100 text-gray-600 border-gray-200" };
-    case "RETURNED":
-      return { label: "Đã trả hàng", classes: "bg-red-100 text-red-600 border-red-200" };
-    default:
-      return { label: statusName || "Không rõ", classes: "bg-gray-100 text-gray-600 border-gray-200" };
+    case "PENDING": return { label: "Chờ xác nhận", classes: "bg-orange-100 text-orange-600 border border-orange-200" };
+      case "CONFIRMED": return { label: "Đã xác nhận", classes: "bg-blue-100 text-blue-600 border border-blue-200" };
+      case "SHIPPING": return { label: "Đang giao", classes: "bg-indigo-100 text-indigo-600 border border-indigo-200" };
+      case "DELIVERED": return { label: "Đã giao", classes: "bg-cyan-100 text-cyan-600 border border-cyan-200" };
+      case "COMPLETED": return { label: "Hoàn thành", classes: "bg-green-100 text-green-600 border border-green-200" }; // 🚀 Đã thêm
+      case "FAILED": return { label: "Giao thất bại", classes: "bg-red-100 text-red-600 border border-red-200" };       // 🚀 Đã thêm
+      case "CANCELLED": return { label: "Đã hủy", classes: "bg-gray-100 text-gray-600 border border-gray-200" };
+      default: return { label: status || "Không rõ", classes: "bg-gray-100 text-gray-600 border border-gray-200" };
   }
 };
 

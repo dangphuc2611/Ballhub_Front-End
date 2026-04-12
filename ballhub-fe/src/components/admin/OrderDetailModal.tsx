@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Save, AlertCircle, CheckCircle, Loader2, Printer, Banknote, Mail, Phone, MapPin, User, Package, History } from "lucide-react";
+import { X, Save, AlertCircle, CheckCircle, Loader2, Printer, Banknote, Mail, Phone, MapPin, User, Package, History, Barcode } from "lucide-react";
 import axios from "axios";
 import Image from "next/image";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
+import { toast } from "sonner"; 
 
 type OrderDetailModalProps = {
   orderId: number;
@@ -12,13 +13,15 @@ type OrderDetailModalProps = {
   onRefresh: () => void;
 };
 
+// 🚀 ĐÃ CẬP NHẬT ID CHUẨN KHỚP 100% VỚI DATABASE
 const STATUS_OPTIONS = [
   { id: 1, name: "PENDING", label: "Chờ xác nhận" },
   { id: 2, name: "CONFIRMED", label: "Đã xác nhận" },
   { id: 3, name: "SHIPPING", label: "Đang giao hàng" },
   { id: 4, name: "DELIVERED", label: "Đã giao hàng" },
-  { id: 5, name: "CANCELLED", label: "Đã hủy" },
-  { id: 6, name: "RETURNED", label: "Trả hàng/Hoàn tiền" },
+  { id: 5, name: "COMPLETED", label: "Hoàn thành" },
+  { id: 6, name: "FAILED", label: "Giao thất bại / Khiếu nại" },
+  { id: 7, name: "CANCELLED", label: "Đã hủy" },
 ];
 
 const getStatusLabel = (statusName: string) => {
@@ -30,57 +33,39 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [orderDetail, setOrderDetail] = useState<any>(null);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string; } | null>(null);
-
+  
+  const [currentStatusId, setCurrentStatusId] = useState<number>(1);
   const [selectedStatusId, setSelectedStatusId] = useState<number>(1);
   const [note, setNote] = useState<string>("");
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  // ==========================================================
-  // ✅ LOGIC XỬ LÝ DỮ LIỆU (CÓ FALLBACK CHO ĐƠN CŨ)
-  // ==========================================================
-  
   const isPosOrder = orderDetail?.isPos === true;
 
-  // 1. Khai báo biến cơ bản
   let finalCusName = orderDetail?.userFullName || "Khách lẻ";
   let finalCusPhone = orderDetail?.userPhone || (isPosOrder ? "Mua tại quầy" : "---");
   let displayAddress = orderDetail?.deliveryAddress || (isPosOrder ? "Nhận tại cửa hàng (POS)" : "---");
   let extractedCashFromNote = 0;
 
-  // 🚀 LOGIC PHỤC HỒI DỮ LIỆU TỪ NOTE (Dành cho các đơn hàng cũ)
   if (orderDetail?.statusHistory) {
     const posNote = orderDetail.statusHistory.find((h: any) => h.note?.includes("POS") || h.note?.includes("CASH:"));
     if (posNote) {
       const raw = posNote.note;
       const parts = raw.split("|");
+      if (finalCusName === "Khách lẻ" && parts.length >= 2 && !parts[1].includes("POS")) finalCusName = parts[1];
+      if ((finalCusPhone === "---" || finalCusPhone === "Mua tại quầy") && parts.length >= 3 && parts[2] !== "Trống") finalCusPhone = parts[2];
+      if ((displayAddress === "---" || displayAddress === "Nhận tại cửa hàng (POS)") && parts.length >= 4 && !parts[3].includes("POS")) displayAddress = parts[3];
       
-      // Phục hồi Tên nếu DB mới chưa có
-      if (finalCusName === "Khách lẻ" && parts.length >= 2 && !parts[1].includes("POS")) {
-        finalCusName = parts[1];
-      }
-      // Phục hồi Số điện thoại
-      if ((finalCusPhone === "---" || finalCusPhone === "Mua tại quầy") && parts.length >= 3 && parts[2] !== "Trống") {
-        finalCusPhone = parts[2];
-      }
-      // Phục hồi Địa chỉ
-      if ((displayAddress === "---" || displayAddress === "Nhận tại cửa hàng (POS)") && parts.length >= 4 && !parts[3].includes("POS")) {
-        displayAddress = parts[3];
-      }
-      // 🎯 QUAN TRỌNG: Phục hồi Tiền mặt từ chuỗi CASH:xxxx
       const cashMatch = raw.match(/CASH:(\d+)/);
       if (cashMatch) extractedCashFromNote = Number(cashMatch[1]);
     }
   }
 
-  // 2. Tiền mặt & Tiền thừa: Ưu tiên cột DB, nếu đơn cũ thì lấy từ Note vừa móc được
   const customerCash = orderDetail?.customerCash > 0 ? orderDetail.customerCash : extractedCashFromNote;
   const changeAmount = orderDetail?.changeAmount > 0 ? orderDetail.changeAmount : (customerCash > 0 ? customerCash - (orderDetail?.totalAmount || 0) : 0);
 
-  // 3. Làm sạch ghi chú lịch sử để không hiện mã kỹ thuật
   const cleanHistoryNote = (rawNote: string) => {
     if (!rawNote) return "";
-    if (rawNote.startsWith("POS|") || rawNote.includes("CASH:")) {
+    if (rawNote.startsWith("POS|") || rawNote.startsWith("POS_CUSTOMER|") || rawNote.includes("CASH:")) {
       return "Thanh toán thành công tại quầy (POS)";
     }
     return rawNote;
@@ -97,9 +82,12 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
         setOrderDetail(data);
 
         const currentStatus = STATUS_OPTIONS.find((s) => s.name === data.statusName);
-        if (currentStatus) setSelectedStatusId(currentStatus.id);
+        if (currentStatus) {
+          setCurrentStatusId(currentStatus.id);
+          setSelectedStatusId(currentStatus.id);
+        }
       } catch (error: any) {
-        setMessage({ type: "error", text: "Không thể tải chi tiết đơn hàng" });
+        toast.error("Không thể tải chi tiết đơn hàng");
       } finally {
         setLoading(false);
       }
@@ -107,23 +95,70 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
     if (orderId) fetchOrderDetail();
   }, [orderId]);
 
+  // 🚀 LOGIC DROPDOWN ĐÃ ĐƯỢC CẬP NHẬT THEO SỐ ID MỚI
+  const getAvailableStatuses = () => {
+    return STATUS_OPTIONS.filter((st) => {
+      if (st.id === currentStatusId) return true;
+      
+      if (currentStatusId === 1) return st.id === 2 || st.id === 7; // Chờ -> Xác nhận HOẶC Hủy (7)
+      if (currentStatusId === 2) return st.id === 3 || st.id === 7; // Xác nhận -> Đang giao HOẶC Hủy (7)
+      if (currentStatusId === 3) return st.id === 4 || st.id === 6; // Đang giao -> Đã giao HOẶC Thất bại (6)
+      if (currentStatusId === 4) return st.id === 5 || st.id === 6; // Đã giao -> Hoàn thành (5) HOẶC Thất bại (6)
+      
+      // Đã Hoàn thành (5), Thất bại (6), Hủy (7) là trạm cuối, khóa!
+      return false; 
+    });
+  };
+
+  const isTerminalState = [5, 6, 7].includes(currentStatusId);
+
+  const handlePreSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (selectedStatusId === currentStatusId) {
+      toast.warning("Bạn chưa thay đổi trạng thái nào!");
+      return;
+    }
+
+    if (isTerminalState) {
+      toast.error("Đơn hàng đã ở trạng thái chốt, không thể thay đổi!");
+      return;
+    }
+
+    // Bắt buộc nhập ghi chú nếu Hủy (7) hoặc Thất bại (6)
+    if ((selectedStatusId === 7 || selectedStatusId === 6) && note.trim() === "") {
+      toast.error("Vui lòng nhập Ghi chú (Lý do) khi Hủy hoặc Giao thất bại!");
+      return;
+    }
+
+    setConfirmOpen(true);
+  };
+
   const executeSubmit = async () => {
-    setSubmitting(true); setMessage(null); setConfirmOpen(false);
+    setSubmitting(true); setConfirmOpen(false);
     try {
       const token = localStorage.getItem("refreshToken");
       await axios.put(
         `http://localhost:8080/api/orders/admin/${orderId}/status?statusId=${selectedStatusId}&note=${encodeURIComponent(note)}`,
         {}, { headers: { Authorization: `Bearer ${token}` } }
       );
-      setMessage({ type: "success", text: "Cập nhật trạng thái thành công!" });
+      toast.success("Cập nhật trạng thái thành công!");
+      
       const res = await axios.get(`http://localhost:8080/api/orders/admin/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setOrderDetail(res.data.data ?? res.data);
-      setNote(""); onRefresh();
-      setTimeout(() => { onClose(); }, 1500);
+      const newData = res.data.data ?? res.data;
+      setOrderDetail(newData);
+      
+      const newStatus = STATUS_OPTIONS.find((s) => s.name === newData.statusName);
+      if (newStatus) {
+        setCurrentStatusId(newStatus.id);
+        setSelectedStatusId(newStatus.id);
+      }
+      setNote(""); 
+      onRefresh();
     } catch (error: any) {
-      setMessage({ type: "error", text: "Cập nhật trạng thái thất bại" });
+      toast.error(error.response?.data?.message || "Cập nhật trạng thái thất bại");
     } finally {
       setSubmitting(false);
     }
@@ -152,7 +187,6 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 md:p-8 animate-in fade-in duration-200 print:hidden">
         <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl flex flex-col max-h-[90vh] overflow-hidden">
           
-          {/* HEADER MODAL */}
           <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-white">
             <div>
               <div className="flex items-center gap-3">
@@ -178,13 +212,6 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
           </div>
 
           <div className="p-6 overflow-y-auto flex-1 custom-scrollbar bg-slate-50">
-            {message && (
-              <div className={`flex items-center gap-3 p-4 rounded-xl mb-6 shadow-sm ${message.type === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-red-50 text-red-700 border border-red-100"}`}>
-                {message.type === "success" ? <CheckCircle size={20} className="shrink-0" /> : <AlertCircle size={20} className="shrink-0" />}
-                <p className="text-sm font-semibold">{message.text}</p>
-              </div>
-            )}
-
             {orderDetail && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
@@ -238,7 +265,21 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
                             )}
                             <div>
                               <p className="font-bold text-slate-700 text-sm">{item.productName}</p>
-                              <p className="text-xs text-slate-500 mt-1 font-medium">Màu: {item.colorName} • Size: {item.sizeName}</p>
+                              
+                              <p className="text-xs text-slate-500 mt-1 flex items-center flex-wrap gap-1">
+                                <span>Màu: <span className="font-medium text-slate-700">{item.colorName}</span></span>
+                                <span>•</span>
+                                <span>Size: <span className="font-medium text-slate-700">{item.sizeName}</span></span>
+                                {item.sku && item.sku !== "N/A" && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="flex items-center gap-1 text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded font-mono font-bold text-[10px]">
+                                      <Barcode size={10} /> {item.sku}
+                                    </span>
+                                  </>
+                                )}
+                              </p>
+                              
                             </div>
                           </div>
                           <div className="text-right">
@@ -269,7 +310,6 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
                         <span className="text-emerald-600 font-black text-2xl tracking-tight">{formatPrice(orderDetail.totalAmount)}</span>
                       </div>
 
-                      {/* ✅ BOX TIỀN KHÁCH ĐƯA / TIỀN THỪA (ĐÃ KHÔI PHỤC FALLBACK) */}
                       {customerCash > 0 && (
                         <div className="mt-6 p-5 bg-emerald-50 rounded-[20px] border border-emerald-100 shadow-inner animate-in slide-in-from-bottom-2 duration-300">
                           <div className="flex justify-between items-center mb-3">
@@ -294,7 +334,8 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
                   <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -mr-10 -mt-10 opacity-60 pointer-events-none"></div>
                     <h3 className="text-sm font-bold text-slate-800 mb-5 uppercase tracking-wider relative z-10">Cập nhật trạng thái</h3>
-                    <form onSubmit={(e) => { e.preventDefault(); setConfirmOpen(true); }} className="space-y-4 relative z-10">
+                    
+                    <form onSubmit={handlePreSubmit} className="space-y-4 relative z-10">
                       <div>
                         <span className="block text-slate-400 text-[10px] mb-1.5 font-bold uppercase tracking-widest">Trạng thái hiện tại</span>
                         <div className="inline-flex items-center px-4 py-1.5 bg-slate-100 text-slate-700 rounded-full text-xs font-black shadow-sm border border-slate-200">
@@ -303,15 +344,43 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
                       </div>
                       <div className="space-y-2">
                         <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider">Đổi trạng thái thành:</label>
-                        <select value={selectedStatusId} onChange={(e) => setSelectedStatusId(Number(e.target.value))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 transition-all font-bold text-slate-700">
-                          {STATUS_OPTIONS.map((st) => <option key={st.id} value={st.id}>{st.label}</option>)}
+                        
+                        <select 
+                          value={selectedStatusId} 
+                          onChange={(e) => setSelectedStatusId(Number(e.target.value))} 
+                          disabled={isTerminalState} // 🚀 Khóa form nếu là Trạm cuối
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 transition-all font-bold text-slate-700 disabled:opacity-50"
+                        >
+                          {getAvailableStatuses().map((st) => (
+                            <option 
+                              key={st.id} 
+                              value={st.id} 
+                              disabled={st.id === currentStatusId} 
+                            >
+                              {st.label}
+                            </option>
+                          ))}
                         </select>
+
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider">Ghi chú (Tùy chọn)</label>
-                        <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Nhập lý do thay đổi..." rows={3} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 transition-all font-medium text-slate-700 resize-none shadow-inner" />
+                        <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider flex justify-between">
+                          Ghi chú { (selectedStatusId === 7 || selectedStatusId === 6) && <span className="text-red-500">* Bắt buộc</span> }
+                        </label>
+                        <textarea 
+                          value={note} 
+                          onChange={(e) => setNote(e.target.value)} 
+                          placeholder={(selectedStatusId === 7 || selectedStatusId === 6) ? "Bắt buộc nhập lý do..." : "Nhập lý do thay đổi (Tùy chọn)..."} 
+                          rows={3} 
+                          disabled={isTerminalState}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 transition-all font-medium text-slate-700 resize-none shadow-inner disabled:opacity-50" 
+                        />
                       </div>
-                      <button type="submit" disabled={submitting} className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-600 transition-all active:scale-[0.98] shadow-lg shadow-emerald-200 disabled:opacity-50">
+                      <button 
+                        type="submit" 
+                        disabled={submitting || isTerminalState} 
+                        className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-600 transition-all active:scale-[0.98] shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:bg-gray-400 disabled:shadow-none"
+                      >
                         {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />} Cập nhật ngay
                       </button>
                     </form>
@@ -324,18 +393,21 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Lịch sử đơn hàng</h3>
                     </div>
                     <div className="relative border-l-2 border-slate-100 ml-2.5 space-y-6">
-                      {orderDetail.statusHistory?.map((h: any, index: number) => (
-                        <div key={h.historyId} className="relative pl-6">
-                          <div className={`absolute -left-[7px] top-1 w-3 h-3 rounded-full ring-4 ring-white ${index === 0 ? "bg-emerald-500" : "bg-slate-300"}`}></div>
-                          <p className="font-bold text-slate-700 text-[13px]">{getStatusLabel(h.statusName)}</p>
-                          <p className="text-[11px] text-slate-400 font-bold mt-0.5">{new Date(h.changedAt).toLocaleString("vi-VN")}</p>
-                          {h.note && (
-                             <div className="mt-2.5 bg-slate-50 p-3 rounded-xl text-[11px] text-slate-500 italic font-medium border border-slate-100 shadow-sm">
-                                {cleanHistoryNote(h.note)}
-                             </div>
-                          )}
-                        </div>
-                      ))}
+                      {orderDetail.statusHistory?.map((h: any, index: number) => {
+                         const cleanedNote = cleanHistoryNote(h.note);
+                         return (
+                          <div key={h.historyId} className="relative pl-6">
+                            <div className={`absolute -left-[7px] top-1 w-3 h-3 rounded-full ring-4 ring-white ${index === 0 ? "bg-emerald-500" : "bg-slate-300"}`}></div>
+                            <p className="font-bold text-slate-700 text-[13px]">{getStatusLabel(h.statusName)}</p>
+                            <p className="text-[11px] text-slate-400 font-bold mt-0.5">{new Date(h.changedAt).toLocaleString("vi-VN")}</p>
+                            {cleanedNote && (
+                              <div className="mt-2.5 bg-slate-50 p-3 rounded-xl text-[11px] text-slate-500 italic font-medium border border-slate-100 shadow-sm">
+                                  {cleanedNote}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 </div>
@@ -345,7 +417,7 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
         </div>
       </div>
 
-      {/* ✅ HÓA ĐƠN IN */}
+      {/* HÓA ĐƠN IN */}
       {orderDetail && (
         <div id="admin-order-receipt" className="hidden print:block bg-white text-black">
           <div className="text-center mb-4">
@@ -410,7 +482,14 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
         </div>
       )}
 
-      <ConfirmModal open={confirmOpen} title="Cập nhật trạng thái?" description="Bạn có chắc chắn muốn thay đổi trạng thái đơn hàng này không?" variant="info" onClose={() => setConfirmOpen(false)} onConfirm={executeSubmit} />
+      <ConfirmModal 
+        open={confirmOpen} 
+        title="Xác nhận thay đổi?" 
+        description={`Bạn chắc chắn muốn chuyển đơn hàng sang trạng thái: ${getStatusLabel(STATUS_OPTIONS.find(s => s.id === selectedStatusId)?.name || "")}?`} 
+        variant="info" 
+        onClose={() => setConfirmOpen(false)} 
+        onConfirm={executeSubmit} 
+      />
     </>
   );
 };

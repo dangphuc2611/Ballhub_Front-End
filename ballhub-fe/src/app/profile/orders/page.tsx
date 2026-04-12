@@ -80,20 +80,14 @@ export default function OrdersPage() {
 
   const getStatusDisplay = (status: string) => {
     switch (status?.toUpperCase()) {
-      case "PENDING":
-        return { label: "Chờ xử lý", classes: "bg-orange-100 text-orange-600" };
-      case "CONFIRMED":
-        return { label: "Đã xác nhận", classes: "bg-blue-100 text-blue-600" };
-      case "SHIPPING":
-        return { label: "Đang giao", classes: "bg-indigo-100 text-indigo-600" };
-      case "DELIVERED":
-        return { label: "Đã giao", classes: "bg-green-100 text-green-600" };
-      case "CANCELLED":
-        return { label: "Đã hủy", classes: "bg-gray-100 text-gray-600" };
-      case "RETURNED":
-        return { label: "Đã trả hàng", classes: "bg-red-100 text-red-600" };
-      default:
-        return { label: status || "Không rõ", classes: "bg-gray-100 text-gray-600" };
+      case "PENDING": return { label: "Chờ xác nhận", classes: "bg-orange-100 text-orange-600 border border-orange-200" };
+      case "CONFIRMED": return { label: "Đã xác nhận", classes: "bg-blue-100 text-blue-600 border border-blue-200" };
+      case "SHIPPING": return { label: "Đang giao", classes: "bg-indigo-100 text-indigo-600 border border-indigo-200" };
+      case "DELIVERED": return { label: "Đã giao", classes: "bg-cyan-100 text-cyan-600 border border-cyan-200" };
+      case "COMPLETED": return { label: "Hoàn thành", classes: "bg-green-100 text-green-600 border border-green-200" }; // 🚀 Đã thêm
+      case "FAILED": return { label: "Giao thất bại", classes: "bg-red-100 text-red-600 border border-red-200" };       // 🚀 Đã thêm
+      case "CANCELLED": return { label: "Đã hủy", classes: "bg-gray-100 text-gray-600 border border-gray-200" };
+      default: return { label: status || "Không rõ", classes: "bg-gray-100 text-gray-600 border border-gray-200" };
     }
   };
 
@@ -198,7 +192,7 @@ export default function OrdersPage() {
                     return (
                       <div key={o.orderId} className="grid grid-cols-5 text-sm items-center py-4 border-b border-gray-50 last:border-none hover:bg-gray-50 transition-colors min-w-[600px] rounded-lg px-2">
                         <div className="flex flex-col gap-1">
-                           <span className="font-bold text-gray-900">#BH-{o.orderId}</span>
+                           <span className="font-bold text-gray-900">HD{o.orderId}</span>
                            {/* 🚀 THÊM NHÃN CHO USER DỄ HIỂU */}
                            {o.isPos ? (
                              <span className="w-fit flex items-center gap-1 text-[8px] font-black bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200"><Store size={8}/> TẠI CỬA HÀNG</span>

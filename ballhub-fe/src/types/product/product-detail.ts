@@ -10,6 +10,7 @@ export interface Variant {
   discountPrice?: number;  // Bổ sung: Giá sale của biến thể
   finalPrice: number;
   stockQuantity: number;
+  sku?: string;
 }
 
 export interface SizeOption {
@@ -47,6 +48,7 @@ export interface ProductDetail {
   variants: Variant[];
   sizeOptions: SizeOption[];
   colorOptions: ColorOption[];
+
 
   /** ✅ LUÔN CÓ */
   contentBlock: ProductContentBlock;

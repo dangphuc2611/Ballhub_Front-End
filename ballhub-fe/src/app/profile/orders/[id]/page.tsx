@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
-import { ArrowLeft, MapPin, CreditCard, Clock, Loader2, AlertCircle, Trash2, Info, Store, Globe } from "lucide-react";
+import { ArrowLeft, MapPin, CreditCard, Clock, Loader2, AlertCircle, Trash2, Info, Store, Globe, CheckCircle, XCircle, Barcode, Package } from "lucide-react";
 import api from "@/lib/axios";
 import { toast } from "sonner";
 import { useAuth } from "@/app/context/AuthContext";
@@ -20,6 +20,7 @@ interface OrderItem {
   discountPercent: number;
   sizeName?: string;
   colorName?: string;
+  sku?: string; // 🚀 Đã thêm SKU
 }
 
 interface OrderDetail {
@@ -35,7 +36,7 @@ interface OrderDetail {
   deliveryAddress: string;
   shippingFee?: number; 
   items: OrderItem[];
-  isPos?: boolean; // ✅ Đã thêm
+  isPos?: boolean; 
 }
 
 export default function OrderDetailPage() {
@@ -46,8 +47,10 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   useEffect(() => {
     const fetchOrderDetail = async () => {
@@ -66,10 +69,6 @@ export default function OrderDetailPage() {
     fetchOrderDetail();
   }, [id]);
 
-  const handleCancelOrderClick = () => {
-    setShowCancelModal(true);
-  };
-
   const confirmCancelOrder = async () => {
     setShowCancelModal(false);
     setCancelling(true);
@@ -87,22 +86,52 @@ export default function OrderDetailPage() {
     }
   };
 
+  // 🚀 HÀM: XÁC NHẬN ĐÃ NHẬN HÀNG
+  const handleConfirmReceived = async () => {
+    setActionLoading(true);
+    try {
+      const res = await api.post(`/orders/${id}/confirm-received`);
+      if (res.data.success) {
+        toast.success("Cảm ơn bạn đã xác nhận nhận hàng!");
+        const refresh = await api.get(`/orders/${id}`);
+        setOrder(refresh.data.data);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại sau.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // 🚀 HÀM: BÁO CÁO CHƯA NHẬN HÀNG (KHIẾU NẠI)
+  const handleReportNotReceived = async () => {
+    setShowReportModal(false);
+    setActionLoading(true);
+    try {
+      const res = await api.post(`/orders/${id}/report-not-received`);
+      if (res.data.success) {
+        toast.success("Đã gửi khiếu nại thành công. Shop sẽ liên hệ với bạn sớm nhất!");
+        const refresh = await api.get(`/orders/${id}`);
+        setOrder(refresh.data.data);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại sau.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // 🚀 CẬP NHẬT TRẠNG THÁI HIỂN THỊ
   const getStatusDisplay = (status: string | undefined) => {
     switch (status?.toUpperCase()) {
-      case "PENDING":
-        return { label: "Chờ xử lý", classes: "bg-orange-100 text-orange-600" };
-      case "CONFIRMED":
-        return { label: "Đã xác nhận", classes: "bg-blue-100 text-blue-600" };
-      case "SHIPPING":
-        return { label: "Đang giao", classes: "bg-indigo-100 text-indigo-600" };
-      case "DELIVERED":
-        return { label: "Đã giao", classes: "bg-green-100 text-green-600" };
-      case "CANCELLED":
-        return { label: "Đã hủy", classes: "bg-gray-100 text-gray-600" };
-      case "RETURNED":
-        return { label: "Đã trả hàng", classes: "bg-red-100 text-red-600" };
-      default:
-        return { label: status || "Không rõ", classes: "bg-gray-100 text-gray-600" };
+      case "PENDING": return { label: "Chờ xử lý", classes: "bg-orange-100 text-orange-600" };
+      case "CONFIRMED": return { label: "Đã xác nhận", classes: "bg-blue-100 text-blue-600" };
+      case "SHIPPING": return { label: "Đang giao", classes: "bg-indigo-100 text-indigo-600" };
+      case "DELIVERED": return { label: "Đã giao", classes: "bg-cyan-100 text-cyan-600" };
+      case "COMPLETED": return { label: "Hoàn thành", classes: "bg-green-100 text-green-600" };
+      case "FAILED": return { label: "Giao thất bại", classes: "bg-red-100 text-red-600" };
+      case "CANCELLED": return { label: "Đã hủy", classes: "bg-gray-100 text-gray-600" };
+      default: return { label: status || "Không rõ", classes: "bg-gray-100 text-gray-600" };
     }
   };
 
@@ -153,14 +182,13 @@ export default function OrderDetailPage() {
                 <div>
                   <div className="flex items-center gap-3">
                     <h1 className="text-2xl font-black text-gray-900 tracking-tight">Chi tiết đơn hàng</h1>
-                    {/* 🚀 BADGE PHÂN LOẠI CHO USER CHI TIẾT */}
                     {order.isPos ? (
                       <span className="bg-slate-100 text-slate-500 border border-slate-200 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Store size={10}/> Mua tại cửa hàng</span>
                     ) : (
                       <span className="bg-blue-50 text-blue-500 border border-blue-200 px-3 py-1 rounded-full text-[10px] font-black uppercase flex items-center gap-1"><Globe size={10}/> Đặt hàng Online</span>
                     )}
                   </div>
-                  <p className="text-gray-400 text-xs font-bold mt-1 uppercase tracking-widest">Mã: #BH-{order.orderId}</p>
+                  <p className="text-gray-400 text-xs font-bold mt-1 uppercase tracking-widest">Mã: HD{order.orderId}</p>
                 </div>
                 <div className="text-right">
                   <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${statusConfig.classes}`}>
@@ -187,6 +215,8 @@ export default function OrderDetailPage() {
 
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold text-gray-900 text-lg mb-1 truncate">{item.productName}</h4>
+                      
+                      {/* 🚀 CẬP NHẬT GIAO DIỆN HIỂN THỊ SKU */}
                       <p className="text-xs text-gray-400 font-medium flex items-center flex-wrap gap-1 mt-1">
                         <span>Phân loại:</span>
                         <span className="text-gray-700 font-bold bg-gray-100 px-1.5 py-0.5 rounded">
@@ -197,6 +227,14 @@ export default function OrderDetailPage() {
                             <span className="text-gray-300">|</span>
                             <span className="text-gray-700 font-bold bg-gray-100 px-1.5 py-0.5 rounded">
                               {item.colorName}
+                            </span>
+                          </>
+                        )}
+                        {item.sku && item.sku !== "N/A" && (
+                          <>
+                            <span className="text-gray-300">|</span>
+                            <span className="text-gray-500 font-mono font-bold bg-gray-100 px-1.5 py-0.5 rounded flex items-center gap-1">
+                              <Barcode size={12} /> {item.sku}
                             </span>
                           </>
                         )}
@@ -220,9 +258,10 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
+            {/* NÚT: HỦY ĐƠN HÀNG (Dành cho PENDING/CONFIRMED) */}
             {(order.statusName?.toUpperCase() === 'PENDING' || order.statusName?.toUpperCase() === 'CONFIRMED') && (
               <button
-                onClick={handleCancelOrderClick}
+                onClick={() => setShowCancelModal(true)}
                 disabled={cancelling}
                 className="w-full py-4 rounded-2xl border-2 border-red-100 text-red-500 font-bold text-sm hover:bg-red-50 transition-all flex items-center justify-center gap-2"
               >
@@ -231,22 +270,59 @@ export default function OrderDetailPage() {
               </button>
             )}
 
-            {order.statusName?.toUpperCase() === 'CANCELLED' && (
-              <div className="w-full py-4 rounded-2xl bg-gray-50 border-2 border-gray-200 text-gray-600 font-bold text-sm flex items-center justify-center gap-2">
-                <AlertCircle size={18} />
-                ĐƠN HÀNG ĐÃ BỊ HỦY
+            {/* 🚀 KHU VỰC NÚT BẤM KHI ĐƠN HÀNG ĐÃ ĐƯỢC GIAO TỚI (DELIVERED) */}
+            {order.statusName?.toUpperCase() === 'DELIVERED' && (
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-cyan-100 space-y-4 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-50 rounded-full blur-3xl -mr-10 -mt-10 opacity-60"></div>
+                <div className="relative z-10 flex items-start gap-3">
+                  <div className="p-2 bg-cyan-100 text-cyan-600 rounded-full shrink-0"><Package size={20}/></div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 text-lg">Đơn hàng đã được giao!</h3>
+                    <p className="text-sm text-gray-500 mt-1">Vui lòng kiểm tra sản phẩm và xác nhận "Đã nhận được hàng" để hoàn tất giao dịch.</p>
+                  </div>
+                </div>
+                <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <button 
+                    onClick={handleConfirmReceived}
+                    disabled={actionLoading}
+                    className="flex-1 py-3.5 bg-green-500 text-white rounded-xl font-black text-sm uppercase tracking-wider hover:bg-green-600 transition-all shadow-lg shadow-green-200 flex justify-center items-center gap-2 disabled:opacity-70"
+                  >
+                    {actionLoading ? <Loader2 size={18} className="animate-spin"/> : <CheckCircle size={18}/>} Đã nhận được hàng
+                  </button>
+                  <button 
+                    onClick={() => setShowReportModal(true)}
+                    disabled={actionLoading}
+                    className="flex-1 py-3.5 bg-white border-2 border-red-100 text-red-500 rounded-xl font-black text-sm uppercase tracking-wider hover:bg-red-50 transition-all flex justify-center items-center gap-2 disabled:opacity-70"
+                  >
+                    Chưa nhận được hàng
+                  </button>
+                </div>
               </div>
             )}
 
-            {order.statusName?.toUpperCase() === 'RETURNED' && (
-              <div className="w-full py-4 rounded-2xl bg-red-50 border-2 border-red-100 text-red-600 font-bold text-sm flex items-center justify-center gap-2">
-                <AlertCircle size={18} />
-                ĐƠN HÀNG ĐÃ BỊ TRẢ LẠI
+            {/* CÁC THÔNG BÁO TRẠNG THÁI CUỐI CÙNG KHÁC */}
+            {order.statusName?.toUpperCase() === 'CANCELLED' && (
+              <div className="w-full py-4 rounded-2xl bg-gray-50 border-2 border-gray-200 text-gray-600 font-bold text-sm flex items-center justify-center gap-2">
+                <AlertCircle size={18} /> ĐƠN HÀNG ĐÃ BỊ HỦY
               </div>
             )}
+            
+            {order.statusName?.toUpperCase() === 'FAILED' && (
+              <div className="w-full py-4 rounded-2xl bg-red-50 border-2 border-red-200 text-red-600 font-bold text-sm flex items-center justify-center gap-2">
+                <XCircle size={18} /> GIAO HÀNG THẤT BẠI
+              </div>
+            )}
+
+            {order.statusName?.toUpperCase() === 'COMPLETED' && (
+              <div className="w-full py-4 rounded-2xl bg-green-50 border-2 border-green-200 text-green-600 font-bold text-sm flex items-center justify-center gap-2">
+                <CheckCircle size={18} /> ĐƠN HÀNG ĐÃ HOÀN THÀNH
+              </div>
+            )}
+
           </div>
 
           <div className="space-y-6">
+            {/* ... BOX THÔNG TIN NHẬN HÀNG (Giữ nguyên) ... */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center gap-2 mb-4 text-gray-900 font-bold">
                 <MapPin size={18} className="text-green-600" />
@@ -267,6 +343,7 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
+            {/* ... BOX THANH TOÁN (Giữ nguyên) ... */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center gap-2 mb-6 text-gray-900 font-bold border-b pb-4">
                 <CreditCard size={18} className="text-green-600" />
@@ -303,6 +380,7 @@ export default function OrderDetailPage() {
               </div>
             </div>
             
+            {/* ... BOX THỜI GIAN (Giữ nguyên) ... */}
             <div className="bg-gray-900 rounded-3xl p-6 text-white shadow-xl">
               <div className="flex items-center gap-2 mb-4 font-bold">
                 <Clock size={18} className="text-green-400" />
@@ -322,6 +400,7 @@ export default function OrderDetailPage() {
       </main>
       <Footer />
 
+      {/* MODAL 1: XÁC NHẬN HỦY ĐƠN HÀNG */}
       {showCancelModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm transition-opacity">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200 text-center">
@@ -330,7 +409,7 @@ export default function OrderDetailPage() {
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Hủy đơn hàng?</h3>
             <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-              Bạn có chắc chắn muốn hủy đơn hàng <span className="font-bold text-gray-900">#BH-{order.orderId}</span>? Hành động này không thể hoàn tác.
+              Bạn có chắc chắn muốn hủy đơn hàng <span className="font-bold text-gray-900">HD{order.orderId}</span>? Hành động này không thể hoàn tác.
             </p>
             
             <div className="flex gap-3">
@@ -345,6 +424,36 @@ export default function OrderDetailPage() {
                 className="flex-1 py-3.5 rounded-2xl font-bold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-lg shadow-red-100"
               >
                 Xác nhận hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🚀 MODAL 2: BÁO CÁO CHƯA NHẬN ĐƯỢC HÀNG */}
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm transition-opacity">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200 text-center">
+            <div className="w-16 h-16 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Khiếu nại giao hàng</h3>
+            <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+              Trạng thái đơn hàng là "Đã giao" nhưng bạn chưa nhận được hàng? Chúng tôi sẽ gửi thông báo khẩn cấp đến quản trị viên để kiểm tra với bên vận chuyển.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="flex-1 py-3.5 rounded-2xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors order-2 sm:order-1"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={handleReportNotReceived}
+                className="flex-1 py-3.5 rounded-2xl font-bold text-white bg-orange-500 hover:bg-orange-600 transition-colors shadow-lg shadow-orange-100 order-1 sm:order-2"
+              >
+                Gửi khiếu nại
               </button>
             </div>
           </div>
