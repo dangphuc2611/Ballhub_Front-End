@@ -38,10 +38,11 @@ export const PromotionModal = ({
   const [products, setProducts] = useState<any[]>([]); // Danh sách tất cả SP
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
+  const [initialSelectedIds, setInitialSelectedIds] = useState<number[]>([]);
 
   const [formData, setFormData] = useState({
     promotionName: "",
-    discountPercent: 10,
+    discountPercent: "0" as any,
     startDate: "",
     endDate: "",
     status: true,
@@ -72,6 +73,9 @@ export const PromotionModal = ({
             `${BACKEND}/api/promotions/${promotionData.promotionId}/products/ids`
           );
           setSelectedProductIds(resSelected.data.data || []);
+
+          // ✅ THÊM DÒNG NÀY: Lưu lại danh sách gốc để cấp thẻ VIP
+          setInitialSelectedIds(resSelected.data.data || []);
         }
       } catch (error) {
         console.error("Lỗi load dữ liệu:", error);
@@ -287,37 +291,54 @@ export const PromotionModal = ({
 
               <div className="flex-1 border border-slate-100 rounded-[24px] bg-slate-50/50 overflow-y-auto max-h-[320px] divide-y divide-white shadow-inner">
                 {filteredProducts.length > 0 ? (
-                  filteredProducts.map((p) => (
-                    <div
-                      key={p.productId}
-                      onClick={() => toggleProduct(p.productId)}
-                      className={`flex items-center justify-between px-5 py-3 cursor-pointer transition-all ${
-                        selectedProductIds.includes(p.productId)
-                          ? "bg-orange-50/80"
-                          : "hover:bg-white"
-                      }`}
-                    >
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-slate-700">
-                          {p.productName}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-medium italic">
-                          Giá từ: {p.price?.toLocaleString() || 0}đ
-                        </span>
-                      </div>
+                  filteredProducts.map((p) => {
+                    // 🚀 LOGIC ĐỈNH CAO Ở ĐÂY:
+                    // Bị khóa NẾU: Đang chạy Sale VÀ (Nó không nằm trong danh sách lúc mới mở form)
+                    const isDisabled = p.isFlashSale && !initialSelectedIds.includes(p.productId);
+
+                    return (
                       <div
-                        className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${
-                          selectedProductIds.includes(p.productId)
-                            ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-100"
-                            : "border-slate-200 bg-white"
+                        key={p.productId}
+                        onClick={() => !isDisabled && toggleProduct(p.productId)}
+                        className={`flex items-center justify-between px-5 py-3 transition-all ${
+                          isDisabled
+                            ? "bg-slate-50 cursor-not-allowed opacity-60"
+                            : selectedProductIds.includes(p.productId)
+                            ? "bg-orange-50/80 cursor-pointer"
+                            : "hover:bg-white cursor-pointer"
                         }`}
                       >
-                        {selectedProductIds.includes(p.productId) && (
-                          <Check size={12} strokeWidth={4} />
-                        )}
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-slate-700">
+                            {p.productName}
+                          </span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] text-slate-400 font-medium italic">
+                              Giá từ: {p.price?.toLocaleString() || 0}đ
+                            </span>
+                            {isDisabled && (
+                              <span className="text-[8px] font-bold px-1.5 py-0.5 bg-rose-100 text-rose-500 rounded-md">
+                                ĐANG CHẠY SALE KHÁC
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div
+                          className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${
+                            isDisabled
+                              ? "border-slate-200 bg-slate-200"
+                              : selectedProductIds.includes(p.productId)
+                              ? "bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-100"
+                              : "border-slate-200 bg-white"
+                          }`}
+                        >
+                          {selectedProductIds.includes(p.productId) && (
+                            <Check size={12} strokeWidth={4} />
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="p-10 text-center text-slate-400 text-xs font-medium">
                     Không tìm thấy sản phẩm nào

@@ -19,7 +19,7 @@ export function Footer() {
             </div>
             <p className="text-sm text-gray-400 mb-6">
               Chuyên cung cấp các mẫu áo bóng đá chính hãng, đồ dùng quần áo,
-              giày và những đồ dùng tương tự khác tại Việt Nam.
+              và những đồ dùng tương tự khác tại Việt Nam.
             </p>
             {/* Social Media */}
             <div className="flex gap-4">
@@ -52,10 +52,9 @@ export function Footer() {
             <h4 className="text-base font-bold mb-6">Thông tin BallHub</h4>
             <ul className="space-y-3">
               {[
-                { label: "Về chúng tôi", href: "#" },
-                { label: "Hỏi đáp thường gặp", href: "#" },
-                { label: "Tuyển dụng", href: "#" },
-                { label: "Tin tức bộng dá", href: "#" },
+                { label: "Về chúng tôi", href: "/about" },
+                { label: "Hỏi đáp thường gặp", href: "/faq" }, 
+                { label: "Tin tức bóng đá", href: "/news" },
               ].map((item) => (
                 <li key={item.label}>
                   <Link
@@ -74,10 +73,9 @@ export function Footer() {
             <h4 className="text-base font-bold mb-6">Chính sách</h4>
             <ul className="space-y-3">
               {[
-                { label: "Chính sách đổi trả", href: "#" },
-                { label: "Chính sách bảo mật", href: "#" },
-                { label: "Điều khoản dịch vụ", href: "#" },
-                { label: "Hướng dẫn thanh toán", href: "#" },
+                { label: "Chính sách bảo mật", href: "/privacy" },
+                { label: "Điều khoản dịch vụ", href: "/terms" },
+                { label: "Hướng dẫn thanh toán", href: "/payment" },
               ].map((item) => (
                 <li key={item.label}>
                   <Link
@@ -97,19 +95,19 @@ export function Footer() {
             <ul className="space-y-3 text-sm text-gray-400">
               <li>
                 <p className="font-semibold text-white mb-1">Địa chỉ</p>
-                <p>123 Đường Số 1, Quận 1, TP Hồ Chí Minh</p>
+                <p>58 Trúc Khê, Phường Láng Hạ, Quận Đống Đa, Hà Nội</p>
               </li>
               <li>
                 <p className="font-semibold text-white mb-1">Hotline</p>
-                <p>1900-533-456</p>
+                <p>0886301661</p>
               </li>
               <li>
                 <p className="font-semibold text-white mb-1">Email</p>
                 <a
-                  href="mailto:support@ballhub.com"
-                  className="hover:text-green-400 transition-colors"
+                  href="mailto:animefighterssimulator2906@gmail.com"
+                  className="hover:text-green-400 transition-colors break-all"
                 >
-                  support@ballhub.com
+                  animefighterssimulator2906@gmail.com
                 </a>
               </li>
             </ul>

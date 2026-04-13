@@ -477,7 +477,6 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
           <div className="border-b-2 border-dashed border-black my-4"></div>
           <div className="text-center text-[12px] font-bold">
             <p>CẢM ƠN VÀ HẸN GẶP LẠI!</p>
-            <p className="text-[10px] font-normal mt-2 italic px-2">(Hỗ trợ đổi Size trong 3 ngày nếu còn nguyên hóa đơn)</p>
           </div>
         </div>
       )}

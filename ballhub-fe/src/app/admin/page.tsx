@@ -145,7 +145,7 @@ export default function AdminDashboard() {
         setSelectedOrderId(Number(val));
         setQuickSearch(""); // Reset ô input sau khi bấm
       } else {
-        toast.info("Vui lòng nhập Mã đơn hàng (ví dụ: 5 hoặc BH-5) để tra cứu nhanh.");
+        toast.info("Vui lòng nhập Mã đơn hàng (ví dụ: 5 hoặc HD-5) để tra cứu nhanh.");
       }
     }
   };

@@ -921,9 +921,6 @@ export const PosView = () => {
           <div className="border-b-2 border-dashed border-black my-4"></div>
           <div className="text-center text-sm font-bold">
             <p>CẢM ƠN VÀ HẸN GẶP LẠI!</p>
-            <p className="text-xs font-normal mt-2 italic px-2">
-              (Hỗ trợ đổi Size trong 3 ngày nếu còn nguyên tem mác và hóa đơn)
-            </p>
           </div>
         </div>
       )}
