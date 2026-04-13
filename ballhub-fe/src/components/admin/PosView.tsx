@@ -324,7 +324,7 @@ export const PosView = () => {
   const finalTotal = Math.max(0, subTotal - discountAmount) + shippingFee;
   const totalItems =
     activeOrder?.items.reduce((sum, item) => sum + item.quantity, 0) || 0;
-  const formatPrice = (price: number) => price.toLocaleString("vi-VN") + "đ";
+  const formatPrice = (price?: number | null) => (price || 0).toLocaleString("vi-VN") + "đ";
 
   // TÍNH TIỀN THỪA
   const changeAmount = (customerCash as number) - finalTotal;

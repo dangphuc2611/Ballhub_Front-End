@@ -194,7 +194,8 @@ export const PromotionModal = ({
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        discountPercent: Number(e.target.value),
+                        // Kiểm tra nếu rỗng thì truyền chuỗi rỗng, dùng 'as any' để tránh lỗi TypeScript
+                        discountPercent: e.target.value === "" ? ("" as any) : Number(e.target.value),
                       })
                     }
                     className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 outline-none font-bold text-orange-500"

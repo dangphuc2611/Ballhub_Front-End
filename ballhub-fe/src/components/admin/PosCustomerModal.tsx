@@ -91,19 +91,20 @@ export const PosCustomerModal = ({ isOpen, onClose }: PosCustomerModalProps) => 
 
     setIsSubmitting(true);
     try {
-      // Gọi đến API register hiện tại của bạn
+      // Gọi API tạo tài khoản
       const res = await api.post("/auth/register", formData);
       
       if (res.data.success) {
-        toast.success("Đã tạo tài khoản khách hàng mới!");
-        // Tự động chọn luôn khách hàng vừa tạo (Backend trả về data user mới)
-        const newCustomer = res.data.data;
-        handleSelectCustomer({
-          userId: newCustomer.userId,
-          fullName: newCustomer.fullName,
-          phone: newCustomer.phone,
-          email: newCustomer.email
-        });
+        toast.success("Tạo tài khoản khách hàng thành công!");
+        
+        // 1. Đóng form đăng ký
+        setShowQuickRegister(false);
+        
+        // 2. Đẩy luôn SĐT vừa tạo ra ô tìm kiếm bên ngoài cho tiện
+        setKeyword(formData.phone);
+        
+        // 3. Tự động load lại danh sách tìm kiếm với SĐT đó
+        fetchCustomers(formData.phone);
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Số điện thoại hoặc email đã tồn tại");
@@ -129,7 +130,7 @@ export const PosCustomerModal = ({ isOpen, onClose }: PosCustomerModalProps) => 
                 <ArrowLeft size={20} />
               </button>
             )}
-            <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">
+            <h2 className="text-xl font-black text-slate-800">
               {showQuickRegister ? "Tạo tài khoản khách" : "Chọn khách hàng"}
             </h2>
           </div>
@@ -188,7 +189,7 @@ export const PosCustomerModal = ({ isOpen, onClose }: PosCustomerModalProps) => 
                           <UserIcon size={24} />
                         </div>
                         <div className="flex flex-col">
-                          <p className="font-black text-slate-800 text-sm uppercase tracking-tight">{c.fullName}</p>
+                            <p className="font-bold text-slate-800 text-[15px]">{c.fullName}</p>
                           <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 font-bold">
                             <span className="flex items-center gap-1"><Phone size={12} className="text-emerald-500"/> {c.phone || "---"}</span>
                             <span className="text-slate-200">|</span>
