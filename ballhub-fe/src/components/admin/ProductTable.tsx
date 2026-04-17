@@ -65,13 +65,14 @@ export const ProductTable = ({
               </td>
               <td className="py-4">
                 <div className="flex items-center gap-3">
-                  <Image
-                    src={`http://localhost:8080` + p.mainImage}
-                    width={50}
-                    height={50}
-                    alt={p.productName}
-                    className="rounded-lg object-cover border border-slate-100"
-                  />
+                  <div className="relative w-[50px] h-[50px] shrink-0">
+                    <Image
+                      src={p.mainImage ? `http://localhost:8080${p.mainImage}` : "/placeholder-product.png"}
+                      fill
+                      alt={p.productName}
+                      className="rounded-lg object-cover border border-slate-100"
+                    />
+                  </div>
                   <div>
                     <p className="font-bold text-slate-700 leading-tight">{p.productName}</p>
                     <p className="text-[10px] text-slate-400 uppercase tracking-tighter truncate max-w-[200px] mt-0.5">

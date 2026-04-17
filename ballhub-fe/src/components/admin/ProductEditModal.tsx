@@ -10,12 +10,15 @@ import {
   Loader2,
   ChevronDown,
   Layers,
+  ImagePlus,
+  Plus,
 } from "lucide-react";
 import axios from "axios";
 import { useFormOptions } from "@/lib/useFormOptions";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 import * as Tabs from "@radix-ui/react-tabs";
 import { ProductVariantManager } from "./ProductVariantManager";
+import { ImagePickerModal } from "./ImagePickerModal";
 
 const BACKEND = "http://localhost:8080";
 const getToken = () =>
@@ -125,6 +128,9 @@ export const ProductEditModal = ({
 
   const [variants, setVariants] = useState<Variant[]>([]);
 
+  const [productImages, setProductImages] = useState<{ imageId: number; imageUrl: string; isMain: boolean; variantId?: number | null }[]>([]);
+  const [showImagePicker, setShowImagePicker] = useState(false);
+
   const [confirmConfig, setConfirmConfig] = useState<{
     open: boolean;
     title: string;
@@ -159,6 +165,8 @@ export const ProductEditModal = ({
           status: p.status ?? true,
         });
 
+        setProductImages((p.images || []).filter((img: any) => img.variantId === null));
+
         const rawVariants: any[] = p.variants ?? p.productVariants ?? [];
 
         setVariants(
@@ -191,6 +199,7 @@ export const ProductEditModal = ({
         headers: { Authorization: `Bearer ${token}` },
       });
       const p = res.data.data ?? res.data;
+      setProductImages((p.images || []).filter((img: any) => img.variantId === null));
       const rawVariants: any[] = p.variants ?? p.productVariants ?? [];
 
       setVariants(
@@ -211,6 +220,45 @@ export const ProductEditModal = ({
     }
     // Also notify parent (AdminDashboard) that product list might need refresh
     onRefresh();
+  };
+
+  const handleImageConfirm = async (urls: string[], setFirstAsMain: boolean) => {
+    if (!urls.length) return;
+    try {
+      const token = getToken();
+      await fetch(`${BACKEND}/api/admin/products/${productId}/images`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ 
+          imageUrls: urls, 
+          isMain: setFirstAsMain,
+          variantId: null 
+        }),
+      });
+      setMessage({ type: "success", text: `Đã cập nhật ${urls.length} ảnh chung!` });
+      handleRefreshInner();
+    } catch (err: any) {
+      setMessage({ type: "error", text: "Gắn ảnh thất bại: " + err.message });
+    } finally {
+      setShowImagePicker(false);
+    }
+  };
+
+  const handleDeleteImage = async (imageId: number) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa ảnh này?")) return;
+    try {
+      const token = getToken();
+      await axios.delete(`${BACKEND}/api/admin/products/images/${imageId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setMessage({ type: "success", text: "Xóa ảnh thành công!" });
+      handleRefreshInner();
+    } catch (err: any) {
+      setMessage({ type: "error", text: "Xóa ảnh thất bại: " + err.message });
+    }
   };
 
   /* ── Submit Logic ─────────────────────────────────────────────────────── */
@@ -328,11 +376,11 @@ export const ProductEditModal = ({
         </div>
 
         {/* ── Body (scrollable) ── */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
           <Tabs.Root
             value={activeTab}
             onValueChange={setActiveTab}
-            className="flex flex-col h-full"
+            className="flex flex-col h-full overflow-hidden min-h-0"
           >
             {/* ── Tab List ── */}
             <div className="px-7 bg-white border-b border-slate-50">
@@ -465,6 +513,68 @@ export const ProductEditModal = ({
                     </label>
                   </div>
                 </form>
+                
+                {/* ── Section quản lý ảnh chung ── */}
+                <div className="border-t border-slate-100 mt-6 pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-sm font-bold text-slate-700">Ảnh hệ thống chung</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowImagePicker(true)}
+                      className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-all"
+                    >
+                      <ImagePlus size={14} />
+                      Chọn ảnh chung
+                    </button>
+                  </div>
+
+                  {productImages.length > 0 ? (
+                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
+                      {productImages.map((img) => (
+                        <div
+                          key={img.imageId}
+                          className="relative aspect-square rounded-xl overflow-hidden border border-slate-100 group"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={`${BACKEND}${img.imageUrl}`}
+                            alt="product image"
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteImage(img.imageId)}
+                            className="absolute top-1 right-1 p-1 bg-white/80 hover:bg-rose-500 hover:text-white text-rose-500 rounded-md shadow-sm transition-all opacity-0 group-hover:opacity-100"
+                            title="Xóa ảnh"
+                          >
+                            <Trash2 size={10} />
+                          </button>
+                          {img.isMain && (
+                            <span className="absolute bottom-1 left-1 bg-emerald-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">
+                              MAIN
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setShowImagePicker(true)}
+                        className="aspect-square rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 hover:border-emerald-300 hover:text-emerald-400 transition-all"
+                      >
+                        <Plus size={20} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowImagePicker(true)}
+                      className="w-full border-2 border-dashed border-slate-200 rounded-xl py-6 flex flex-col items-center gap-2 text-slate-400 hover:border-emerald-300 hover:text-emerald-500 transition-all group"
+                    >
+                      <ImagePlus size={24} className="group-hover:scale-110 transition-transform" />
+                      <span className="text-sm font-semibold">Nhấn để chọn ảnh chung từ thư viện</span>
+                    </button>
+                  )}
+                </div>
               </Tabs.Content>
 
               <Tabs.Content value="variants" className="outline-none">
@@ -523,6 +633,13 @@ export const ProductEditModal = ({
         onClose={() => setConfirmConfig((p) => ({ ...p, open: false }))}
         onConfirm={confirmConfig.onConfirm}
       />
+      {showImagePicker && (
+        <ImagePickerModal
+          title="Ảnh hệ thống chung cho sản phẩm"
+          onConfirm={handleImageConfirm}
+          onClose={() => setShowImagePicker(false)}
+        />
+      )}
     </div>
   );
 };

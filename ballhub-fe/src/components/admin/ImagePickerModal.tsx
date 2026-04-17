@@ -19,9 +19,10 @@ interface ImagePickerModalProps {
   /** Called when user confirms selection; receives list of chosen URL paths */
   onConfirm: (selectedUrls: string[], setFirstAsMain: boolean) => void;
   onClose: () => void;
+  title?: string; // Tên hiển thị thêm context, vd: "Đang chọn ảnh cho: Size 40 / Đỏ"
 }
 
-export const ImagePickerModal = ({ onConfirm, onClose }: ImagePickerModalProps) => {
+export const ImagePickerModal = ({ onConfirm, onClose, title }: ImagePickerModalProps) => {
   const [allImages, setAllImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +104,9 @@ export const ImagePickerModal = ({ onConfirm, onClose }: ImagePickerModalProps) 
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <Images className="text-emerald-500" size={22} />
-            <h2 className="font-black text-slate-800 text-lg">Thư viện ảnh</h2>
+            <h2 className="font-black text-slate-800 text-lg">
+              {title ? title : "Thư viện ảnh"}
+            </h2>
             <span className="text-xs bg-emerald-50 text-emerald-600 font-bold px-2 py-0.5 rounded-full">
               {allImages.length} ảnh
             </span>

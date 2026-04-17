@@ -16,6 +16,8 @@ import {
 import axios from "axios";
 import { toast } from "sonner";
 import { SelectOption } from "@/lib/useFormOptions";
+import { ImagePickerModal } from "./ImagePickerModal";
+import { ImagePlus } from "lucide-react";
 
 const BACKEND = "http://localhost:8080";
 
@@ -36,6 +38,7 @@ interface Variant {
   stockQuantity: number;
   sku: string;
   status: boolean;
+  images?: { imageId: number; imageUrl: string; isMain: boolean }[];
 }
 
 interface ProductVariantManagerProps {
@@ -60,6 +63,47 @@ export const ProductVariantManager = ({
 }: ProductVariantManagerProps) => {
   const [editing, setEditing] = useState<EditingState | null>(null);
   const [loading, setLoading] = useState<number | "new" | null>(null);
+  const [openingImagePickerFor, setOpeningImagePickerFor] = useState<number | null>(null);
+
+  const handleImageConfirm = async (urls: string[], setFirstAsMain: boolean) => {
+    if (!urls.length || openingImagePickerFor === null) return;
+    
+    try {
+      const token = getToken();
+      await fetch(`${BACKEND}/api/admin/products/${productId}/images`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ 
+          imageUrls: urls, 
+          isMain: setFirstAsMain,
+          variantId: openingImagePickerFor 
+        }),
+      });
+      toast.success(`Đã gắn ${urls.length} ảnh thành công!`);
+      onRefresh();
+    } catch (err: any) {
+      toast.error("Gắn ảnh thất bại: " + err.message);
+    } finally {
+      setOpeningImagePickerFor(null);
+    }
+  };
+
+  const handleDeleteImage = async (imageId: number) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa ảnh này?")) return;
+    try {
+      const token = getToken();
+      await axios.delete(`${BACKEND}/api/admin/products/images/${imageId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success("Xóa ảnh thành công");
+      onRefresh();
+    } catch (err: any) {
+      toast.error("Xóa ảnh thất bại: " + err.message);
+    }
+  };
 
   const handleStartEdit = (v: Variant) => {
     setEditing({ id: v.variantId, data: { ...v } });
@@ -167,7 +211,7 @@ export const ProductVariantManager = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+      {/* <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
         <div>
           <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
             Danh sách biến thể
@@ -184,7 +228,7 @@ export const ProductVariantManager = ({
         >
           <Plus size={14} /> Thêm biến thể
         </button>
-      </div>
+      </div> */}
 
       <div className="bg-white border border-slate-100 rounded-[24px] overflow-hidden shadow-sm">
         <table className="w-full text-left border-collapse">
@@ -195,6 +239,7 @@ export const ProductVariantManager = ({
               <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Giá bán (đ)</th>
               <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Kho</th>
               <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">SKU</th>
+              <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Ảnh</th>
               <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] text-center">Trạng thái</th>
               <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] text-right">Thao tác</th>
             </tr>
@@ -281,6 +326,9 @@ export const ProductVariantManager = ({
                     }
                     className="w-full text-[10px] border border-emerald-200 bg-white rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-emerald-100 outline-none font-mono"
                   />
+                </td>
+                <td className="px-5 py-4 text-center">
+                  <span className="text-[10px] text-slate-400 font-medium">Lưu trước</span>
                 </td>
                 <td className="px-5 py-4 text-center">—</td>
                 <td className="px-5 py-4 text-right">
@@ -374,6 +422,45 @@ export const ProductVariantManager = ({
                   <td className="px-5 py-4">
                     <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 group-hover:bg-white">{v.sku}</span>
                   </td>
+                  <td className="px-5 py-4 min-w-[120px]">
+                    <div className="flex items-center gap-1.5 flex-wrap max-w-[150px]">
+                      {v.images && v.images.length > 0 ? (
+                        <>
+                          {v.images.map((img) => (
+                            <div key={img.imageId} className="relative w-8 h-8 rounded border border-slate-200 overflow-hidden group/img">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={`${BACKEND}${img.imageUrl}`} alt="thumb" className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteImage(img.imageId)}
+                                className="absolute inset-0 flex items-center justify-center bg-rose-500/80 text-white opacity-0 group-hover/img:opacity-100 transition-opacity"
+                                title="Xóa ảnh"
+                              >
+                                <Trash2 size={10} />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => setOpeningImagePickerFor(v.variantId)}
+                            disabled={openingImagePickerFor !== null}
+                            className="w-8 h-8 shrink-0 flex items-center justify-center rounded border border-dashed border-slate-300 text-slate-400 hover:border-emerald-400 hover:text-emerald-500 transition-all disabled:opacity-50"
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setOpeningImagePickerFor(v.variantId)}
+                          disabled={openingImagePickerFor !== null}
+                          className="w-8 h-8 flex items-center justify-center rounded border border-dashed border-slate-300 text-slate-400 hover:border-emerald-400 hover:text-emerald-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ImagePlus size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-5 py-4 text-center">
                     {/* ✅ GIAO DIỆN NÚT TRẠNG THÁI HIỆN/ẨN ĐÃ ĐƯỢC LÀM RÕ RÀNG */}
                     <button
@@ -448,6 +535,14 @@ export const ProductVariantManager = ({
           </tbody>
         </table>
       </div>
+
+      {openingImagePickerFor !== null && (
+        <ImagePickerModal
+          title={`Ảnh cho biến thể ID: ${openingImagePickerFor}`}
+          onConfirm={handleImageConfirm}
+          onClose={() => setOpeningImagePickerFor(null)}
+        />
+      )}
     </div>
   );
 };

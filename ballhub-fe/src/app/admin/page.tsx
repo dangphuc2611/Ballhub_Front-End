@@ -483,7 +483,19 @@ export default function AdminDashboard() {
 
           {activeTab === "Biến thể" && (
             <div className="col-span-12">
-              <GlobalVariantTable variants={globalVariants} page={variantPage} totalPages={variantPageInfo?.totalPages ?? 1} totalElements={variantPageInfo?.totalElements} pageSize={variantPageInfo?.pageSize} onPageChange={(p: number) => setVariantPage(p)} onEdit={(v: any) => setEditingVariant(v)} onToggleStatus={handleToggleVariantStatus} onDelete={handleHardDeleteVariant} onAddNew={() => setShowVariantCreate(true)} />
+              <GlobalVariantTable 
+                variants={globalVariants} 
+                page={variantPage} 
+                totalPages={variantPageInfo?.totalPages ?? 1} 
+                totalElements={variantPageInfo?.totalElements} 
+                pageSize={variantPageInfo?.pageSize} 
+                onPageChange={(p: number) => setVariantPage(p)} 
+                onEdit={(v: any) => setEditingVariant(v)} 
+                onToggleStatus={handleToggleVariantStatus} 
+                onDelete={handleHardDeleteVariant} 
+                onAddNew={() => setShowVariantCreate(true)} 
+                onRefresh={() => setVariantRefreshTrigger(p => p + 1)}
+              />
             </div>
           )}
 

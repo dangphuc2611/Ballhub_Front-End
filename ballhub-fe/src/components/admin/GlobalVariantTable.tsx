@@ -10,7 +10,21 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
+  ImagePlus,
+  Loader2,
 } from "lucide-react";
+import { ImagePickerModal } from "./ImagePickerModal";
+import axios from "axios";
+import { toast } from "sonner";
+
+const BACKEND = "http://localhost:8080";
+
+const getToken = () => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("refreshToken");
+  }
+  return null;
+};
 
 interface Variant {
   variantId: number;
@@ -23,6 +37,7 @@ interface Variant {
   stockQuantity: number;
   sku: string;
   status: boolean;
+  images?: { imageId: number; imageUrl: string; isMain: boolean }[];
 }
 
 interface VariantTableProps {
@@ -36,6 +51,7 @@ interface VariantTableProps {
   onDelete: (id: number) => void;
   onToggleStatus: (v: Variant) => void;
   onAddNew?: () => void;
+  onRefresh: () => void;
 }
 
 export const GlobalVariantTable = ({
@@ -49,7 +65,45 @@ export const GlobalVariantTable = ({
   onDelete,
   onToggleStatus,
   onAddNew,
+  onRefresh,
 }: VariantTableProps) => {
+  const [openingImagePickerFor, setOpeningImagePickerFor] = React.useState<{ variantId: number; productId: number } | null>(null);
+  const [loadingAction, setLoadingAction] = React.useState<number | null>(null);
+
+  const handleImageConfirm = async (urls: string[], setFirstAsMain: boolean) => {
+    if (!urls.length || !openingImagePickerFor) return;
+
+    try {
+      const token = getToken();
+      await axios.post(`${BACKEND}/api/admin/products/${openingImagePickerFor.productId}/images`, {
+        imageUrls: urls,
+        isMain: setFirstAsMain,
+        variantId: openingImagePickerFor.variantId
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success(`Đã gắn ${urls.length} ảnh thành công!`);
+      onRefresh();
+    } catch (err: any) {
+      toast.error("Gắn ảnh thất bại: " + err.message);
+    } finally {
+      setOpeningImagePickerFor(null);
+    }
+  };
+
+  const handleDeleteImage = async (imageId: number) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa ảnh này?")) return;
+    try {
+      const token = getToken();
+      await axios.delete(`${BACKEND}/api/admin/products/images/${imageId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success("Xóa ảnh thành công");
+      onRefresh();
+    } catch (err: any) {
+      toast.error("Xóa ảnh thất bại: " + err.message);
+    }
+  };
   return (
     <div className="flex flex-col gap-6">
       {/* Header Actions */}
@@ -80,6 +134,7 @@ export const GlobalVariantTable = ({
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] w-16">ID</th>
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Sản phẩm</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Ảnh biến thể</th>
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Phân loại</th>
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Giá bán</th>
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Kho</th>
@@ -109,6 +164,45 @@ export const GlobalVariantTable = ({
                         </span>
                         <span className="text-[10px] font-medium text-slate-400">Product ID: {v.productId}</span>
                       </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-[240px] pb-1">
+                      <div className="flex gap-2 shrink-0">
+                        {(v.images || []).map((img) => (
+                          <div
+                            key={img.imageId}
+                            className="relative w-10 h-10 rounded-lg border border-slate-200 overflow-hidden group/img shrink-0 shadow-sm"
+                          >
+                            <img
+                              src={`${BACKEND}${img.imageUrl}`}
+                              alt="variant"
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteImage(img.imageId);
+                              }}
+                              className="absolute inset-0 bg-rose-500/80 text-white flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpeningImagePickerFor({
+                            variantId: v.variantId,
+                            productId: v.productId,
+                          });
+                        }}
+                        className="w-10 h-10 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-400 hover:text-emerald-500 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all shrink-0 bg-slate-50/50"
+                      >
+                        <ImagePlus size={16} />
+                      </button>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -220,6 +314,13 @@ export const GlobalVariantTable = ({
           </div>
         </div>
       </div>
+      {openingImagePickerFor && (
+        <ImagePickerModal
+          onClose={() => setOpeningImagePickerFor(null)}
+          onConfirm={handleImageConfirm}
+          multiple={true}
+        />
+      )}
     </div>
   );
 };
