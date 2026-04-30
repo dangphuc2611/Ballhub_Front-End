@@ -1,18 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { ShoppingCart, DollarSign, Users, Star } from "lucide-react";
 
 const StatCard = ({ title, value, sub, trend, icon: Icon, color }: any) => (
-  <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex-1">
+  <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex-1 group hover:shadow-md transition-all duration-300">
     <div className="flex justify-between items-start mb-4">
       <div>
-        <p className="text-slate-400 text-xs font-medium mb-1">{title}</p>
-        <h3 className="text-[28px] font-black text-slate-800 tracking-tight">
+        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">{title}</p>
+        <h3 className="text-[28px] font-black text-slate-800 tracking-tight group-hover:text-emerald-600 transition-colors">
           {value}
         </h3>
       </div>
-      <div className={`p-3 rounded-2xl ${color} bg-opacity-10 text-[20px]`}>
+      <div className={`p-3 rounded-2xl ${color} bg-opacity-10 text-[20px] transition-transform group-hover:scale-110 duration-300`}>
         <Icon size={20} className={color.replace("bg-", "text-")} />
       </div>
     </div>
@@ -29,44 +28,26 @@ const StatCard = ({ title, value, sub, trend, icon: Icon, color }: any) => (
   </div>
 );
 
-export const DashboardStats = () => {
-  const [stats, setStats] = useState<any>(null);
-  const [products, setProducts] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+interface DashboardStatsProps {
+  stats?: any;
+  loading?: boolean;
+}
 
-  useEffect(() => {
-    const fetchDashboardStats = async () => {
-      try {
-        const token = localStorage.getItem("refreshToken");
+export const DashboardStats = ({ stats, loading }: DashboardStatsProps) => {
+  if (loading) {
+    return (
+      <div className="flex gap-6 mb-8">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex-1 animate-pulse">
+            <div className="h-4 w-20 bg-slate-100 rounded mb-4"></div>
+            <div className="h-8 w-32 bg-slate-100 rounded"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
-        const res = await fetch(
-          "http://localhost:8080/api/admin/stats/dashboard",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-
-        const result = await res.json();
-        console.log(result);
-
-        if (result.success) {
-          setStats(result.data);
-        }
-      } catch (error) {
-        console.error("Fetch dashboard error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardStats();
-  }, []);
-
-  if (loading) return <p>Đang tải dữ liệu...</p>;
-
-  if (!stats) return <p>Không có dữ liệu</p>;
+  if (!stats) return null;
 
   return (
     <div className="flex gap-6 mb-8">

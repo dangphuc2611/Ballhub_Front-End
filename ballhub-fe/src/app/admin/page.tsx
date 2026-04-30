@@ -69,6 +69,11 @@ export default function AdminDashboard() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [userRefreshTrigger, setUserRefreshTrigger] = useState(0);
 
+  // Dashboard Stats
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [dashboardRefreshTrigger, setDashboardRefreshTrigger] = useState(0);
+
   // 🚀 State cho Tìm kiếm nhanh đơn hàng
   const [quickSearch, setQuickSearch] = useState("");
 
@@ -131,8 +136,12 @@ export default function AdminDashboard() {
       case "Màu sắc": setColorRefreshTrigger(p => p + 1); break;
       case "Hãng quần áo": setBrandRefreshTrigger(p => p + 1); break;
       case "Đánh giá": setReviewRefreshTrigger(p => p + 1); break;
-      case "Biến thể": setVariantRefreshTrigger(p => p + 1); break;
-    }
+       case "Biến thể": setVariantRefreshTrigger(p => p + 1); break;
+       case "Tổng quan": 
+          setDashboardRefreshTrigger(p => p + 1); 
+          setOrderRefreshTrigger(p => p + 1);
+          break;
+     }
     toast.success(`Đã làm mới dữ liệu: ${activeTab}`);
   };
 
@@ -198,6 +207,28 @@ export default function AdminDashboard() {
     };
     fetchUsers();
   }, [userRefreshTrigger]);
+
+  // FETCH DASHBOARD STATS
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      setDashboardLoading(true);
+      try {
+        const token = localStorage.getItem("refreshToken");
+        const res = await fetch("http://localhost:8080/api/admin/stats/dashboard", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const result = await res.json();
+        if (result.success) {
+          setDashboardStats(result.data);
+        }
+      } catch (error) {
+        console.error("Fetch dashboard error:", error);
+      } finally {
+        setDashboardLoading(false);
+      }
+    };
+    fetchDashboardStats();
+  }, [dashboardRefreshTrigger]);
 
   // FETCH VOUCHER
   useEffect(() => {
@@ -463,8 +494,8 @@ export default function AdminDashboard() {
         <div className="animate-in fade-in duration-500">
           {activeTab === "Tổng quan" && (
             <div className="space-y-8">
-              <DashboardStats />
-              <RevenueChart />
+              <DashboardStats stats={dashboardStats} loading={dashboardLoading} />
+              <RevenueChart data={dashboardStats?.dailyRevenue} loading={dashboardLoading} />
               <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
                 <div className="flex justify-between items-center mb-6"><h3 className="font-black text-slate-800">Đơn hàng mới nhất</h3><button onClick={() => setActiveTab("Đơn hàng")} className="text-emerald-500 text-xs font-bold hover:underline">Xem tất cả →</button></div>
                 <OrderTable orders={orders} page={orderPage} totalPages={orderPageInfo?.totalPages ?? 1} totalElements={orderPageInfo?.totalElements} pageSize={orderPageInfo?.pageSize} onPageChange={(p: number) => setOrderPage(p)} onView={(id: number) => setSelectedOrderId(id)} onRefresh={() => setOrderRefreshTrigger((p) => p + 1)} />
