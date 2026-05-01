@@ -1,6 +1,6 @@
 "use client";
 
-import Breadcrumb from "@/components/ui/BaseBreadcrumb";
+import Breadcrumb from "@/components/ui/AppBreadcrumb";
 import { ProductCardSkeleton } from "@/components/sections/ProductCardSkeleton";
 import { useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";

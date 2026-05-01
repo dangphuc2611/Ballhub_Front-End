@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import Breadcrumb from "@/components/ui/BaseBreadcrumb";
+import Breadcrumb from "@/components/ui/AppBreadcrumb";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
 import { ProductReviewsSection } from "@/components/sections/ProductReviewsSection";
