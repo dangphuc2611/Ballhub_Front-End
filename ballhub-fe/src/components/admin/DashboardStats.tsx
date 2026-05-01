@@ -7,12 +7,12 @@ const StatCard = ({ title, value, sub, trend, icon: Icon, color }: any) => (
     <div className="flex justify-between items-start mb-4">
       <div>
         <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">{title}</p>
-        <h3 className="text-[28px] font-black text-slate-800 tracking-tight group-hover:text-emerald-600 transition-colors">
+        <h3 className={`text-[28px] font-black text-slate-800 tracking-tight group-hover:${color.replace("bg-", "text-")} transition-colors`}>
           {value}
         </h3>
       </div>
-      <div className={`p-3 rounded-2xl ${color} bg-opacity-10 text-[20px] transition-transform group-hover:scale-110 duration-300`}>
-        <Icon size={20} className={color.replace("bg-", "text-")} />
+      <div className={`p-3 rounded-2xl ${color} text-white transition-transform group-hover:scale-110 duration-300 shadow-sm`}>
+        <Icon size={20} strokeWidth={2.5} />
       </div>
     </div>
 
@@ -54,8 +54,8 @@ export const DashboardStats = ({ stats, loading }: DashboardStatsProps) => {
       <StatCard
         title="Tổng đơn hàng"
         value={stats.totalOrders?.toLocaleString()}
-        trend="+12%"
-        sub="so với tháng trước"
+        trend=""
+        sub=""
         icon={ShoppingCart}
         color="bg-blue-500"
       />
@@ -63,8 +63,8 @@ export const DashboardStats = ({ stats, loading }: DashboardStatsProps) => {
       <StatCard
         title="Doanh thu (VND)"
         value={`${stats.totalRevenue?.toLocaleString()} đ`}
-        trend="+8.5%"
-        sub="so với tháng trước"
+        trend=""
+        sub=""
         icon={DollarSign}
         color="bg-emerald-500"
       />
@@ -72,8 +72,8 @@ export const DashboardStats = ({ stats, loading }: DashboardStatsProps) => {
       <StatCard
         title="Khách hàng mới"
         value={stats.totalCustomers}
-        trend="+2.4%"
-        sub="so với tuần trước"
+        trend=""
+        sub=""
         icon={Users}
         color="bg-purple-500"
       />
