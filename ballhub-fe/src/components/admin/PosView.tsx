@@ -25,6 +25,7 @@ import { usePosStore, PosVoucher } from "@/lib/usePosStore";
 import { PosVariantModal } from "@/components/admin/PosVariantModal";
 import { PosCustomerModal } from "@/components/admin/PosCustomerModal";
 import { PosAddressModal } from "@/components/admin/PosAddressModal";
+import { API_URL, API_BASE_URL, getImageUrl } from "@/config/env";
 
 export const PosView = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -248,7 +249,7 @@ export const PosView = () => {
     const fetchVouchers = async () => {
       try {
         const token = localStorage.getItem("refreshToken");
-        const res = await fetch(`http://localhost:8080/api/promotions/active`, {
+        const res = await fetch(`${API_URL}/promotions/active`, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -428,7 +429,7 @@ export const PosView = () => {
       const token = localStorage.getItem("refreshToken");
 
       for (const item of activeOrder.items) {
-        const res = await fetch(`http://localhost:8080/api/cart/items`, {
+        const res = await fetch(`${API_URL}/cart/items`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -480,7 +481,7 @@ export const PosView = () => {
         deliveryAddress: activeOrder.deliveryAddress,
       };
 
-      const orderRes = await fetch(`http://localhost:8080/api/orders`, {
+      const orderRes = await fetch(`${API_URL}/orders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -522,7 +523,7 @@ export const PosView = () => {
           toast.success("Đang tạo link thanh toán VNPAY...");
           try {
             const vnpayRes = await fetch(
-              `http://localhost:8080/api/payment/create-vnpay?amount=${Math.floor(finalTotal)}&orderId=${realOrderId}&isPos=true`,
+              `${API_URL}/payment/create-vnpay?amount=${Math.floor(finalTotal)}&orderId=${realOrderId}&isPos=true`,
               {
                 headers: { Authorization: `Bearer ${token}` },
               },
@@ -591,7 +592,7 @@ export const PosView = () => {
         try {
           const token = localStorage.getItem("refreshToken");
           const res = await fetch(
-            `http://localhost:8080/api/orders/${checkoutSuccessData.id}`,
+            `${API_URL}/orders/${checkoutSuccessData.id}`,
             {
               headers: { Authorization: `Bearer ${token}` },
             },
@@ -1010,7 +1011,7 @@ export const PosView = () => {
                           <div className="relative w-12 h-12 bg-slate-50 rounded-lg border border-slate-100 shrink-0">
                             {item.imageUrl && (
                               <Image
-                                src={`http://localhost:8080${item.imageUrl}`}
+                                src={getImageUrl(item.imageUrl)}
                                 alt=""
                                 fill
                                 className="object-contain"

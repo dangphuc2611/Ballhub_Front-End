@@ -1,3 +1,5 @@
+import { getImageUrl } from "@/config/env";
+
 export interface Product {
   id: string;
   name: string;
@@ -14,7 +16,7 @@ export function mapApiProduct(p: any): Product {
     id: String(p.productId),
     name: p.productName,
     price: p.minPrice,
-    image: `http://localhost:8080${p.mainImage}`,
+    image: getImageUrl(p.mainImage),
     category: p.categoryName,
     isNew: true, // tạm
     badge: "MỚI", // tạm

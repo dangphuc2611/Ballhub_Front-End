@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { ReviewItem, ReviewResponse } from '@/types/review';
+import { API_URL } from '@/config/env';
 
 function formatDateVN(dateStr: string) {
   if (!dateStr) return '---';
@@ -54,7 +55,7 @@ export function ProductReviewsSection({ productId }: { productId: number }) {
       setLoading(true);
 
       const res = await fetch(
-        `http://localhost:8080/api/products/${productId}/reviews`,
+        `${API_URL}/products/${productId}/reviews`,
         { cache: 'no-store' }
       );
 
@@ -104,7 +105,7 @@ export function ProductReviewsSection({ productId }: { productId: number }) {
       setSubmitting(true);
 
       const res = await fetch(
-        `http://localhost:8080/api/products/${productId}/reviews`,
+        `${API_URL}/products/${productId}/reviews`,
         {
           method: 'POST',
           headers: {

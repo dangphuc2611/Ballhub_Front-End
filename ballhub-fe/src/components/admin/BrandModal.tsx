@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { X, Save, Loader2, Briefcase, Image as ImageIcon } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
+import { API_URL } from "@/config/env";
 
 type Brand = {
   brandId: number;
@@ -67,8 +68,8 @@ export const BrandModal = ({
     try {
       const token = localStorage.getItem("refreshToken");
       const url = mode === "create" 
-        ? "http://localhost:8080/api/admin/brands"
-        : `http://localhost:8080/api/admin/brands/${brandData?.brandId}`;
+        ? `${API_URL}/admin/brands`
+        : `${API_URL}/admin/brands/${brandData?.brandId}`;
       
       const method = mode === "create" ? "post" : "put";
 

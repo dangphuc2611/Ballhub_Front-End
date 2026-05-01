@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import api from "@/lib/cartApi";
 import { Promotion } from "@/types/promotion";
+import { getImageUrl } from "@/config/env";
 
 export function OrderSummary({
   cartData,
@@ -145,7 +146,7 @@ export function OrderSummary({
           <div key={item.cartItemId} className="flex gap-4">
             <div className="w-16 h-16 relative bg-gray-50 rounded-xl overflow-hidden border flex-shrink-0">
               <Image
-                src={item.imageUrl?.startsWith("http") ? item.imageUrl : `${baseUrl}${item.imageUrl}`}
+                src={getImageUrl(item.imageUrl)}
                 alt="img" fill className="object-contain p-1" unoptimized
               />
             </div>

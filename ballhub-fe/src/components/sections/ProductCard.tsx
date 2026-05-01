@@ -8,9 +8,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import api from "@/lib/axios";
-import type { Product } from "@/types/product";
-
-const BASE_URL = "http://localhost:8080";
+import { getImageUrl } from "@/config/env";
 
 interface ProductCardProps {
   product: Product;
@@ -39,10 +37,7 @@ export function ProductCard({ product, variant, onFavoriteToggle }: ProductCardP
   const discountPercent = product.discountPercent || 0;
   const isSale = discountPercent > 0;
 
-  const getFullImageUrl = (url: string) => {
-    if (!url) return "/placeholder.svg";
-    return url.startsWith("http") ? url : `${BASE_URL}/${url.replace(/^\/+/, "")}`;
-  };
+  const getFullImageUrl = (url: string) => getImageUrl(url);
 
   const productId = product.productId || product.id;
 

@@ -8,8 +8,9 @@ import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
 import { ProductCard } from "@/components/sections/ProductCard";
 import type { Product } from "@/types/product";
+import { API_URL, getImageUrl } from "@/config/env";
 
-const BASE_URL = "http://localhost:8080";
+
 
 // Tách nội dung chính ra để bọc Suspense (Fix lỗi Hydration)
 function PromotionsContent() {
@@ -65,7 +66,7 @@ function PromotionsContent() {
       }
       if (keyword) params.append("search", keyword);
 
-      const res = await fetch(`${BASE_URL}/api/products/filter?${params.toString()}`);
+      const res = await fetch(`${API_URL}/products/filter?${params.toString()}`);
       const json = await res.json();
 
       const mapped: Product[] = (json?.data?.content ?? []).map((item: any) => ({
@@ -74,7 +75,7 @@ function PromotionsContent() {
         price: Number(item.minPrice ?? 0),
         minOriginalPrice: item.minOriginalPrice,
         discountPercent: item.discountPercent,
-        image: item.mainImage ? `${BASE_URL}/${item.mainImage.replace(/^\/+/, "")}` : "/no-image.png",
+        image: getImageUrl(item.mainImage),
         category: item.categoryName,
         badge: item.brandName,
       }));

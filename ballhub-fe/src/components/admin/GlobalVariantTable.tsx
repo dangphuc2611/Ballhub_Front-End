@@ -17,7 +17,7 @@ import { ImagePickerModal } from "./ImagePickerModal";
 import axios from "axios";
 import { toast } from "sonner";
 
-const BACKEND = "http://localhost:8080";
+import { API_URL, API_BASE_URL } from "@/config/env";
 
 const getToken = () => {
   if (typeof window !== "undefined") {
@@ -75,7 +75,7 @@ export const GlobalVariantTable = ({
 
     try {
       const token = getToken();
-      await axios.post(`${BACKEND}/api/admin/products/${openingImagePickerFor.productId}/images`, {
+      await axios.post(`${API_URL}/admin/products/${openingImagePickerFor.productId}/images`, {
         imageUrls: urls,
         isMain: setFirstAsMain,
         variantId: openingImagePickerFor.variantId
@@ -95,7 +95,7 @@ export const GlobalVariantTable = ({
     if (!confirm("Bạn có chắc chắn muốn xóa ảnh này?")) return;
     try {
       const token = getToken();
-      await axios.delete(`${BACKEND}/api/admin/products/images/${imageId}`, {
+      await axios.delete(`${API_URL}/admin/products/images/${imageId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Xóa ảnh thành công");
@@ -151,7 +151,7 @@ export const GlobalVariantTable = ({
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
                         {v.productImage ? (
-                          <img src={`http://localhost:8080${v.productImage}`} alt={v.productName} className="w-full h-full object-cover" />
+                          <img src={`${API_BASE_URL}${v.productImage}`} alt={v.productName} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-slate-400">
                             <Package size={16} />
@@ -175,7 +175,7 @@ export const GlobalVariantTable = ({
                             className="relative w-10 h-10 rounded-lg border border-slate-200 overflow-hidden group/img shrink-0 shadow-sm"
                           >
                             <img
-                              src={`${BACKEND}${img.imageUrl}`}
+                              src={`${API_BASE_URL}${img.imageUrl}`}
                               alt="variant"
                               className="w-full h-full object-cover"
                             />

@@ -7,7 +7,7 @@ import api from "@/lib/axios";
 import { toast } from "sonner";
 import { useAuth } from "@/app/context/AuthContext";
 
-const BASE_URL = "http://localhost:8080";
+import { API_BASE_URL, getImageUrl } from "@/config/env";
 
 export default function ProfileForm() {
   const [profile, setProfile] = useState<any>(null);
@@ -79,10 +79,7 @@ export default function ProfileForm() {
       
       if (refreshRes.data.success) {
         const newUserInfo = refreshRes.data.data;
-        let finalAvatarUrl = newUserInfo.avatar;
-        if (finalAvatarUrl && !finalAvatarUrl.startsWith('http') && !finalAvatarUrl.startsWith('blob:')) {
-            finalAvatarUrl = `${BASE_URL}${finalAvatarUrl.startsWith('/') ? '' : '/'}${finalAvatarUrl}`;
-        }
+        const finalAvatarUrl = getImageUrl(newUserInfo.avatar);
         
         const finalUserObj = { ...newUserInfo, avatar: finalAvatarUrl };
         setProfile(finalUserObj); 
@@ -104,10 +101,7 @@ export default function ProfileForm() {
     if (!profile?.avatar) {
         return <div className="bg-green-50 w-full h-full flex items-center justify-center"><ImageIcon className="text-green-200" size={48} /></div>;
     }
-    let src = profile.avatar;
-    if (!src.startsWith("blob:") && !src.startsWith("http")) {
-      src = `${BASE_URL}${src.startsWith('/') ? '' : '/'}${src}`;
-    }
+    const src = getImageUrl(profile.avatar);
     return (
       <img 
         src={src} 

@@ -16,7 +16,7 @@ interface VariantCreateModalProps {
   onSuccess: () => void;
 }
 
-const BACKEND = "http://localhost:8080";
+import { API_URL } from "@/config/env";
 const getToken = () =>
   typeof window !== "undefined" ? localStorage.getItem("refreshToken") : null;
 
@@ -45,7 +45,7 @@ export const VariantCreateModal = ({
         const token = getToken();
         // Fetching more products or a specific 'all' endpoint if exists
         // Here we try to fetch a reasonably large number for selection
-        const res = await axios.get(`${BACKEND}/api/products?size=100`, {
+        const res = await axios.get(`${API_URL}/products?size=100`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const content = res.data.data?.content || res.data.content || [];
@@ -77,7 +77,7 @@ export const VariantCreateModal = ({
     try {
       const token = getToken();
       await axios.post(
-        `${BACKEND}/api/admin/products/${formData.productId}/variants`,
+        `${API_URL}/admin/products/${formData.productId}/variants`,
         {
           sizeId: formData.sizeId,
           colorId: formData.colorId,

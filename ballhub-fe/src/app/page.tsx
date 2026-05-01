@@ -10,6 +10,7 @@ import { Footer } from "@/components/sections/Footer";
 import { categories } from "@/data/categories";
 import type { Product } from "@/types/product";
 import ProtectedRoute from "@/components/login/ProtectedRoute";
+import { API_URL, getImageUrl } from "@/config/env";
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -31,10 +32,10 @@ export default function Home() {
 
       const url =
         keyword && keyword.length > 0
-          ? `http://localhost:8080/api/products?keyword=${encodeURIComponent(
+          ? `${API_URL}/products?keyword=${encodeURIComponent(
               keyword,
             )}&page=0&size=8`
-          : `http://localhost:8080/api/products?page=0&size=8`;
+          : `${API_URL}/products?page=0&size=8`;
 
       const res = await fetch(url);
 
@@ -48,9 +49,7 @@ export default function Home() {
         price: item.minPrice,
         minOriginalPrice: item.minOriginalPrice,
         discountPercent: item.discountPercent,
-        image: item.mainImage
-          ? `http://localhost:8080${item.mainImage}`
-          : "/no-image.png",
+        image: getImageUrl(item.mainImage),
         category: item.categoryName,
         badge: "MỚI",
       }));

@@ -1,6 +1,7 @@
 import axios from "axios";
+import { API_URL as GLOBAL_API_URL } from "@/config/env";
 
-const API_URL = "http://localhost:8080/api/users";
+const API_URL = `${GLOBAL_API_URL}/users`;
 
 export const getMyProfile = async (token: string) => {
   const res = await axios.get(`${API_URL}/me`, {

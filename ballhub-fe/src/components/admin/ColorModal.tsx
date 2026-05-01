@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { X, Save, Loader2, Palette } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
+import { API_URL } from "@/config/env";
 
 type Color = {
   colorId: number;
@@ -49,8 +50,8 @@ export const ColorModal = ({
     try {
       const token = localStorage.getItem("refreshToken");
       const url = mode === "create" 
-        ? "http://localhost:8080/api/admin/colors"
-        : `http://localhost:8080/api/admin/colors/${colorData?.colorId}`;
+        ? `${API_URL}/admin/colors`
+        : `${API_URL}/admin/colors/${colorData?.colorId}`;
       
       const method = mode === "create" ? "post" : "put";
 

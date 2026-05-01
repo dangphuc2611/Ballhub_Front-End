@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { X, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { usePosStore } from "@/lib/usePosStore";
+import { API_URL } from "@/config/env";
 
 interface PosAddressModalProps {
   isOpen: boolean;
@@ -32,7 +33,7 @@ export const PosAddressModal = ({ isOpen, onClose, customerId, onSelectSuccess }
       setIsLoading(true);
       try {
         const token = localStorage.getItem("refreshToken");
-        const res = await fetch(`http://localhost:8080/api/addresses/admin/user/${customerId}`, {
+        const res = await fetch(`${API_URL}/addresses/admin/user/${customerId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const result = await res.json();

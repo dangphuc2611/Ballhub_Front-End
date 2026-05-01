@@ -19,10 +19,11 @@ import { Footer } from "@/components/sections/Footer";
 import { ProductReviewsSection } from "@/components/sections/ProductReviewsSection";
 import { ProductDetail } from "@/types/product";
 import { addToCartApi } from "@/lib/cartApi";
+import { API_URL, API_BASE_URL, getImageUrl } from "@/config/env";
 
 type TabKey = "description" | "specs" | "policy";
 
-const BASE_URL = "http://localhost:8080";
+
 
 // ✅ LUÔN HIỆN ĐỦ SIZE
 const ALL_SIZES = ["S", "M", "L", "XL", "XXL"] as const;
@@ -52,7 +53,7 @@ export default function ProductDetailPage() {
     async function fetchProduct() {
       setLoading(true);
       try {
-        const res = await fetch(`${BASE_URL}/api/products/${productId}`);
+        const res = await fetch(`${API_URL}/products/${productId}`);
         const json = await res.json();
 
         const p = {
@@ -66,12 +67,7 @@ export default function ProductDetailPage() {
 
         setProduct(p);
 
-        const main =
-          p.images.find((i: any) => i.isMain)?.imageUrl ||
-          p.images[0]?.imageUrl ||
-          null;
-
-        setActiveImage(main ? `${BASE_URL}${main}` : null);
+        setActiveImage(getImageUrl(main));
       } catch (e) {
         console.error("❌ Load product failed", e);
         toast.error("Không thể tải thông tin sản phẩm");
@@ -264,7 +260,7 @@ export default function ProductDetailPage() {
 
             <div className="flex gap-3 flex-wrap">
               {product.images.map((img, idx) => {
-                const src = `${BASE_URL}${img.imageUrl}`;
+                const src = getImageUrl(img.imageUrl);
                 const isActive = activeImage === src;
 
                 return (

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { StatusTag } from "./StatusTag";
+import { getImageUrl } from "@/config/env";
 
 type Props = {
   products?: any[];
@@ -67,7 +68,7 @@ export const ProductTable = ({
                 <div className="flex items-center gap-3">
                   <div className="relative w-[50px] h-[50px] shrink-0">
                     <Image
-                      src={p.mainImage ? `http://localhost:8080${p.mainImage}` : "/placeholder-product.png"}
+                      src={getImageUrl(p.mainImage)}
                       fill
                       alt={p.productName}
                       className="rounded-lg object-cover border border-slate-100"

@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import api from "@/lib/axios"; // Đảm bảo bạn có import api
+import api from "@/lib/axios";
+import { getImageUrl } from "@/config/env";
 
 interface User {
   userId: number;
@@ -44,8 +45,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (res.data.success) {
         const freshData = res.data.data;
         // Chuẩn hóa link avatar trước khi lưu
-        if (freshData.avatar && !freshData.avatar.startsWith('http')) {
-          freshData.avatar = `http://localhost:8080${freshData.avatar}`;
+        if (freshData.avatar) {
+          freshData.avatar = getImageUrl(freshData.avatar);
         }
         updateUser(freshData);
       }

@@ -8,8 +8,9 @@ import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
 import { ProductCard } from "@/components/sections/ProductCard";
 import type { Product } from "@/types/product";
+import { API_URL, getImageUrl } from "@/config/env";
 
-const BASE_URL = "http://localhost:8080";
+
 
 export default function ProductsPage() {
   const searchParams = useSearchParams();
@@ -56,7 +57,7 @@ export default function ProductsPage() {
       }
 
       const res = await fetch(
-        `${BASE_URL}/api/products/filter?${params.toString()}`
+        `${API_URL}/products/filter?${params.toString()}`
       );
 
       const json = await res.json();
@@ -67,9 +68,7 @@ export default function ProductsPage() {
         price: Number(item.minPrice ?? 0),
         minOriginalPrice: item.minOriginalPrice,
         discountPercent: item.discountPercent,
-        image: item.mainImage
-          ? `${BASE_URL}/${item.mainImage.replace(/^\/+/, "")}`
-          : "/no-image.png",
+        image: getImageUrl(item.mainImage),
         category: item.categoryName,
         badge: item.brandName,
       }));

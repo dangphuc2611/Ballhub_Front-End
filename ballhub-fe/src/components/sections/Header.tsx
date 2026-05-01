@@ -14,14 +14,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { menuItems } from "@/data/categories";
 import { useAuth } from "@/app/context/AuthContext";
-import type { SuggestProduct } from "@/types/product";
-import { toast } from "sonner"; 
+import { SuggestProduct } from "@/types/product";
+import { toast } from "sonner";
+import { API_URL, API_BASE_URL, getImageUrl } from "@/config/env";
 
 type HeaderProps = {
   showSearch?: boolean;
 };
 
-const BASE_URL = "http://localhost:8080";
+
 const MAX_CACHE_KEYS = 30;
 
 export function Header({ showSearch = true }: HeaderProps) {
@@ -48,7 +49,7 @@ export function Header({ showSearch = true }: HeaderProps) {
       try {
         const token = localStorage.getItem("refreshToken");
         if (!token) return;
-        const res = await fetch(`${BASE_URL}/api/cart`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/cart`, { headers: { Authorization: `Bearer ${token}` } });
         const json = await res.json();
         const items = json?.data?.items || [];
         const total = items.reduce((sum: number, item: any) => sum + item.quantity, 0);
@@ -95,7 +96,7 @@ export function Header({ showSearch = true }: HeaderProps) {
         setLoadingSuggest(true);
         const params = new URLSearchParams();
         params.append("search", q); params.append("page", "0"); params.append("size", "6"); params.append("sort", "new");
-        const res = await fetch(`${BASE_URL}/api/products/filter?${params.toString()}`);
+        const res = await fetch(`${API_URL}/products/filter?${params.toString()}`);
         const json = await res.json();
         const items: SuggestProduct[] = (json?.data?.content ?? []).map((p: any) => ({
             productId: p.productId, productName: p.productName, brandName: p.brandName, categoryName: p.categoryName, mainImage: p.mainImage, minPrice: Number(p.minPrice ?? 0),
@@ -166,7 +167,7 @@ export function Header({ showSearch = true }: HeaderProps) {
                     {!loadingSuggest && suggestions.length > 0 && (
                       <div className="max-h-[360px] overflow-auto">
                         {suggestions.map((p, idx) => {
-                          const img = p.mainImage ? `${BASE_URL}/${p.mainImage.replace(/^\/+/, "")}` : "/no-image.png";
+                          const img = getImageUrl(p.mainImage);
                           return (
                             <button key={p.productId} onMouseEnter={() => setActiveIndex(idx)} onClick={() => goToProduct(p.productId)}
                               className={`w-full flex items-center gap-3 p-3 text-left transition ${idx === activeIndex ? "bg-green-50" : "hover:bg-gray-50"}`}>

@@ -10,6 +10,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import api from "@/lib/axios";
 import type { Product } from "@/types/product";
 import { usePathname, useRouter } from "next/navigation";
+import { getImageUrl } from "@/config/env";
 
 export default function FavoritesPage() {
   const { user, logout } = useAuth();
@@ -28,9 +29,7 @@ export default function FavoritesPage() {
           price: Number(item.minPrice ?? 0),
           minOriginalPrice: item.minOriginalPrice,
           discountPercent: item.discountPercent,
-          image: item.mainImage
-            ? `http://localhost:8080/${item.mainImage.replace(/^\/+/, "")}`
-            : "/placeholder.svg",
+          image: getImageUrl(item.mainImage),
           category: item.categoryName,
           badge: item.brandName,
         }));
@@ -62,11 +61,7 @@ export default function FavoritesPage() {
     router.push("/login");
   };
 
-  const getAvatarUrl = (path: string | undefined) => {
-    if (!path) return null;
-    if (path.startsWith("http") || path.startsWith("blob:")) return path;
-    return `http://localhost:8080${path}`;
-  };
+  const getAvatarUrl = (path: string | undefined) => getImageUrl(path);
 
   const menuItems = [
     { name: "Thông tin cá nhân", icon: <UserIcon size={16} />, href: "/profile" },

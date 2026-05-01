@@ -1,7 +1,8 @@
 import axios from "axios";
+import { API_URL } from "@/config/env";
 
 const api = axios.create({
-  baseURL: "http://localhost:8080/api",
+  baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -48,7 +49,7 @@ api.interceptors.response.use(
           if (!refreshToken) throw new Error("No refresh token");
 
           // Gọi API refresh token (Dùng axios gốc để tránh bị interceptor 401 lặp vô hạn)
-          const res = await axios.post("http://localhost:8080/api/auth/refresh", {
+          const res = await axios.post(`${API_URL}/auth/refresh`, {
             refreshToken: refreshToken,
           });
 

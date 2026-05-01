@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { X, Save, AlertCircle, CheckCircle, Loader2, Printer, Banknote, Mail, Phone, MapPin, User, Package, History, Barcode } from "lucide-react";
 import axios from "axios";
 import Image from "next/image";
+import { API_URL, getImageUrl } from "@/config/env";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { toast } from "sonner"; 
 
@@ -75,7 +76,7 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
     const fetchOrderDetail = async () => {
       try {
         const token = localStorage.getItem("refreshToken");
-        const res = await axios.get(`http://localhost:8080/api/orders/admin/${orderId}`, {
+        const res = await axios.get(`${API_URL}/orders/admin/${orderId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = res.data.data ?? res.data;
@@ -139,12 +140,12 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
     try {
       const token = localStorage.getItem("refreshToken");
       await axios.put(
-        `http://localhost:8080/api/orders/admin/${orderId}/status?statusId=${selectedStatusId}&note=${encodeURIComponent(note)}`,
+        `${API_URL}/orders/admin/${orderId}/status?statusId=${selectedStatusId}&note=${encodeURIComponent(note)}`,
         {}, { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success("Cập nhật trạng thái thành công!");
       
-      const res = await axios.get(`http://localhost:8080/api/orders/admin/${orderId}`, {
+      const res = await axios.get(`${API_URL}/orders/admin/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const newData = res.data.data ?? res.data;
@@ -258,7 +259,7 @@ export const OrderDetailModal = ({ orderId, onClose, onRefresh }: OrderDetailMod
                           <div className="flex items-center gap-4">
                             {item.imageUrl ? (
                               <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-slate-100 border border-slate-100 shadow-sm">
-                                 <Image src={`http://localhost:8080${item.imageUrl}`} fill className="object-cover" alt={item.productName} unoptimized />
+                                 <Image src={getImageUrl(item.imageUrl)} fill className="object-cover" alt={item.productName} unoptimized />
                               </div>
                             ) : (
                               <div className="w-14 h-14 bg-slate-100 rounded-xl flex items-center justify-center text-[10px] text-slate-400 font-bold uppercase">No Image</div>

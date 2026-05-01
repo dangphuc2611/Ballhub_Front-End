@@ -49,6 +49,7 @@ import { PromotionModal } from "@/components/admin/PromotionModal";
 
 import { toast } from "sonner";
 import axios from "axios";
+import { API_URL, API_BASE_URL } from "@/config/env";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("Tổng quan");
@@ -164,7 +165,7 @@ export default function AdminDashboard() {
     const fetchProducts = async () => {
       try {
         const token = localStorage.getItem("refreshToken");
-        const res = await fetch(`http://localhost:8080/api/products?page=${productPage}`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/products?page=${productPage}`, { headers: { Authorization: `Bearer ${token}` } });
         const result = await res.json();
         const payload = result?.data ?? result;
         setProductsDataFetch(payload?.content ?? []);
@@ -182,7 +183,7 @@ export default function AdminDashboard() {
     const fetchOrders = async () => {
       try {
         const token = localStorage.getItem("refreshToken");
-        const res = await fetch(`http://localhost:8080/api/orders/admin/all?page=${orderPage}`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/orders/admin/all?page=${orderPage}`, { headers: { Authorization: `Bearer ${token}` } });
         const result = await res.json();
         const payload = result?.data ?? result;
         setOrders(payload?.content ?? []);
@@ -200,7 +201,7 @@ export default function AdminDashboard() {
     const fetchUsers = async () => {
       try {
         const token = localStorage.getItem("refreshToken");
-        const res = await fetch("http://localhost:8080/api/admin/stats/users", { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/admin/stats/users`, { headers: { Authorization: `Bearer ${token}` } });
         const result = await res.json();
         setUsers(result?.data ?? result ?? []);
       } catch (error) {}
@@ -214,7 +215,7 @@ export default function AdminDashboard() {
       setDashboardLoading(true);
       try {
         const token = localStorage.getItem("refreshToken");
-        const res = await fetch("http://localhost:8080/api/admin/stats/dashboard", {
+        const res = await fetch(`${API_URL}/admin/stats/dashboard`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const result = await res.json();
@@ -235,7 +236,7 @@ export default function AdminDashboard() {
     const fetchVouchers = async () => {
       try {
         const token = localStorage.getItem("refreshToken");
-        const res = await fetch(`http://localhost:8080/api/promotions/admin/all?page=${voucherPage}&size=100`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/promotions/admin/all?page=${voucherPage}&size=100`, { headers: { Authorization: `Bearer ${token}` } });
         const result = await res.json();
         const payload = result?.data ?? result;
         
@@ -259,7 +260,7 @@ export default function AdminDashboard() {
     const fetchPromotions = async () => {
       try {
         const token = localStorage.getItem("refreshToken");
-        const res = await fetch(`http://localhost:8080/api/promotions/admin/all?page=0&size=100`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/promotions/admin/all?page=0&size=100`, { headers: { Authorization: `Bearer ${token}` } });
         const result = await res.json();
         const payload = result?.data ?? result;
         
@@ -283,7 +284,7 @@ export default function AdminDashboard() {
       async () => {
         try {
           const token = localStorage.getItem("refreshToken");
-          await fetch(`http://localhost:8080/api/promotions/admin/${id}`, {
+          await fetch(`${API_URL}/promotions/admin/${id}`, {
             method: "DELETE", headers: { Authorization: `Bearer ${token}` },
           });
           setPromotionRefreshTrigger((p) => p + 1);
@@ -298,7 +299,7 @@ export default function AdminDashboard() {
     askConfirm("Xóa Voucher?", "Bạn có chắc chắn muốn xóa voucher này? Thao tác này không thể hoàn tác.", async () => {
         try {
           const token = localStorage.getItem("refreshToken");
-          await fetch(`http://localhost:8080/api/promotions/admin/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+          await fetch(`${API_URL}/promotions/admin/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
           setVoucherRefreshTrigger((p) => p + 1);
           setConfirmConfig((p: any) => ({ ...p, open: false }));
         } catch (err) {}
@@ -311,7 +312,7 @@ export default function AdminDashboard() {
     const fetchColors = async () => {
       try {
         const token = localStorage.getItem("refreshToken");
-        const res = await fetch(`http://localhost:8080/api/admin/colors?page=${colorPage}&size=10`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/admin/colors?page=${colorPage}&size=10`, { headers: { Authorization: `Bearer ${token}` } });
         const result = await res.json();
         const payload = result?.data ?? result;
         setColors(payload?.content ?? []);
@@ -324,7 +325,7 @@ export default function AdminDashboard() {
     askConfirm("Xóa Màu Sắc?", "Bạn có chắc chắn muốn xóa màu này không?", async () => {
         try {
           const token = localStorage.getItem("refreshToken");
-          const res = await fetch(`http://localhost:8080/api/admin/colors/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+          const res = await fetch(`${API_URL}/admin/colors/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
           const result = await res.json();
           if (result.status === "error") alert(result.message);
           else { setColorRefreshTrigger((p) => p + 1); setConfirmConfig((p: any) => ({ ...p, open: false })); }
@@ -336,7 +337,7 @@ export default function AdminDashboard() {
     const fetchBrands = async () => {
       try {
         const token = localStorage.getItem("refreshToken");
-        const res = await fetch(`http://localhost:8080/api/admin/brands?page=${brandPage}&size=10`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/admin/brands?page=${brandPage}&size=10`, { headers: { Authorization: `Bearer ${token}` } });
         const result = await res.json();
         const payload = result?.data ?? result;
         setBrands(payload?.content ?? []);
@@ -349,7 +350,7 @@ export default function AdminDashboard() {
     askConfirm("Xóa Thương Hiệu?", "Bạn có chắc chắn muốn xóa thương hiệu này không?", async () => {
         try {
           const token = localStorage.getItem("refreshToken");
-          const res = await fetch(`http://localhost:8080/api/admin/brands/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+          const res = await fetch(`${API_URL}/admin/brands/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
           const result = await res.json();
           if (result.status === "error") alert(result.message);
           else { setBrandRefreshTrigger((p) => p + 1); setConfirmConfig((p: any) => ({ ...p, open: false })); }
@@ -361,7 +362,7 @@ export default function AdminDashboard() {
     const fetchReviews = async () => {
       try {
         const token = localStorage.getItem("refreshToken");
-        const res = await fetch(`http://localhost:8080/api/admin/reviews?page=${reviewPage}&size=10`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/admin/reviews?page=${reviewPage}&size=10`, { headers: { Authorization: `Bearer ${token}` } });
         const result = await res.json();
         const payload = result?.data ?? result;
         setReviews(payload?.content ?? []);
@@ -374,7 +375,7 @@ export default function AdminDashboard() {
     askConfirm("Xóa Đánh Giá?", "Bạn có chắc chắn muốn xóa nhận xét này không?", async () => {
         try {
           const token = localStorage.getItem("refreshToken");
-          const res = await fetch(`http://localhost:8080/api/admin/reviews/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+          const res = await fetch(`${API_URL}/admin/reviews/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
           const result = await res.json();
           if (result.status === "error") alert(result.message);
           else { setReviewRefreshTrigger((p) => p + 1); setConfirmConfig((p: any) => ({ ...p, open: false })); }
@@ -386,7 +387,7 @@ export default function AdminDashboard() {
     const fetchAllVariants = async () => {
       try {
         const token = localStorage.getItem("refreshToken");
-        const res = await fetch(`http://localhost:8080/api/admin/variants?page=${variantPage}&size=10`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/admin/variants?page=${variantPage}&size=10`, { headers: { Authorization: `Bearer ${token}` } });
         const result = await res.json();
         const payload = result?.data ?? result;
         setGlobalVariants(payload?.content ?? []);
@@ -398,7 +399,7 @@ export default function AdminDashboard() {
   const handleToggleVariantStatus = async (v: any) => {
     try {
       const token = localStorage.getItem("refreshToken"); 
-      await axios.put(`http://localhost:8080/api/admin/variants/${v.variantId}`, { price: v.price, stockQuantity: v.stockQuantity, status: !v.status }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.put(`${API_URL}/admin/variants/${v.variantId}`, { price: v.price, stockQuantity: v.stockQuantity, status: !v.status }, { headers: { Authorization: `Bearer ${token}` } });
       toast.success(`${v.status ? "Ẩn" : "Hiện"} biến thể thành công`);
       setVariantRefreshTrigger((p) => p + 1);
     } catch (err) {}
@@ -408,7 +409,7 @@ export default function AdminDashboard() {
     askConfirm("Xóa Vĩnh Viễn Biến Thể?", "Thao tác này sẽ xóa hoàn toàn biến thể khỏi hệ thống. Bạn có chắc chắn?", async () => {
         try {
           const token = localStorage.getItem("refreshToken");
-          await fetch(`http://localhost:8080/api/admin/variants/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+          await fetch(`${API_URL}/admin/variants/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
           setVariantRefreshTrigger((p) => p + 1);
           setConfirmConfig((p: any) => ({ ...p, open: false }));
           toast.success("Xóa biến thể thành công");

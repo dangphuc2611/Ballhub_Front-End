@@ -9,8 +9,9 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import api from "@/lib/cartApi"; // Tái sử dụng api config của bạn
+import { getImageUrl } from "@/config/env";
 
-const BASE_URL = "http://localhost:8080";
+
 const GHN_TOKEN = "dd94ceb1-2e67-11f1-b97a-a2781b0fd428"; 
 
 export default function AddressPage() {
@@ -61,11 +62,7 @@ export default function AddressPage() {
     logout(); setShowLogoutModal(false); toast.success("Đăng xuất thành công"); router.push("/login");
   };
 
-  const getAvatarUrl = (path: string | undefined) => {
-    if (!path) return null;
-    if (path.startsWith("http") || path.startsWith("blob:")) return path;
-    return `${BASE_URL}${path}`;
-  };
+  const getAvatarUrl = (path: string | undefined) => getImageUrl(path);
 
   // HÀM THÊM ĐỊA CHỈ MỚI
   const handleSaveAddress = async () => {

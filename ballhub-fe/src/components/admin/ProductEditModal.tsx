@@ -14,13 +14,14 @@ import {
   Plus,
 } from "lucide-react";
 import axios from "axios";
+import { API_URL, API_BASE_URL, getImageUrl } from "@/config/env";
 import { useFormOptions } from "@/lib/useFormOptions";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 import * as Tabs from "@radix-ui/react-tabs";
 import { ProductVariantManager } from "./ProductVariantManager";
 import { ImagePickerModal } from "./ImagePickerModal";
 
-const BACKEND = "http://localhost:8080";
+
 const getToken = () =>
   typeof window !== "undefined" ? localStorage.getItem("refreshToken") : null;
 
@@ -150,7 +151,7 @@ export const ProductEditModal = ({
     const fetchProductDetails = async () => {
       try {
         const token = getToken();
-        const res = await axios.get(`${BACKEND}/api/products/${productId}`, {
+        const res = await axios.get(`${API_URL}/products/${productId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const p = res.data.data ?? res.data;
@@ -195,7 +196,7 @@ export const ProductEditModal = ({
     // Re-fetch product details to update variants table
     try {
       const token = getToken();
-      const res = await axios.get(`${BACKEND}/api/products/${productId}`, {
+      const res = await axios.get(`${API_URL}/products/${productId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const p = res.data.data ?? res.data;
@@ -226,7 +227,7 @@ export const ProductEditModal = ({
     if (!urls.length) return;
     try {
       const token = getToken();
-      await fetch(`${BACKEND}/api/admin/products/${productId}/images`, {
+      await fetch(`${API_URL}/admin/products/${productId}/images`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -251,7 +252,7 @@ export const ProductEditModal = ({
     if (!confirm("Bạn có chắc chắn muốn xóa ảnh này?")) return;
     try {
       const token = getToken();
-      await axios.delete(`${BACKEND}/api/admin/products/images/${imageId}`, {
+      await axios.delete(`${API_URL}/admin/products/images/${imageId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setMessage({ type: "success", text: "Xóa ảnh thành công!" });
@@ -278,7 +279,7 @@ export const ProductEditModal = ({
         status: formData.status,
       };
 
-      await axios.put(`${BACKEND}/api/admin/products/${productId}`, payload, {
+      await axios.put(`${API_URL}/admin/products/${productId}`, payload, {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
 
@@ -322,7 +323,7 @@ export const ProductEditModal = ({
     setMessage(null);
     setConfirmConfig((p) => ({ ...p, open: false }));
     try {
-      await axios.delete(`${BACKEND}/api/admin/products/${productId}`, {
+      await axios.delete(`${API_URL}/admin/products/${productId}`, {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       setMessage({ type: "success", text: "Đã xóa sản phẩm thành công!" });
@@ -537,7 +538,7 @@ export const ProductEditModal = ({
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={`${BACKEND}${img.imageUrl}`}
+                            src={getImageUrl(img.imageUrl)}
                             alt="product image"
                             className="w-full h-full object-cover"
                           />

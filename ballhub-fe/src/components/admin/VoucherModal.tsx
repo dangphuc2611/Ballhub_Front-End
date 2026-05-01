@@ -56,7 +56,9 @@ function formatCurrency(val?: number) {
   return val.toLocaleString("vi-VN") + "đ";
 }
 
-const API_BASE = "http://localhost:8080/api/promotions";
+import { API_URL } from "@/config/env";
+
+const API_BASE = `${API_URL}/promotions`;
 
 export const VoucherModal = ({ mode, voucher, onClose, onSuccess }: Props) => {
   const isView = mode === "view";

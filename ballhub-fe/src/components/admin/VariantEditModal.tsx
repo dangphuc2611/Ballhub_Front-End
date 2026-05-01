@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { X, Save, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
+import { API_URL } from "@/config/env";
 
 interface Variant {
   variantId: number;
@@ -22,7 +23,7 @@ interface VariantEditModalProps {
   onSuccess: () => void;
 }
 
-const BACKEND = "http://localhost:8080";
+
 const getToken = () =>
   typeof window !== "undefined" ? localStorage.getItem("refreshToken") : null;
 
@@ -44,7 +45,7 @@ export const VariantEditModal = ({
     try {
       const token = getToken();
       await axios.put(
-        `${BACKEND}/api/admin/variants/${variant.variantId}`,
+        `${API_URL}/admin/variants/${variant.variantId}`,
         {
           price: formData.price,
           stockQuantity: formData.stockQuantity,

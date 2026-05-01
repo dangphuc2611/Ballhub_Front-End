@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import api from "@/lib/axios";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { UserProfileModal } from "./UserProfileModal";
+import { getImageUrl } from "@/config/env";
 
 export const UserTable = ({
   users = [],
@@ -36,11 +37,7 @@ export const UserTable = ({
     if (!user.avatar) {
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || "User")}&background=random&color=fff&size=128`;
     }
-    if (user.avatar.startsWith("http")) {
-      return user.avatar;
-    }
-    // Nếu là ảnh tải lên, ghép nối với cổng Backend 8080
-    return `http://localhost:8080${user.avatar.startsWith("/") ? "" : "/"}${user.avatar}`;
+    return getImageUrl(user.avatar);
   };
 
   const handleToggleStatus = (user: any) => {

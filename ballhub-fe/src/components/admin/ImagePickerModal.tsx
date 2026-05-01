@@ -12,8 +12,9 @@ import {
   Images,
   Star,
 } from "lucide-react";
+import { API_URL, API_BASE_URL, getImageUrl } from "@/config/env";
 
-const BACKEND = "http://localhost:8080";
+
 
 interface ImagePickerModalProps {
   /** Called when user confirms selection; receives list of chosen URL paths */
@@ -37,7 +38,7 @@ export const ImagePickerModal = ({ onConfirm, onClose, title }: ImagePickerModal
       try {
         setLoading(true);
         const token = localStorage.getItem("refreshToken");
-        const res = await fetch(`${BACKEND}/api/admin/images/static`, {
+        const res = await fetch(`${API_URL}/admin/images/static`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const json = await res.json();
@@ -211,7 +212,7 @@ export const ImagePickerModal = ({ onConfirm, onClose, title }: ImagePickerModal
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={`${BACKEND}${url}`}
+                          src={getImageUrl(url)}
                           alt={fileName}
                           className="w-full h-full object-cover"
                           loading="lazy"

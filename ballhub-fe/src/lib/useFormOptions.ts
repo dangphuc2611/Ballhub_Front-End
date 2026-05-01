@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 
-const BACKEND = "http://localhost:8080";
+import { API_URL } from "@/config/env";
 
 export interface SelectOption {
   value: string;
@@ -58,12 +58,12 @@ export function useFormOptions(): FormOptionsResult {
 
         const [rawBrands, rawCategories, rawSizes, rawColors, rawMaterials, rawStyles] =
           await Promise.all([
-            fetchJson(`${BACKEND}/api/brands`, token),
-            fetchJson(`${BACKEND}/api/categories`, token),
-            fetchJson(`${BACKEND}/api/sizes`, token),
-            fetchJson(`${BACKEND}/api/colors`, token),
-            fetchJson(`${BACKEND}/api/materials`, token),
-            fetchJson(`${BACKEND}/api/styles`, token),
+            fetchJson(`${API_URL}/brands`, token),
+            fetchJson(`${API_URL}/categories`, token),
+            fetchJson(`${API_URL}/sizes`, token),
+            fetchJson(`${API_URL}/colors`, token),
+            fetchJson(`${API_URL}/materials`, token),
+            fetchJson(`${API_URL}/styles`, token),
           ]);
 
         setBrands(

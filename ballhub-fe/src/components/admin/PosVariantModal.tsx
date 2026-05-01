@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Search, X, Plus, Minus, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { usePosStore, PosCartItem } from "@/lib/usePosStore";
+import { API_URL, API_BASE_URL, getImageUrl } from "@/config/env";
 
 interface PosVariantModalProps {
   isOpen: boolean;
@@ -33,7 +34,7 @@ export const PosVariantModal = ({ isOpen, onClose }: PosVariantModalProps) => {
         const token = localStorage.getItem("refreshToken");
         // Gọi API POS mà chúng ta vừa tạo
         const res = await fetch(
-          `http://localhost:8080/api/admin/stats/pos/variants?keyword=${keyword}&page=0&size=50`,
+          `${API_URL}/admin/stats/pos/variants?keyword=${keyword}&page=0&size=50`,
           {
             headers: { Authorization: `Bearer ${token}` },
           },
@@ -189,7 +190,7 @@ export const PosVariantModal = ({ isOpen, onClose }: PosVariantModalProps) => {
                       <div className="w-14 h-14 relative bg-slate-50 border border-slate-200 rounded-xl overflow-hidden shrink-0">
                         {v.imageUrl ? (
                           <Image
-                            src={`http://localhost:8080${v.imageUrl}`}
+                            src={getImageUrl(v.imageUrl)}
                             alt={v.productName}
                             fill
                             className="object-contain"
@@ -264,7 +265,7 @@ export const PosVariantModal = ({ isOpen, onClose }: PosVariantModalProps) => {
               <div className="w-20 h-20 relative mx-auto mb-4 bg-slate-50 rounded-2xl border border-slate-100">
                 {selectedVariant.imageUrl && (
                   <Image
-                    src={`http://localhost:8080${selectedVariant.imageUrl}`}
+                    src={getImageUrl(selectedVariant.imageUrl)}
                     alt=""
                     fill
                     className="object-contain"

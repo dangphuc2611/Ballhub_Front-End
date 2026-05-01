@@ -17,7 +17,7 @@ import { PaymentMethods } from "@/components/checkout/PaymentMethods";
 import { OrderSummary } from "@/components/checkout/OrderSummary";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 
-const BASE_URL = "http://localhost:8080";
+import { API_BASE_URL } from "@/config/env";
 
 const GHN_TOKEN = "dd94ceb1-2e67-11f1-b97a-a2781b0fd428"; 
 const SHOP_DISTRICT_ID = 3440; 
@@ -265,7 +265,7 @@ export default function CheckoutPage() {
               cartData={cartData}
               isSubmitting={isSubmitting}
               onOrder={handleOrder}
-              baseUrl={BASE_URL}
+              baseUrl={API_BASE_URL}
               appliedPromo={appliedPromo}
               setAppliedPromo={setAppliedPromo}
               shippingFee={shippingFee}

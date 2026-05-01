@@ -9,8 +9,9 @@ import { User as UserIcon, Package, Heart, LogOut, Loader2, Eye, MapPin, KeyRoun
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { API_URL, getImageUrl } from "@/config/env";
 
-const BASE_URL = "http://localhost:8080";
+
 
 interface OrderInfo {
   orderId: number;
@@ -36,11 +37,7 @@ export default function AccountPage() {
     refreshUser();
   }, []);
 
-  const getAvatarUrl = (path: string | undefined) => {
-    if (!path) return null;
-    if (path.startsWith("http") || path.startsWith("blob:")) return path;
-    return `${BASE_URL}${path}`;
-  };
+  const getAvatarUrl = (path: string | undefined) => getImageUrl(path);
 
   // ✅ Hàm mở Modal khi bấm nút Đăng xuất
   const handleLogoutClick = () => {
@@ -65,7 +62,7 @@ export default function AccountPage() {
       }
 
       try {
-        const res = await fetch(`${BASE_URL}/api/orders?page=0&size=5`, {
+        const res = await fetch(`${API_URL}/orders?page=0&size=5`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",

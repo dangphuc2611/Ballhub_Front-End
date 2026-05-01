@@ -19,7 +19,7 @@ import { SelectOption } from "@/lib/useFormOptions";
 import { ImagePickerModal } from "./ImagePickerModal";
 import { ImagePlus } from "lucide-react";
 
-const BACKEND = "http://localhost:8080";
+import { API_URL, API_BASE_URL, getImageUrl } from "@/config/env";
 
 const getToken = () => {
   if (typeof window !== "undefined") {
@@ -70,7 +70,7 @@ export const ProductVariantManager = ({
     
     try {
       const token = getToken();
-      await fetch(`${BACKEND}/api/admin/products/${productId}/images`, {
+      await fetch(`${API_URL}/admin/products/${productId}/images`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -95,7 +95,7 @@ export const ProductVariantManager = ({
     if (!confirm("Bạn có chắc chắn muốn xóa ảnh này?")) return;
     try {
       const token = getToken();
-      await axios.delete(`${BACKEND}/api/admin/products/images/${imageId}`, {
+      await axios.delete(`${API_URL}/admin/products/images/${imageId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Xóa ảnh thành công");
@@ -136,7 +136,7 @@ export const ProductVariantManager = ({
       const token = getToken();
       if (isNew) {
         await axios.post(
-          `${BACKEND}/api/admin/products/${productId}/variants`,
+          `${API_URL}/admin/products/${productId}/variants`,
           {
             sizeId: editing.data.sizeId,
             colorId: editing.data.colorId,
@@ -150,7 +150,7 @@ export const ProductVariantManager = ({
         toast.success("Thêm biến thể thành công");
       } else {
         await axios.put(
-          `${BACKEND}/api/admin/variants/${editing.id}`,
+          `${API_URL}/admin/variants/${editing.id}`,
           {
             price: editing.data.price,
             stockQuantity: editing.data.stockQuantity,
@@ -174,7 +174,7 @@ export const ProductVariantManager = ({
     setLoading(variantId);
     try {
       const token = getToken();
-      await axios.delete(`${BACKEND}/api/admin/variants/${variantId}`, {
+      await axios.delete(`${API_URL}/admin/variants/${variantId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Xóa biến thể thành công");
@@ -192,7 +192,7 @@ export const ProductVariantManager = ({
       const token = getToken();
       const currentStatus = v.status !== false; // Mặc định là true nếu null
       await axios.put(
-        `${BACKEND}/api/admin/variants/${v.variantId}`,
+        `${API_URL}/admin/variants/${v.variantId}`,
         {
           price: v.price,
           stockQuantity: v.stockQuantity,
@@ -429,7 +429,7 @@ export const ProductVariantManager = ({
                           {v.images.map((img) => (
                             <div key={img.imageId} className="relative w-8 h-8 rounded border border-slate-200 overflow-hidden group/img">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={`${BACKEND}${img.imageUrl}`} alt="thumb" className="w-full h-full object-cover" />
+                              <img src={getImageUrl(img.imageUrl)} alt="thumb" className="w-full h-full object-cover" />
                               <button
                                 type="button"
                                 onClick={() => handleDeleteImage(img.imageId)}

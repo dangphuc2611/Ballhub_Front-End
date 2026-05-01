@@ -8,8 +8,9 @@ import Link from "next/link";
 import { useAuth } from "@/app/context/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { API_URL, getImageUrl } from "@/config/env";
 
-const BASE_URL = "http://localhost:8080";
+
 
 interface OrderInfo {
   orderId: number;
@@ -40,7 +41,7 @@ export default function OrdersPage() {
       }
 
       try {
-        const res = await fetch(`${BASE_URL}/api/orders?page=0&size=20`, {
+        const res = await fetch(`${API_URL}/orders?page=0&size=20`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -72,11 +73,7 @@ export default function OrdersPage() {
     router.push("/login");
   };
 
-  const getAvatarUrl = (path: string | undefined) => {
-    if (!path) return null;
-    if (path.startsWith("http") || path.startsWith("blob:")) return path;
-    return `http://localhost:8080${path}`;
-  };
+  const getAvatarUrl = (path: string | undefined) => getImageUrl(path);
 
   const getStatusDisplay = (status: string) => {
     switch (status?.toUpperCase()) {

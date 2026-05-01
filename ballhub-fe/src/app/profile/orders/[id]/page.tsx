@@ -8,8 +8,9 @@ import { ArrowLeft, MapPin, CreditCard, Clock, Loader2, AlertCircle, Trash2, Inf
 import api from "@/lib/axios";
 import { toast } from "sonner";
 import { useAuth } from "@/app/context/AuthContext";
+import { getImageUrl } from "@/config/env";
 
-const BASE_URL = "http://localhost:8080";
+
 
 interface OrderItem {
   productName: string;
@@ -202,7 +203,7 @@ export default function OrderDetailPage() {
                   <div key={index} className="flex gap-5 items-center group">
                     <div className="w-24 h-28 bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 flex-shrink-0 relative">
                       <img
-                        src={item.imageUrl?.startsWith('http') ? item.imageUrl : `${BASE_URL}${item.imageUrl}`}
+                        src={getImageUrl(item.imageUrl)}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         alt={item.productName}
                       />

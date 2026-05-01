@@ -5,7 +5,7 @@ import { X, Save, Zap, Loader2, Search, Check } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 
-const BACKEND = "http://localhost:8080";
+import { API_URL } from "@/config/env";
 const getToken = () => {
   if (typeof window !== "undefined") {
     return localStorage.getItem("refreshToken");
@@ -54,7 +54,7 @@ export const PromotionModal = ({
     const fetchData = async () => {
       try {
         // 1. Lấy tất cả sản phẩm để chọn (Endpoint đã sửa ở Controller)
-        const resProducts = await axios.get(`${BACKEND}/api/products/all-active`);
+        const resProducts = await axios.get(`${API_URL}/products/all-active`);
         setProducts(resProducts.data.data || []);
 
         // 2. Nếu là mode Edit, lấy thêm danh sách ID sản phẩm đã áp dụng
@@ -70,7 +70,7 @@ export const PromotionModal = ({
 
           // Gọi API lấy danh sách ID sản phẩm của khuyến mãi này
           const resSelected = await axios.get(
-            `${BACKEND}/api/promotions/${promotionData.promotionId}/products/ids`
+            `${API_URL}/promotions/${promotionData.promotionId}/products/ids`
           );
           setSelectedProductIds(resSelected.data.data || []);
 
@@ -117,11 +117,11 @@ export const PromotionModal = ({
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       if (mode === "create") {
-        await axios.post(`${BACKEND}/api/promotions/admin`, payload, config);
+        await axios.post(`${API_URL}/promotions/admin`, payload, config);
         toast.success("Tạo chương trình thành công!");
       } else {
         await axios.put(
-          `${BACKEND}/api/promotions/admin/${promotionData.promotionId}`,
+          `${API_URL}/promotions/admin/${promotionData.promotionId}`,
           payload,
           config
         );

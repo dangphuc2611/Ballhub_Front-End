@@ -9,8 +9,9 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import api from "@/lib/cartApi"; // Sử dụng axios instance có sẵn auth token
+import { getImageUrl } from "@/config/env";
 
-const BASE_URL = "http://localhost:8080";
+
 
 export default function ChangePasswordPage() {
   const { user, refreshUser, logout } = useAuth();
@@ -44,11 +45,7 @@ export default function ChangePasswordPage() {
     router.push("/login");
   };
 
-  const getAvatarUrl = (path: string | undefined) => {
-    if (!path) return null;
-    if (path.startsWith("http") || path.startsWith("blob:")) return path;
-    return `${BASE_URL}${path}`;
-  };
+  const getAvatarUrl = (path: string | undefined) => getImageUrl(path);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

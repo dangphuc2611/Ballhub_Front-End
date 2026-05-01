@@ -20,9 +20,7 @@ import { Footer } from "@/components/sections/Footer";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/cartApi";
 import { toast } from "sonner";
-import { ConfirmModal } from "@/components/common/ConfirmModal";
-
-const BASE_URL = "http://localhost:8080";
+import { getImageUrl } from "@/config/env";
 
 type CartItem = {
   cartItemId: number;
@@ -68,10 +66,7 @@ export default function CartPage() {
     fetchCart();
   }, []);
 
-  const getFullImageUrl = (url: string) => {
-    if (!url) return "/placeholder.png";
-    return url.startsWith("http") ? url : `${BASE_URL}${url}`;
-  };
+  const getFullImageUrl = (url: string) => getImageUrl(url);
 
   const formatPrice = (price: any) => {
     if (price === null || price === undefined) return "0đ";

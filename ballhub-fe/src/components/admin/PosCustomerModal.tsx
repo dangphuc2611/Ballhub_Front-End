@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { usePosStore } from "@/lib/usePosStore";
 import api from "@/lib/axios"; // Giả sử bạn dùng instance axios này
 
+import { API_URL } from "@/config/env";
+
 interface PosCustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -40,7 +42,7 @@ export const PosCustomerModal = ({ isOpen, onClose }: PosCustomerModalProps) => 
     setIsLoading(true);
     try {
       const token = localStorage.getItem("refreshToken");
-      const res = await fetch(`http://localhost:8080/api/users/admin/search?keyword=${encodeURIComponent(searchKw)}`, {
+      const res = await fetch(`${API_URL}/users/admin/search?keyword=${encodeURIComponent(searchKw)}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const result = await res.json();

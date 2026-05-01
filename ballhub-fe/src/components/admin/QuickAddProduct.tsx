@@ -17,8 +17,9 @@ import axios from "@/lib/axios";
 import { ImagePickerModal } from "./ImagePickerModal";
 import { useFormOptions } from "@/lib/useFormOptions";
 import type { SelectOption } from "@/lib/useFormOptions";
+import { API_URL, API_BASE_URL, getImageUrl } from "@/config/env";
 
-const BACKEND = "http://localhost:8080";
+
 
 /* ─── Re-usable input ───────────────────────────────────────────────────────── */
 const InputGroup = ({
@@ -291,7 +292,7 @@ export const QuickAddProduct = () => {
         variantId: variantId
       };
       
-      const res = await axios.post(`${BACKEND}/api/admin/products/${createdProductId}/images`, payload, {
+      const res = await axios.post(`${API_URL}/admin/products/${createdProductId}/images`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -317,7 +318,7 @@ export const QuickAddProduct = () => {
     if (!confirm("Bạn có chắc chắn muốn xóa ảnh này?")) return;
     try {
       const token = localStorage.getItem("refreshToken");
-      await axios.delete(`${BACKEND}/api/admin/products/images/${imageId}`, {
+      await axios.delete(`${API_URL}/admin/products/images/${imageId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
@@ -523,7 +524,7 @@ export const QuickAddProduct = () => {
                                     {(localVariantImages[variantId] || []).map((img, i) => (
                                       <div key={img.imageId} className="relative w-8 h-8 rounded shrink-0 border border-slate-200 overflow-hidden group/img">
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={`${BACKEND}${img.imageUrl}`} alt="thumb" className="w-full h-full object-cover" />
+                                        <img src={getImageUrl(img.imageUrl)} alt="thumb" className="w-full h-full object-cover" />
                                         <button
                                           type="button"
                                           onClick={() => handleDeleteImage(variantId, img.imageId)}
@@ -641,7 +642,7 @@ export const QuickAddProduct = () => {
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={`${BACKEND}${img.imageUrl}`}
+                      src={getImageUrl(img.imageUrl)}
                       alt="product image"
                       className="w-full h-full object-cover"
                     />
