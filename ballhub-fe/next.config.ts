@@ -26,6 +26,14 @@ const nextConfig = {
     // Bật unoptimized cho toàn bộ các môi trường để đảm bảo ảnh từ backend luôn hiển thị tốt
     unoptimized: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${apiUrl}/api/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
