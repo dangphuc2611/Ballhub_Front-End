@@ -67,7 +67,8 @@ export default function ProductDetailPage() {
 
         setProduct(p);
 
-        setActiveImage(getImageUrl(main));
+        const mainImg = p.images?.find((img: any) => img.isMain)?.imageUrl || p.images?.[0]?.imageUrl;
+        setActiveImage(getImageUrl(mainImg));
       } catch (e) {
         console.error("❌ Load product failed", e);
         toast.error("Không thể tải thông tin sản phẩm");

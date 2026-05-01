@@ -2,7 +2,7 @@
 
 import Breadcrumb from "@/components/ui/breadcrumb";
 import { ProductCardSkeleton } from "@/components/sections/ProductCardSkeleton";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Header } from "@/components/sections/Header";
 import { Footer } from "@/components/sections/Footer";
@@ -10,9 +10,7 @@ import { ProductCard } from "@/components/sections/ProductCard";
 import type { Product } from "@/types/product";
 import { API_URL, getImageUrl } from "@/config/env";
 
-
-
-export default function ProductsPage() {
+function ProductsContent() {
   const searchParams = useSearchParams();
   const keyword = searchParams.get("search")?.trim() || "";
 
@@ -418,5 +416,13 @@ export default function ProductsPage() {
 
       <Footer />
     </main>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ProductsContent />
+    </Suspense>
   );
 }

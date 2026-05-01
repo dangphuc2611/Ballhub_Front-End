@@ -21,9 +21,10 @@ interface ImagePickerModalProps {
   onConfirm: (selectedUrls: string[], setFirstAsMain: boolean) => void;
   onClose: () => void;
   title?: string; // Tên hiển thị thêm context, vd: "Đang chọn ảnh cho: Size 40 / Đỏ"
+  multiple?: boolean;
 }
 
-export const ImagePickerModal = ({ onConfirm, onClose, title }: ImagePickerModalProps) => {
+export const ImagePickerModal = ({ onConfirm, onClose, title, multiple = true }: ImagePickerModalProps) => {
   const [allImages, setAllImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,11 +81,17 @@ export const ImagePickerModal = ({ onConfirm, onClose, title }: ImagePickerModal
   const toggle = useCallback((url: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(url)) next.delete(url);
-      else next.add(url);
+      if (next.has(url)) {
+        next.delete(url);
+      } else {
+        if (!multiple) {
+          next.clear();
+        }
+        next.add(url);
+      }
       return next;
     });
-  }, []);
+  }, [multiple]);
 
   const selectAll = () => setSelected(new Set(visibleImages));
   const clearAll = () => setSelected(new Set());

@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import api from "@/lib/axios";
 import { getImageUrl } from "@/config/env";
+import { Product } from "@/types/product/product";
 
 interface ProductCardProps {
   product: Product;
