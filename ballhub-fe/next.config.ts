@@ -1,11 +1,11 @@
 /** @type {import('next').NextConfig} */
-const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://ballhub-backend-production.up.railway.app";
 let url;
 
 try {
   url = new URL(apiUrl);
 } catch (e) {
-  url = new URL("http://localhost:8080");
+  url = new URL("https://ballhub-backend-production.up.railway.app");
 }
 
 const nextConfig = {
