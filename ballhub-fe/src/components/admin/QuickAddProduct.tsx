@@ -292,7 +292,7 @@ export const QuickAddProduct = () => {
         variantId: variantId
       };
       
-      const res = await axios.post(`${API_URL}/admin/products/${createdProductId}/images`, payload, {
+      const res = await axios.post(`/admin/products/${createdProductId}/images`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -318,7 +318,7 @@ export const QuickAddProduct = () => {
     if (!confirm("Bạn có chắc chắn muốn xóa ảnh này?")) return;
     try {
       const token = localStorage.getItem("refreshToken");
-      await axios.delete(`${API_URL}/admin/products/images/${imageId}`, {
+      await axios.delete(`/admin/products/images/${imageId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
