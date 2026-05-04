@@ -51,6 +51,12 @@ export default function ProfileForm() {
   const handleOpenConfirm = () => {
     if (!profile.fullName?.trim()) return toast.error("Họ tên không được để trống");
     if (!profile.phone?.trim()) return toast.error("Số điện thoại không được để trống");
+
+    const phoneRegex = /^0\d{9}$/;
+    if (!phoneRegex.test(profile.phone)) {
+      return toast.error("Số điện thoại không hợp lệ (Phải bắt đầu bằng 0 và có 10 chữ số)");
+    }
+
     setShowConfirmModal(true);
   };
 
@@ -142,7 +148,12 @@ export default function ProfileForm() {
               <label className="text-sm font-semibold text-gray-600 uppercase tracking-wider">Số điện thoại</label>
               <input
                 value={profile?.phone || ""}
-                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, ""); // Chỉ cho phép nhập số
+                  if (val.length <= 10) {
+                    setProfile({ ...profile, phone: val });
+                  }
+                }}
                 placeholder="Số điện thoại liên hệ"
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none transition-all shadow-sm"
               />
